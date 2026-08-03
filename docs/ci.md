@@ -22,10 +22,12 @@ least privilege, and only invoke the app-owned commands.
 
 An `egui-tester` X11 runner must provide Bubblewrap, Xauth, a normalized
 read-only lavapipe root, and a canonical `systemd --user` manager with a D-Bus
-socket at `/run/user/$UID/bus`. A disposable hosted runner may raise that
-manager and project its distribution's multiarch Mesa package into the
-harness's fixed software-Vulkan layout during workflow setup. Do not add a
-containment-free harness mode merely to accommodate deficient CI.
+socket at `/run/user/$UID/bus`; its kernel must admit the unprivileged
+namespaces used by the systemd and Bubblewrap sandboxes. A disposable hosted
+runner may enable those namespaces, raise that manager, and project its
+distribution's multiarch Mesa package into the harness's fixed
+software-Vulkan layout during workflow setup. Do not add a containment-free
+harness mode merely to accommodate deficient CI.
 
 Uninstall removes application-owned machinery. Projects and user-owned data
 survive unless the product separately defines and tests an explicit purge.
