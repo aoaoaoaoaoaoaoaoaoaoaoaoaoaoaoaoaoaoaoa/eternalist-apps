@@ -20,11 +20,12 @@ pass or excuse production latency budgets; those run on a named
 representative-host coordinate. Third-party actions are commit-pinned, receive
 least privilege, and only invoke the app-owned commands.
 
-An `egui-tester` X11 runner must provide Bubblewrap, Xauth, software Vulkan,
-and a canonical `systemd --user` manager with a D-Bus socket at
-`/run/user/$UID/bus`. A disposable hosted runner may raise that manager during
-workflow setup. Do not add a containment-free harness mode merely to
-accommodate deficient CI.
+An `egui-tester` X11 runner must provide Bubblewrap, Xauth, a normalized
+read-only lavapipe root, and a canonical `systemd --user` manager with a D-Bus
+socket at `/run/user/$UID/bus`. A disposable hosted runner may raise that
+manager and project its distribution's multiarch Mesa package into the
+harness's fixed software-Vulkan layout during workflow setup. Do not add a
+containment-free harness mode merely to accommodate deficient CI.
 
 Uninstall removes application-owned machinery. Projects and user-owned data
 survive unless the product separately defines and tests an explicit purge.
