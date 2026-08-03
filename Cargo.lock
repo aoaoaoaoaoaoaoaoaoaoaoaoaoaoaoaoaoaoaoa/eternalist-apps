@@ -398,7 +398,7 @@ dependencies = [
 [[package]]
 name = "egui-tester-witness"
 version = "0.6.0"
-source = "git+https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester?rev=5c2d1a197076c740e6d51a84b3260a7faacad0a1#5c2d1a197076c740e6d51a84b3260a7faacad0a1"
+source = "git+https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester?rev=ea7308a50cc8029ad807377b71c3aec8f5c95a57#ea7308a50cc8029ad807377b71c3aec8f5c95a57"
 dependencies = [
  "egui",
  "rustix 1.1.4",
