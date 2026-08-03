@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+command -v cargo-audit >/dev/null || {
+  printf 'cargo-audit is required\n' >&2
+  exit 1
+}
+cargo audit --deny warnings

@@ -1,0 +1,74 @@
+[package]
+name = "eternalist-apps"
+version = "0.1.0"
+description = "Native egui application shell and opt-in workbench layout for the Eternalist fleet."
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/eternalist-apps"
+rust-version = "1.96"
+keywords = ["egui", "wgpu", "winit", "desktop"]
+categories = ["gui"]
+
+[features]
+egui-test = [
+  "dep:egui-tester-witness",
+  "dep:serde",
+  "dwemer_poolrooms/instrumentation",
+]
+
+[dependencies]
+anyhow = "1.0.102"
+dwemer_poolrooms = "0.7.0"
+egui = "=0.34.3"
+egui-wgpu = "=0.34.3"
+egui-winit = { version = "=0.34.3", default-features = false, features = ["x11"] }
+pollster = "0.4.0"
+serde = { version = "1.0.228", features = ["derive"], optional = true }
+tracing = "0.1.44"
+tracing-chrome = "0.7.2"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"] }
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "x11"] }
+
+[dependencies.egui-tester-witness]
+git = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester"
+rev = "ab7d3924782d2576ae34ce3baa7e8e54de96ef40"
+version = "0.6.0"
+optional = true
+features = ["egui"]
+
+[lints.rust]
+warnings = "deny"
+elided_lifetimes_in_paths = "deny"
+unexpected_cfgs = "deny"
+unsafe_code = "deny"
+unused_crate_dependencies = "warn"
+unused_lifetimes = "deny"
+unused_qualifications = "deny"
+
+[lints.rustdoc]
+bare_urls = "deny"
+broken_intra_doc_links = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -2 }
+pedantic = { level = "deny", priority = -1 }
+cargo = { level = "warn", priority = -3 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+multiple_crate_versions = "allow"
+
+[package.metadata.rust-starter]
+format_command = ["cargo", "fmt", "--all", "--check"]
+clippy_command = ["cargo", "clippy", "--all-targets", "--all-features"]
+test_command = ["cargo", "test", "--all-targets", "--all-features"]
+doc_command = ["cargo", "doc", "--all-features", "--no-deps"]
+canonicalize_commands = [
+  ["cargo", "fix", "--all-targets", "--all-features", "--allow-dirty", "--allow-staged", "--allow-no-vcs"],
+  ["cargo", "clippy", "--fix", "--all-targets", "--all-features", "--allow-dirty", "--allow-staged", "--allow-no-vcs"],
+  ["cargo", "fmt", "--all"],
+]
+
+[package.metadata.rust-starter.source_files]
+max_lines = 3000
+include = ["*.rs", "**/*.rs"]
+exclude = []

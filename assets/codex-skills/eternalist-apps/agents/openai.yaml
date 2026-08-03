@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eternalist Apps"
+  short_description: "Build austere native egui applications"
+  default_prompt: "Use $eternalist-apps to create or retrofit an Eternalist-style native egui application."
