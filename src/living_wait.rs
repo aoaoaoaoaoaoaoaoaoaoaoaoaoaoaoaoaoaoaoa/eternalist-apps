@@ -1,7 +1,10 @@
 //! One-frame arbitration for Poolrooms' animated waiting raft.
 
-use dwemer_poolrooms::water::Surface;
-use egui::{Context, Rect};
+use dwemer_poolrooms::{chrome, water::Surface};
+use egui::{Context, Rect, Stroke, StrokeKind, Vec2};
+
+const BOUNCER_WIDTH: f32 = 250.0;
+const BOUNCER_HEIGHT: f32 = 150.0;
 
 /// The single living waiting region admitted by one Poolrooms surface.
 ///
@@ -14,6 +17,27 @@ pub struct LivingWait {
 }
 
 impl LivingWait {
+    /// Paint and claim the standard central loading bouncer.
+    ///
+    /// The card is ordinary Poolrooms chrome; [`Self::compose`] couples its
+    /// rectangle to the animated waiting raft later in the same frame.
+    pub fn bouncer(&mut self, ui: &mut egui::Ui, arena: Rect) -> Rect {
+        let rect = bouncer_rect(arena);
+        self.claim(rect);
+        let painter = ui.painter();
+        let _fill = painter.rect_filled(rect, 2.0, chrome::SURFACE);
+        let _stroke = painter.rect_stroke(
+            rect,
+            2.0,
+            Stroke::new(1.0_f32, chrome::EDGE_STRONG),
+            StrokeKind::Inside,
+        );
+        let font = egui::FontId::new(37.0, egui::FontFamily::Proportional);
+        let galley = painter.layout_no_wrap("LOADING".to_owned(), font.clone(), chrome::HOT);
+        painter.galley(rect.center() - galley.size() * 0.5, galley, chrome::HOT);
+        rect
+    }
+
     /// Mark a visible widget or panel as waiting during the current frame.
     pub fn claim(&mut self, rect: Rect) {
         if !rect.is_positive() {
@@ -37,6 +61,14 @@ impl LivingWait {
             None => water.hide_loading(),
         }
     }
+}
+
+fn bouncer_rect(arena: Rect) -> Rect {
+    let size = Vec2::new(
+        BOUNCER_WIDTH.min((arena.width() - 24.0).max(120.0)),
+        BOUNCER_HEIGHT.min((arena.height() - 24.0).max(96.0)),
+    );
+    Rect::from_center_size(arena.center(), size)
 }
 
 fn area(rect: Rect) -> f32 {
@@ -81,5 +113,14 @@ mod tests {
         wait.claim(rect);
         assert_eq!(wait.claim.take(), Some(rect));
         assert_eq!(wait.claim.take(), None);
+    }
+
+    #[test]
+    fn bouncer_keeps_its_canonical_size_until_the_arena_contracts() {
+        let large = Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(900.0, 700.0));
+        assert_eq!(bouncer_rect(large).size(), egui::vec2(250.0, 150.0));
+
+        let narrow = Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(180.0, 110.0));
+        assert_eq!(bouncer_rect(narrow).size(), egui::vec2(156.0, 96.0));
     }
 }

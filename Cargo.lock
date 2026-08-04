@@ -398,7 +398,8 @@ dependencies = [
 [[package]]
 name = "egui-tester-witness"
 version = "0.6.0"
-source = "git+https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester?rev=ea7308a50cc8029ad807377b71c3aec8f5c95a57#ea7308a50cc8029ad807377b71c3aec8f5c95a57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "872f2c5043dbf4c5f24230a1587401313b4f72d7b4e746f69c94c5172096dd71"
 dependencies = [
  "egui",
  "rustix 1.1.4",

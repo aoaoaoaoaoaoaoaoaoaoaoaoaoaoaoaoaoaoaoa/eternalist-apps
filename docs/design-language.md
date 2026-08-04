@@ -26,3 +26,7 @@ must progress independently of repaint animation.
 Motion invalidates whole-frame pixel equality as a general test oracle. Test
 semantic readiness through a presented witness, then judge a bounded rendered
 feature with tolerance or a durable external effect.
+
+Use `LivingWait::bouncer` for a gallery-scale initial wait: it paints the
+standard central loading card and claims the same rectangle for Poolrooms'
+living raft. Smaller concurrent waits may continue to use `LivingWait::claim`.

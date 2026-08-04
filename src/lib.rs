@@ -19,6 +19,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
     time::{Duration, Instant},
 };
+use winit::platform::x11::{WindowAttributesExtX11 as _, WindowType};
 use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
@@ -43,12 +44,23 @@ macro_rules! main_phase {
 pub struct WindowSpec {
     pub title: &'static str,
     pub initial_size: [f64; 2],
+    pub floating: bool,
 }
 
 /// Main-thread wall-time obligations owned by the native product.
 #[derive(Clone, Copy, Debug)]
 pub struct ResponsivenessSpec {
     pub frame: Duration,
+}
+
+/// Product policy for a window-manager close request.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CloseDisposition {
+    /// End the native application.
+    #[default]
+    Exit,
+    /// Keep the application resident with its window concealed.
+    Hide,
 }
 
 impl ResponsivenessSpec {
@@ -66,7 +78,15 @@ impl WindowSpec {
         Self {
             title,
             initial_size,
+            floating: false,
         }
+    }
+
+    /// Ask X11 window managers to treat this application as a floating utility.
+    #[must_use]
+    pub const fn floating(mut self) -> Self {
+        self.floating = true;
+        self
     }
 }
 
@@ -82,6 +102,16 @@ pub trait NativeApp {
 
     /// Build one ordinary product UI frame.
     fn draw(&mut self, ui: &mut egui::Ui);
+
+    /// Decide what a window-manager close request means for this product.
+    fn close_requested(&mut self) -> CloseDisposition {
+        CloseDisposition::Exit
+    }
+
+    /// Report an explicit application exit requested outside the native window.
+    fn exit_requested(&self) -> bool {
+        false
+    }
 
     /// Commit work deliberately deferred until a successful surface present.
     fn after_present(&mut self) -> bool;
@@ -216,6 +246,12 @@ impl<A: NativeApp> Shell<A> {
             rig.input
                 .handle_platform_output(&rig.window, output.platform_output)
         );
+        if let Some(viewport) = output.viewport_output.get(&egui::ViewportId::ROOT) {
+            main_phase!(
+                "frame.viewport_commands",
+                rig.process_viewport_commands(&self.ctx, viewport.commands.iter().cloned())
+            );
+        }
         let primitives = main_phase!(
             "frame.tessellate",
             self.ctx.tessellate(output.shapes, output.pixels_per_point)
@@ -343,8 +379,11 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, _event: Spark) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, _event: Spark) {
         self.tend_alarm();
+        if self.app.exit_requested() {
+            event_loop.exit();
+        }
     }
 
     fn window_event(
@@ -371,7 +410,14 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
         .entered();
         match &event {
             WindowEvent::CloseRequested => {
-                event_loop.exit();
+                match self.app.close_requested() {
+                    CloseDisposition::Exit => event_loop.exit(),
+                    CloseDisposition::Hide => {
+                        if let Some(rig) = &self.rig {
+                            rig.window.set_visible(false);
+                        }
+                    }
+                }
                 return;
             }
             WindowEvent::RedrawRequested => {
@@ -434,13 +480,15 @@ impl Rig {
     )]
     fn raise<A: NativeApp>(event_loop: &ActiveEventLoop, ctx: &egui::Context) -> Result<Self> {
         let [width, height] = A::WINDOW.initial_size;
+        let mut attributes = WindowAttributes::default()
+            .with_title(A::WINDOW.title)
+            .with_inner_size(LogicalSize::new(width, height));
+        if A::WINDOW.floating {
+            attributes = attributes.with_x11_window_type(vec![WindowType::Dialog]);
+        }
         let window = Arc::new(
             event_loop
-                .create_window(
-                    WindowAttributes::default()
-                        .with_title(A::WINDOW.title)
-                        .with_inner_size(LogicalSize::new(width, height)),
-                )
+                .create_window(attributes)
                 .context("create window")?,
         );
         let input = egui_winit::State::new(
@@ -492,6 +540,21 @@ impl Rig {
         self.config.height = size.height;
         self.surface.configure(&self.gpu.device, &self.config);
         self.water.resize(&self.gpu.device, size.width, size.height);
+    }
+
+    fn process_viewport_commands(
+        &mut self,
+        ctx: &egui::Context,
+        commands: impl IntoIterator<Item = egui::ViewportCommand>,
+    ) {
+        let viewport = self
+            .input
+            .egui_input_mut()
+            .viewports
+            .entry(egui::ViewportId::ROOT)
+            .or_default();
+        let mut actions = Vec::new();
+        egui_winit::process_viewport_commands(ctx, viewport, commands, &self.window, &mut actions);
     }
 
     #[allow(
