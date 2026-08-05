@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.1.0"
+version = "0.1.1"
 description = "Native egui application shell and opt-in workbench layout for the Eternalist fleet."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -21,12 +21,16 @@ anyhow = "1.0.102"
 dwemer_poolrooms = "0.7.0"
 egui = "=0.34.3"
 egui-wgpu = "=0.34.3"
-egui-winit = { version = "=0.34.3", default-features = false, features = ["x11"] }
+egui-winit = { version = "=0.34.3", default-features = false }
 pollster = "0.4.0"
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 tracing = "0.1.44"
 tracing-chrome = "0.7.2"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"] }
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+egui-winit = { version = "=0.34.3", default-features = false, features = ["x11"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "x11"] }
 
 [dependencies.egui-tester-witness]

@@ -19,6 +19,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
     time::{Duration, Instant},
 };
+#[cfg(target_os = "linux")]
 use winit::platform::x11::{WindowAttributesExtX11 as _, WindowType};
 use winit::{
     application::ApplicationHandler,
@@ -480,12 +481,15 @@ impl Rig {
     )]
     fn raise<A: NativeApp>(event_loop: &ActiveEventLoop, ctx: &egui::Context) -> Result<Self> {
         let [width, height] = A::WINDOW.initial_size;
-        let mut attributes = WindowAttributes::default()
+        let attributes = WindowAttributes::default()
             .with_title(A::WINDOW.title)
             .with_inner_size(LogicalSize::new(width, height));
-        if A::WINDOW.floating {
-            attributes = attributes.with_x11_window_type(vec![WindowType::Dialog]);
-        }
+        #[cfg(target_os = "linux")]
+        let attributes = if A::WINDOW.floating {
+            attributes.with_x11_window_type(vec![WindowType::Dialog])
+        } else {
+            attributes
+        };
         let window = Arc::new(
             event_loop
                 .create_window(attributes)
