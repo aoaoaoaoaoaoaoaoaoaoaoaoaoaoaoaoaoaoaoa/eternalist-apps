@@ -31,3 +31,24 @@ harness mode merely to accommodate deficient CI.
 
 Uninstall removes application-owned machinery. Projects and user-owned data
 survive unless the product separately defines and tests an explicit purge.
+
+## Shared Release Law
+
+A shared package release is an exact source claim. Publication is admitted only
+from a clean, tagged checkout after the package's source gate, `cargo package
+--locked`, and every registered downstream head canary pass. The manifest
+version, tag, packaged metadata, and Git commit must identify the same source.
+`--allow-dirty` is forbidden.
+
+Foundational releases proceed in dependency order:
+
+```text
+Dwemer Poolrooms and egui-tester witness/controller
+→ eternalist-apps
+→ grouped application lockfile updates
+```
+
+Application manifests use released compatible ranges; checked-in lockfiles and
+the fleet cohort record supply exact reproducibility. A release bot may update
+locks, but it may not publish a shared layer before its consumers compile and
+their affected stories pass against that exact candidate.

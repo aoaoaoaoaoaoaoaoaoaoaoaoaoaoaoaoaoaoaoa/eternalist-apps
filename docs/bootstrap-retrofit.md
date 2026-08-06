@@ -1,7 +1,7 @@
 # Retrofit
 
-Retrofitting preserves product behavior while replacing duplicated host
-machinery.
+Retrofitting preserves product behavior while replacing duplicated lifecycle
+and promoting high-level logical primitives whose reuse law is already proved.
 
 1. Read the existing event loop, render graph, water composition, repaint
    scheduling, close behavior, GPU callback resources, instrumentation, and
@@ -22,9 +22,11 @@ machinery.
    probe publisher in the same migration. Compatibility husks are not a
    completed extraction.
 
-Adopt `Inspector` separately. A host migration neither requires nor excuses a
-panel reorganization. Use the primitive only if the existing product already
-has the same persistent-left-rail semantics.
+After lifecycle parity, inventory the product's logical managers, menus,
+storage surfaces, and layout assemblies against existing Eternalist
+primitives. Adopt a primitive only where behavior already agrees or the product
+deliberately chooses the shared law. A host migration neither requires nor
+excuses an unrelated panel reorganization.
 
 If the application must circumvent the host to preserve behavior, stop. Either
 the product has uncovered a missing general law or the proposed sharing

@@ -1,19 +1,22 @@
 # Eternalist Apps
 
-`eternalist-apps` is the thin native host shared by Eternalist-style egui
-applications. It owns the winit event loop, egui/wgpu surface lifecycle,
-Dwemer Poolrooms water composition, responsiveness trace spine, and optional
-post-present `egui-tester` witness publication.
+`eternalist-apps` is the shared application kit for Eternalist-style egui
+products. It owns the native winit/egui/wgpu lifecycle and the reusable
+high-level primitives from which applications acquire a uniform interaction
+grammar: inspectors, living waits, managers, menus, storage surfaces, and other
+logical assemblies once their common law has been proved.
 
-The crate also supplies an optional fixed-width [`Inspector`] rail. Applications
-without a left inspector do not construct one and inherit no panel policy.
-Poolrooms remains the visual and physical primitive library; product
-repositories retain their domain model, UI, persistence, contracts, fixtures,
-and acceptance stories.
+Dwemer Poolrooms remains the independently usable low-level visual and physical
+substrate. It owns buttons, rollers, sliders, tiles, frames, material response,
+and living water. Eternalist primitives compose Poolrooms mechanisms; Poolrooms
+never depends on Eternalist. Products retain their domain model, workers,
+product persistence projections, contracts, fixtures, oracles, and any UI whose
+reuse law has not yet earned promotion.
 
-Trailgen is the first proving adopter. HRRR and Adequate Booru Viewer are the
-next intended migrations; their needs, rather than speculation, govern later
-extraction.
+The north star is an application written as thin, explicit domain glue over
+typed Eternalist primitives and verified from outside through `egui-tester`.
+Raw egui and Poolrooms remain lawful escape hatches: the kit supplies a
+library-shaped DSL, not a registry-shaped framework.
 
 ## Adoption
 
@@ -37,8 +40,9 @@ scripts/check
 scripts/audit
 ```
 
-The library compiles and tests its own laws. A native product adopter must
-also exercise the host through its optimized black-box acceptance stories.
+The library compiles and tests its own laws. A native product adopter must also
+exercise lifecycle and high-level primitives through its optimized black-box
+acceptance stories.
 
 ## License
 

@@ -356,9 +356,9 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
 name = "dwemer_poolrooms"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "163460f6715bc0f6d791c98b4d0580ca47ee1644b16d694f746007ce27246b21"
+checksum = "aaaf78038b19c175b1cfcbafb297f460d3e7c21437c3edfbd3e031a1716ff0a2"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "eternalist-apps"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dwemer_poolrooms",

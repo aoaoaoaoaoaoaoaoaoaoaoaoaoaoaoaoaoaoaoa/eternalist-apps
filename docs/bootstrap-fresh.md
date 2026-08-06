@@ -85,7 +85,14 @@ fn run(app: App) -> anyhow::Result<()> {
 The application owns construction and publication. The host never discovers
 product paths, starts domain workers, or chooses first-run behavior.
 
-## 4. Add An Inspector Only When Earned
+## 4. Compose Proved Application Primitives
+
+Begin with the Eternalist primitives that match the product's actual logical
+structure. Use raw egui and Poolrooms directly where no shared law exists; do
+not invent a generic primitive from a single product merely to make its entry
+point shorter.
+
+Add an inspector only when the product has persistent-left-rail semantics:
 
 ```rust
 let inspector = eternalist_apps::Inspector::new("product-inspector")

@@ -1,6 +1,6 @@
 ---
 name: eternalist-apps
-description: Bootstrap, retrofit, verify, or release an Eternalist-style native Rust egui application using eternalist-apps, Dwemer Poolrooms, egui-tester, XDG product conduct, responsiveness doctrine, and capability-honest CI. Use when creating a new Eternalist app, migrating an existing egui/wgpu/winit app onto the shared host, adding the standard optional inspector layout, establishing native user-story acceptance tests, or preparing an app for fleet conformance and release.
+description: Bootstrap, retrofit, verify, or release an Eternalist-style Rust egui application using eternalist-apps lifecycle and high-level UI primitives, Dwemer Poolrooms physical controls and water, egui-tester, XDG product conduct, responsiveness doctrine, and capability-honest CI. Use when creating an Eternalist app, migrating duplicated lifecycle or logical application primitives, establishing native user-story acceptance tests, or preparing an app for fleet conformance and release.
 ---
 
 # Eternalist Apps
@@ -28,7 +28,8 @@ Read [fresh bootstrap](../../../docs/bootstrap-fresh.md),
 
 - declare product-owned data, XDG artifacts, platform coordinates, and first
   useful publication;
-- compose the product through `NativeApp` and Poolrooms directly;
+- compose the product through `NativeApp`, proved Eternalist application
+  primitives, and Poolrooms directly where no high-level law exists;
 - add `Inspector` only when persistent left-side controls or libraries earn it;
 - keep corpus-scale work and durable writes off the event loop;
 - create a dependency-light product contract plus product-owned acceptance
@@ -48,8 +49,10 @@ branch is a failed extraction.
 
 - The GUI is the product frontend. A CLI, when present, is a debug frontend
   over the same engine.
-- Poolrooms owns visual and physical primitives. `eternalist-apps` owns native
-  host mechanics and optional macroscopic layout, not application chrome.
+- Poolrooms owns independently usable low-level physical GUI mechanisms and
+  water. `eternalist-apps` owns native lifecycle and reusable high-level
+  logical application primitives. Eternalist may compose Poolrooms; Poolrooms
+  must never depend on Eternalist.
 - Product repositories own domain contracts, state, fixtures, oracles, and
   acceptance stories.
 - Witnesses synchronize; external effects and rendered evidence judge.
@@ -57,8 +60,10 @@ branch is a failed extraction.
   stillness as readiness.
 - X11 is the sole current native coordinate. Do not imply Wayland, macOS, or
   Windows support from compilation.
-- Do not extract a mechanism because it may become useful. Require a proved
-  law and a live adopter, then delete every local rival.
+- Promote a logical primitive after two applications prove the same law and a
+  further reuse is evident, or after three applications use it identically.
+  Require executable evidence, migrate every adopter, and delete every local
+  rival.
 - Do not impose an inspector, bottom shelf, tray, project model, cartography,
   or persistence scheme on an app whose product ontology does not require it.
 

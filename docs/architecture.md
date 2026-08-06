@@ -1,20 +1,31 @@
 # Architecture
 
-`eternalist-apps` owns a native process boundary, not an application
-framework. Its public laws are deliberately few.
+`eternalist-apps` owns the common application grammar for the Eternalist fleet:
+native lifecycle plus reusable high-level logical UI primitives. Its north star
+is a product whose GUI is thin, explicit domain glue over these primitives and
+whose behavior is verified externally through `egui-tester`.
+
+This is a library-shaped DSL, not a total application schema. Products may
+always descend to raw egui or Poolrooms when no shared law exists.
 
 ## Ownership
 
 | Owner | Responsibility |
 | --- | --- |
-| application | domain model, commands, project state, persistence, background work, product UI, fixtures, oracles, and acceptance stories |
-| `eternalist-apps` | native event loop, window and surface lifecycle, egui/wgpu submission, Poolrooms water composition, post-present witness publication, trace spine, and opt-in inspector geometry |
-| Dwemer Poolrooms | fonts, palette, widgets, chrome, water primitives, and physical response |
+| application | domain model, commands, workers, product persistence projections, unpromoted UI, fixtures, oracles, and acceptance stories |
+| `eternalist-apps` | native lifecycle and reusable logical application primitives: inspectors, managers, menus, storage interactions, loading assemblies, and other proved application-scale state machines |
+| Dwemer Poolrooms | independently usable low-level physical GUI: geometry, material, buttons, rollers, sliders, tiles, frames, intrinsic control interaction, and water response |
 | `egui-tester` | process containment, native input, capture, synchronization, timing, and failure artifacts |
 | product contract crate | dependency-light semantic names and wire values shared by the GUI and its acceptance executable |
 
-Applications may depend directly on Poolrooms. The host must not wrap every
-visual primitive or prevent application-specific flourish.
+Ownership follows the governing invariant, not the everyday noun. Poolrooms
+owns how a menu actuator is embodied; Eternalist owns the menu's logical model,
+routing, storage, and placement. Eternalist may depend on Poolrooms. Poolrooms
+must never depend on Eternalist and must remain sufficient for unrelated native
+or WebGPU applications that use another application grammar.
+
+Applications may depend directly on Poolrooms. Eternalist must not wrap every
+physical mechanism or prevent product-specific composition.
 
 ## Native Seam
 
@@ -32,27 +43,51 @@ behavior only. An application chooses whether it exists, what it contains,
 which sections are open, how state persists, and how scrolling agitates water.
 A canvas-only application uses no inspector API.
 
+## Application Primitives
+
+A high-level primitive owns one reusable logical interaction law. It accepts
+explicit state and dependencies, composes Poolrooms mechanisms, emits standard
+witness anchors, and returns typed responses or actions for the product to
+interpret. It may own persistence-neutral UI state. It does not call domain
+commands, discover product services, or dictate a product storage schema.
+
+Primitives are ordinary modules in this crate by default. A new crate is
+justified only by a materially different dependency universe, target claim, or
+release authority, not by the existence of another reusable widget.
+
+No global panel registry, service locator, declarative product schema, or
+closed inventory of application roles is admitted. Shared primitives must
+remain independently composable with raw egui, Poolrooms, and product-local UI.
+
 ## Promotion Law
 
-Shared code crosses this repository boundary only through:
+Shared code crosses this repository boundary through either promotion gate:
+
+1. Two applications use the primitive with the same behavioral and failure
+   law, and a further independent reuse is plainly expected.
+2. Three applications use the primitive identically, whether or not that reuse
+   was predicted.
+
+The complete promotion is:
 
 ```text
 incubate in an application
-→ prove with executable evidence
-→ encounter another live consumer
+→ prove the common behavioral and failure law with executable evidence
+→ satisfy a promotion gate
 → state the common law
 → extract
 → migrate every adopter
 → delete every local rival
 ```
 
-Structural resemblance is insufficient. Do not add general helpers, domain
-widgets, cartography, contract macros, capability registries, or panel
-archetypes until a second adopter proves the same semantics and failure
-contract.
+Structural resemblance is insufficient. Product nouns and speculative options
+remain local. A promoted primitive is the smallest law common to its adopters,
+not a configurable memorial of every local variation.
 
 ## Platform Coordinate
 
-Linux/X11 is the sole current native coordinate. Wayland, macOS, Windows,
+Linux/X11 is the sole current native-host coordinate. Wayland, macOS, Windows,
 multi-window orchestration, tray behavior, and native dialogs remain outside
-the crate's claim until a product needs and proves them.
+that claim until a product needs and proves them. Logical UI primitives should
+not acquire native assumptions merely because they share a release with the
+host.

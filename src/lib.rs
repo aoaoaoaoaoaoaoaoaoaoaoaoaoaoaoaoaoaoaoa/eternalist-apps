@@ -1,8 +1,11 @@
-//! Native host and opt-in macroscopic layout for Eternalist egui applications.
+//! Native lifecycle and reusable high-level application primitives for the
+//! Eternalist egui fleet.
 //!
-//! This crate owns only the winit, egui, wgpu, Poolrooms-water, responsiveness,
-//! and optional post-present witness lifecycle. Product chrome, domain state,
-//! persistence, and acceptance stories remain in the application.
+//! It owns the winit, egui, wgpu, Poolrooms-water, responsiveness, and optional
+//! post-present witness lifecycle together with proved logical UI assemblies.
+//! Dwemer Poolrooms owns low-level physical embodiment. Product domain state,
+//! workers, persistence projections, fixtures, oracles, and acceptance stories
+//! remain in the application repository.
 
 pub mod inspector;
 pub mod living_wait;
