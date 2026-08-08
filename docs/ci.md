@@ -1,54 +1,32 @@
 # CI And Release Evidence
 
-CI schedules app-owned evidence; workflow YAML does not own product law. A
-native product exposes complete local commands for:
+CI schedules this crate's own executable evidence; workflow YAML does not
+invent additional capability. The canonical commands remain runnable locally.
 
-| Unit | Obligation |
-| --- | --- |
-| source | format, strict lints, unit and integration behavior, documentation |
-| security | locked dependency audit with explicit policy |
-| lifecycle | install into a sterile non-default prefix, inert public probes, native launch smoke, documented uninstall, and proof of removal |
-| native acceptance | optimized black-box user stories on every release-tested GUI coordinate |
+| Gate | Evidence | Claim |
+| --- | --- | --- |
+| `scripts/check` | formatting, strict native all-target/all-feature lints, browser-target linting, tests, warning-free rustdoc, release WebAssembly compilation, and browser-bundle integrity | the checked source and documented package surface cohere |
+| platform jobs | ordinary host compilation and tests on Linux, macOS, and Windows | portability regressions are caught; runtime support is not implied |
+| `scripts/audit` | the locked dependency graph against the checked policy | known dependency advisories are adjudicated |
+| `cargo package --locked` | the exact publishable archive and its dependency resolution | crates.io receives the intended source, examples, and documentation |
 
-Declare release-tested, supported, and unclaimed platform sets before writing
-a matrix. Jobs exist only for claimed capabilities. An OS, window system,
-installer, archive, updater, tray, dialog, or package manager requires evidence
-that can falsify that claim.
+The WebGPU gate proves that the renderer-neutral primitives, atelier host, and
+static browser artifact compile together. Hosted CI does not turn that design
+surface into a supported web application host or prove hardware rendering.
 
-Hosted software graphics may run deterministic functional stories. It cannot
-pass or excuse production latency budgets; those run on a named
-representative-host coordinate. Third-party actions are commit-pinned, receive
-least privilege, and only invoke the app-owned commands.
+This repository does not own product installation, uninstallation, XDG
+persistence, workers, latency budgets, or black-box user stories. An adopting
+application proves those obligations in its own repository according to
+[Native Verification](verification.md). Compilation on a matrix coordinate
+does not create a platform claim.
 
-An `egui-tester` X11 runner must provide Bubblewrap, Xauth, a normalized
-read-only lavapipe root, and a canonical `systemd --user` manager with a D-Bus
-socket at `/run/user/$UID/bus`; its kernel must admit the unprivileged
-namespaces used by the systemd and Bubblewrap sandboxes. A disposable hosted
-runner may enable those namespaces, raise that manager, and project its
-distribution's multiarch Mesa package into the harness's fixed
-software-Vulkan layout during workflow setup. Do not add a containment-free
-harness mode merely to accommodate deficient CI.
+## Library Releases
 
-Uninstall removes application-owned machinery. Projects and user-owned data
-survive unless the product separately defines and tests an explicit purge.
+A release identifies one exact source commit. Publish only from a clean,
+tagged checkout after `scripts/check`, `scripts/audit`, and `cargo package
+--locked` pass. The manifest version, tag, packaged metadata, and Git commit
+must identify the same source. `--allow-dirty` is forbidden.
 
-## Shared Release Law
-
-A shared package release is an exact source claim. Publication is admitted only
-from a clean, tagged checkout after the package's source gate, `cargo package
---locked`, and every registered downstream head canary pass. The manifest
-version, tag, packaged metadata, and Git commit must identify the same source.
-`--allow-dirty` is forbidden.
-
-Foundational releases proceed in dependency order:
-
-```text
-Dwemer Poolrooms and egui-tester witness/controller
-→ eternalist-apps
-→ grouped application lockfile updates
-```
-
-Application manifests use released compatible ranges; checked-in lockfiles and
-the fleet cohort record supply exact reproducibility. A release bot may update
-locks, but it may not publish a shared layer before its consumers compile and
-their affected stories pass against that exact candidate.
+Publication claims only that this package satisfies its documented contract.
+Applications adopt a release deliberately and prove the resulting product
+through their own source, lifecycle, and acceptance gates.

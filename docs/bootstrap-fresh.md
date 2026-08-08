@@ -21,8 +21,8 @@ Apply `$rust-bootstrap`. Depend on one coherent generation of `egui`,
 uses Poolrooms controls.
 
 Start with the narrowest platform feature set actually claimed. The current
-fleet coordinate disables egui-winit and winit default features and enables
-X11 explicitly.
+Linux/X11 host coordinate disables egui-winit and winit default features, then
+enables X11 explicitly.
 
 ## 3. Implement The Native Seam
 
@@ -105,6 +105,14 @@ self.water.heave(ui.ctx(), inspector.scroll_offset);
 Use Poolrooms sections inside the body when disclosure is useful. The
 application owns section order and persistence. Do not create an empty or
 ceremonial inspector.
+
+Adopt `Cabinet` only for a genuine persistent, reorderable, one-level shelved
+collection. Project product storage into `Cabinet::forge`, retain the returned
+`CabinetShelfEdit` between frames, and apply `CabinetAction` values through
+domain methods. Choose `show_renamable` and retain `CabinetEntryEdit` only when
+the product admits entry renaming; the ordinary `show` surface does not expose
+that affordance. Enable the crate's `serde` feature only when direct cabinet
+serialization is the honest product projection.
 
 ## 5. Prove The Product
 

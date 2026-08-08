@@ -1,7 +1,7 @@
 [package]
 name = "eternalist-apps"
-version = "0.2.0"
-description = "Native egui lifecycle and reusable high-level UI primitives for the Eternalist fleet."
+version = "0.3.0"
+description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/eternalist-apps"
@@ -9,21 +9,27 @@ rust-version = "1.96"
 keywords = ["egui", "wgpu", "winit", "desktop"]
 categories = ["gui"]
 
+[package.metadata.docs.rs]
+all-features = true
+
 [features]
 egui-test = [
   "dep:egui-tester-witness",
-  "dep:serde",
+  "serde",
   "dwemer_poolrooms/instrumentation",
 ]
+serde = ["dep:serde"]
 
 [dependencies]
-anyhow = "1.0.102"
-dwemer_poolrooms = "0.8.0"
+dwemer_poolrooms = "0.9.0"
 egui = "=0.34.3"
+serde = { version = "1.0.228", features = ["derive"], optional = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+anyhow = "1.0.102"
 egui-wgpu = "=0.34.3"
 egui-winit = { version = "=0.34.3", default-features = false }
 pollster = "0.4.0"
-serde = { version = "1.0.228", features = ["derive"], optional = true }
 tracing = "0.1.44"
 tracing-chrome = "0.7.2"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"] }
@@ -33,10 +39,27 @@ winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 egui-winit = { version = "=0.34.3", default-features = false, features = ["x11"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "x11"] }
 
-[dependencies.egui-tester-witness]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.egui-tester-witness]
 version = "0.6.0"
 optional = true
 features = ["egui"]
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+anyhow = "1.0.102"
+console_error_panic_hook = "0.1.7"
+egui-winit = { version = "=0.34.3", default-features = false }
+wasm-bindgen = "=0.2.126"
+wasm-bindgen-futures = "=0.4.76"
+web-time = "1.1.0"
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
+web-sys = { version = "=0.3.103", features = [
+  "Document",
+  "Element",
+  "HtmlCanvasElement",
+  "Node",
+  "Window",
+  "console",
+] }
 
 [lints.rust]
 warnings = "deny"
@@ -64,6 +87,7 @@ format_command = ["cargo", "fmt", "--all", "--check"]
 clippy_command = ["cargo", "clippy", "--all-targets", "--all-features"]
 test_command = ["cargo", "test", "--all-targets", "--all-features"]
 doc_command = ["cargo", "doc", "--all-features", "--no-deps"]
+web_command = ["scripts/web-atelier", "check"]
 canonicalize_commands = [
   ["cargo", "fix", "--all-targets", "--all-features", "--allow-dirty", "--allow-staged", "--allow-no-vcs"],
   ["cargo", "clippy", "--fix", "--all-targets", "--all-features", "--allow-dirty", "--allow-staged", "--allow-no-vcs"],

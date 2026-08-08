@@ -10,6 +10,14 @@ workers, product-specific persistence projections, or low-level physical GUI
 elements. Dwemer Poolrooms owns that visual and mechanical substrate and must
 remain independently usable without Eternalist, including through WebGPU.
 
+Read [README.md](README.md) before changing the public surface. Its Present
+Surface table is exhaustive: architectural examples of future primitive
+classes are not latent APIs. Keep repository documentation about this library's
+own telos and contracts; do not introduce cross-repository governance prose.
+Every renderer-neutral visual primitive must have one decisive tab in
+`examples/atelier.rs` that exercises the real public type and its meaningful
+states. Do not counterfeit a primitive or multiply cosmetic combinations.
+
 Before changing the host lifecycle or latency instrumentation, read
 [docs/responsiveness.md](docs/responsiveness.md). Before changing the public
 application seam or adding shared machinery, read

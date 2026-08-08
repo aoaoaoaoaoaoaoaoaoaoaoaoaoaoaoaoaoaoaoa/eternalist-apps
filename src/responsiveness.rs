@@ -14,7 +14,9 @@ use tracing_subscriber::{
     Layer as _, filter, layer::SubscriberExt as _, util::SubscriberInitExt as _,
 };
 
+/// Environment variable naming the Chrome-trace output path.
 pub const TRACE_PATH_ENV: &str = "ETERNALIST_TRACE";
+/// Optional positive trace duration in seconds; requires [`TRACE_PATH_ENV`].
 pub const TRACE_SECONDS_ENV: &str = "ETERNALIST_TRACE_SECONDS";
 const TRACE_TARGET_ROOT: &str = "eternalist";
 
@@ -24,7 +26,7 @@ pub struct TraceGuard {
 }
 
 impl TraceGuard {
-    /// Install the fleet trace collector when `ETERNALIST_TRACE` names a file.
+    /// Install the Eternalist trace collector when `ETERNALIST_TRACE` names a file.
     pub fn arm() -> Result<Self> {
         let Some(path) = std::env::var_os(TRACE_PATH_ENV) else {
             return Ok(Self { writer: None });
@@ -44,7 +46,7 @@ impl TraceGuard {
             .include_args(true)
             .include_locations(false)
             .build();
-        let fleet_only = filter::filter_fn(|metadata| {
+        let eternalist_only = filter::filter_fn(|metadata| {
             metadata.target() == TRACE_TARGET_ROOT
                 || metadata
                     .target()
@@ -52,7 +54,7 @@ impl TraceGuard {
                     .is_some_and(|suffix| suffix.starts_with("::"))
         });
         tracing_subscriber::registry()
-            .with(layer.with_filter(fleet_only))
+            .with(layer.with_filter(eternalist_only))
             .try_init()
             .context("install responsiveness trace collector")?;
         eprintln!("responsiveness trace: {}", path.display());

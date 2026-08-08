@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Eternalist Atelier">
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#18140f"/>
+      <stop offset="1" stop-color="#080706"/>
+    </linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f0cda1"/>
+      <stop offset="0.48" stop-color="#8e7d64"/>
+      <stop offset="1" stop-color="#4e4230"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#ground)"/>
+  <path d="M18 24h92v80H18z" fill="#110f0c" stroke="#8e7d64" stroke-width="3"/>
+  <path d="M18 24h92v20H18z" fill="#241e16"/>
+  <path d="M26 31h24v7H26zm30 0h31v7H56z" fill="#0d0c0a" stroke="#ebc597"/>
+  <path d="M18 44h29v60H18z" fill="#17130e" stroke="#4e4230"/>
+  <path d="M25 54h15M25 65h15M25 76h15M25 87h15" stroke="url(#brass)" stroke-width="4"/>
+  <g fill="#241e16" stroke="#8e7d64" stroke-width="2">
+    <path d="M57 55h19v17H57z"/>
+    <path d="M82 55h19v17H82z"/>
+    <path d="M57 80h19v17H57z"/>
+    <path d="M82 80h19v17H82z"/>
+  </g>
+  <path d="M60 59h13M85 59h13M60 84h13M85 84h13" stroke="#ebc597" stroke-width="3"/>
+</svg>

@@ -1,4 +1,7 @@
 //! One-frame arbitration for Poolrooms' animated waiting raft.
+//!
+//! This module owns visible-region selection only. It does not own task state,
+//! progress, cancellation, retry, errors, or worker lifetime.
 
 use dwemer_poolrooms::{chrome, water::Surface};
 use egui::{Context, Rect, Stroke, StrokeKind, Vec2};
@@ -22,6 +25,17 @@ impl LivingWait {
     /// The card is ordinary Poolrooms chrome; [`Self::compose`] couples its
     /// rectangle to the animated waiting raft later in the same frame.
     pub fn bouncer(&mut self, ui: &mut egui::Ui, arena: Rect) -> Rect {
+        self.bouncer_with(ui, arena, "LOADING")
+    }
+
+    /// Paint and claim the central bouncer with application-owned waiting
+    /// copy. Geometry, material, and physical arbitration remain canonical.
+    pub fn bouncer_with(
+        &mut self,
+        ui: &mut egui::Ui,
+        arena: Rect,
+        label: impl Into<String>,
+    ) -> Rect {
         let rect = bouncer_rect(arena);
         self.claim(rect);
         let painter = ui.painter();
@@ -33,7 +47,7 @@ impl LivingWait {
             StrokeKind::Inside,
         );
         let font = egui::FontId::new(37.0, egui::FontFamily::Proportional);
-        let galley = painter.layout_no_wrap("LOADING".to_owned(), font.clone(), chrome::HOT);
+        let galley = painter.layout_no_wrap(label.into(), font, chrome::HOT);
         painter.galley(rect.center() - galley.size() * 0.5, galley, chrome::HOT);
         rect
     }

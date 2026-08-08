@@ -1,6 +1,6 @@
 # Architecture
 
-`eternalist-apps` owns the common application grammar for the Eternalist fleet:
+`eternalist-apps` supplies an application grammar for Eternalist-style products:
 native lifecycle plus reusable high-level logical UI primitives. Its north star
 is a product whose GUI is thin, explicit domain glue over these primitives and
 whose behavior is verified externally through `egui-tester`.
@@ -27,6 +27,10 @@ or WebGPU applications that use another application grammar.
 Applications may depend directly on Poolrooms. Eternalist must not wrap every
 physical mechanism or prevent product-specific composition.
 
+The complete shipped surface is enumerated in the
+[README](../README.md#present-surface). Architectural examples name ownership
+territory, not hidden or promised APIs.
+
 ## Native Seam
 
 `NativeApp` admits one frame builder, post-present settlement, water
@@ -42,6 +46,17 @@ complete queue drains never belong there.
 behavior only. An application chooses whether it exists, what it contains,
 which sections are open, how state persists, and how scrolling agitates water.
 A canvas-only application uses no inspector API.
+
+`Cabinet` is also optional. It owns a persistent collection's global entry
+identity, root and one-level shelf order, entry and shelf drag placement, shelf
+folds and naming, optional inline entry-name editing, and their common
+Poolrooms body. Renaming is an opt-in projection that emits a refined,
+collision-free action; it is not a callback executed during layout. An
+application owns what each entry means, which entry is active, how actions
+alter the domain, and how the cabinet is projected into product storage. It is
+neither a storage backend nor a document manager. `serde` support is opt-in
+because serialization is useful to some projections but is not part of the
+collection law.
 
 ## Application Primitives
 

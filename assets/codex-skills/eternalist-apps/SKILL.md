@@ -1,6 +1,6 @@
 ---
 name: eternalist-apps
-description: Bootstrap, retrofit, verify, or release an Eternalist-style Rust egui application using eternalist-apps lifecycle and high-level UI primitives, Dwemer Poolrooms physical controls and water, egui-tester, XDG product conduct, responsiveness doctrine, and capability-honest CI. Use when creating an Eternalist app, migrating duplicated lifecycle or logical application primitives, establishing native user-story acceptance tests, or preparing an app for fleet conformance and release.
+description: Bootstrap, retrofit, verify, or release an Eternalist-style Rust egui application using eternalist-apps lifecycle and high-level UI primitives, Dwemer Poolrooms physical controls and water, egui-tester, XDG product conduct, responsiveness doctrine, and capability-honest CI. Use when creating an Eternalist app, migrating duplicated lifecycle or logical application primitives, establishing native user-story acceptance tests, or preparing an app for release.
 ---
 
 # Eternalist Apps

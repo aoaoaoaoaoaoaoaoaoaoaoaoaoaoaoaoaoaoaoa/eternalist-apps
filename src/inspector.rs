@@ -1,8 +1,11 @@
-//! Opt-in geometry for the fleet's persistent left inspector.
+//! Opt-in geometry for a persistent left inspector.
+//!
+//! This module owns panel placement and scroll mechanics only. Section
+//! structure, commands, persistence, and water forcing remain with the caller.
 
 use egui::{Id, InnerResponse, Response, ScrollArea, Ui};
 
-/// Fleet default for a dense, fixed-width inspector rail.
+/// Default width for a dense inspector rail.
 pub const WIDTH: f32 = dwemer_poolrooms::chrome::INSPECTOR_WIDTH;
 
 /// An optional persistent left rail containing application-owned controls.
@@ -30,7 +33,7 @@ impl Inspector {
         }
     }
 
-    /// Override the fleet width when the product's content proves the need.
+    /// Override the standard width when the product's content proves the need.
     #[must_use]
     pub const fn width(mut self, width: f32) -> Self {
         self.width = width;
@@ -53,6 +56,7 @@ impl Inspector {
 
     /// Show the rail inside an application's root UI.
     pub fn show<R>(self, ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> InspectorResponse<R> {
+        let scroll_before = egui::scroll_area::State::load(ui.ctx(), self.scroll);
         let panel = egui::Panel::left(self.panel)
             .resizable(false)
             .exact_size(self.width)
@@ -71,10 +75,17 @@ impl Inspector {
                 })
             });
         let InnerResponse { inner, response } = panel;
+        let mut scroll_offset = inner.state.offset.y.max(0.0);
+        if dwemer_poolrooms::chrome::take_control_wheel(ui.ctx()) {
+            let prior = scroll_before.unwrap_or_default();
+            scroll_offset = prior.offset.y.max(0.0);
+            prior.store(ui.ctx(), inner.id);
+            ui.ctx().request_repaint();
+        }
         InspectorResponse {
             inner: inner.inner,
             response,
-            scroll_offset: inner.state.offset.y.max(0.0),
+            scroll_offset,
         }
     }
 }
@@ -82,8 +93,11 @@ impl Inspector {
 /// The application result, panel response, and resulting scroll position.
 #[derive(Debug)]
 pub struct InspectorResponse<R> {
+    /// Value returned by the application-owned inspector body.
     pub inner: R,
+    /// Egui response covering the complete inspector panel.
     pub response: Response,
+    /// Resulting nonnegative vertical offset in logical points.
     pub scroll_offset: f32,
 }
 

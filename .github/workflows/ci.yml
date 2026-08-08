@@ -47,7 +47,9 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Install Rust 1.96
-        run: rustup toolchain install 1.96.0 --profile minimal --component clippy,rustfmt
+        run: rustup toolchain install 1.96.0 --profile minimal --component clippy,rustfmt --target wasm32-unknown-unknown
+      - name: Install WebAssembly binder
+        run: cargo install wasm-bindgen-cli --version 0.2.126 --locked
       - name: Cache Cargo source gate
         uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
         with:
@@ -59,6 +61,8 @@ jobs:
           key: cargo-source-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock') }}
       - name: Verify source
         run: scripts/check
+      - name: Verify package
+        run: cargo package --locked
 
   security:
     name: Locked dependency audit

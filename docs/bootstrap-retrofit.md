@@ -28,6 +28,12 @@ primitives. Adopt a primitive only where behavior already agrees or the product
 deliberately chooses the shared law. A host migration neither requires nor
 excuses an unrelated panel reorganization.
 
+For a reorderable saved collection, compare its identity, duplicate repair,
+folder depth, fold, rename, deletion, cloning, and drag-placement laws against
+`Cabinet` as one contract. If they agree, migrate the model and renderer
+together and delete both local rivals. Keep product-only active cards,
+favorites, domain commands, and persistence projections outside the primitive.
+
 If the application must circumvent the host to preserve behavior, stop. Either
 the product has uncovered a missing general law or the proposed sharing
 boundary is false; do not add a product-named option.

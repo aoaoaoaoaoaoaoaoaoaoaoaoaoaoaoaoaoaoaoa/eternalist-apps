@@ -6,12 +6,15 @@ interaction response, and displaced water. Install its chrome on the egui
 context and compose its water frame through `NativeApp::water`. Applications
 may build their own Poolrooms chrome directly.
 
-Eternalist Apps is the high-level logical language. Its primitives compose
-Poolrooms mechanisms into reusable managers, menus, storage surfaces, layouts,
-and application-scale interaction state machines. They accept explicit state
-and return typed actions; the product supplies domain meaning.
+Eternalist Apps is the high-level logical language. Its current visual
+primitives are the persistent [`Inspector`](../src/inspector.rs),
+[`LivingWait`](../src/living_wait.rs), and shelved
+[`Cabinet`](../src/cabinet.rs). A future manager, menu, storage interaction,
+layout, or application-scale state machine belongs here only after its common
+law is proved. Such primitives accept explicit state and return typed actions;
+the product supplies domain meaning.
 
-The current fleet has proved several useful semantic roles:
+Eternalist-style applications use several useful semantic roles:
 
 - a persistent inspector, when the product has durable libraries or controls;
 - a primary canvas or gallery;
@@ -19,11 +22,12 @@ The current fleet has proved several useful semantic roles:
 - a bottom counsel/status surface for the next useful action and active work;
 - overlays for modal or spatially anchored interaction.
 
-These are available composition laws, not a universal panel sequence.
+These are design vocabulary, not a promise that every role has a library type
+or a universal panel sequence.
 Permanent collections ordinarily belong in an inspector; transient candidates
 and working detail ordinarily belong in a shelf. Status reports current work;
 it does not repeat hidden implementation state. Applications without a natural
-inspector must not manufacture one for fleet symmetry.
+inspector must not manufacture one for superficial symmetry.
 
 Begin from absence. Every label, symbol, section, control, and persisted state
 must communicate a user fact, admit an action, or supply necessary feedback.
@@ -38,3 +42,12 @@ feature with tolerance or a durable external effect.
 Use `LivingWait::bouncer` for a gallery-scale initial wait: it paints the
 standard central loading card and claims the same rectangle for Poolrooms'
 living raft. Smaller concurrent waits may continue to use `LivingWait::claim`.
+
+Use `Cabinet` when entries have globally unique textual identities, user-owned
+order, and at most one level of named shelves. Implement `CabinetEntry` on the
+product value and interpret each returned `CabinetAction` in the application.
+Use its ordinary projection for fixed entry identities and its renamable
+projection when users may edit them; shelf reordering remains available in
+either projection.
+Do not force trees, tags, recents, search results, or immutable built-ins into
+the cabinet merely because they are collections.
