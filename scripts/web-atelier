@@ -35,11 +35,11 @@ verify_bundle() {
     test -s "$bundle/atelier.svg"
     test -s "$bundle/eternalist.js"
     test -s "$bundle/eternalist_bg.wasm"
-    rg -q --fixed-strings 'href="./atelier.svg"' "$bundle/index.html"
-    rg -q --fixed-strings 'import init from "./eternalist.js"' "$bundle/index.html"
-    rg -q --fixed-strings 'await navigator.gpu.requestAdapter({' "$bundle/index.html"
-    rg -q --fixed-strings 'data-eternalist="booting"' "$bundle/index.html"
-    rg -q --fixed-strings 'wasm.__wbindgen_start();' "$bundle/eternalist.js"
+    grep -Fq 'href="./atelier.svg"' "$bundle/index.html"
+    grep -Fq 'import init from "./eternalist.js"' "$bundle/index.html"
+    grep -Fq 'await navigator.gpu.requestAdapter({' "$bundle/index.html"
+    grep -Fq 'data-eternalist="booting"' "$bundle/index.html"
+    grep -Fq 'wasm.__wbindgen_start();' "$bundle/eternalist.js"
 }
 
 if [ "$action" != serve-built ]; then

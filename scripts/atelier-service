@@ -51,7 +51,7 @@ case "$action" in
     install)
         "$web_atelier" build
         service_path=
-        for tool in cargo jq rg python3; do
+        for tool in cargo jq python3; do
             executable=$(command -v "$tool") || {
                 printf 'required command not found: %s\n' "$tool" >&2
                 exit 1
