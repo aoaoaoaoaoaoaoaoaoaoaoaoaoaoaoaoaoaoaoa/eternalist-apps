@@ -366,9 +366,9 @@ checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
 name = "dwemer_poolrooms"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88c6ba7028afde2838add444462b4c172e3647e359c2bfb40a2efee9467c2459"
+checksum = "b90c53e79cf0b7961b1849a31eb51df92b850f6b160c0ac6526bb10c0556d5e9"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -407,15 +407,16 @@ dependencies = [
 
 [[package]]
 name = "egui-tester-witness"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "872f2c5043dbf4c5f24230a1587401313b4f72d7b4e746f69c94c5172096dd71"
+checksum = "70af569f222c02628b43e6d7f6fb86bbe57239b0afb6691bb91f26db66b7d29c"
 dependencies = [
  "egui",
  "rustix 1.1.4",
  "serde",
  "serde_json",
  "thiserror 2.0.20",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -504,12 +505,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
 name = "eternalist-apps"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -1040,7 +1041,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1651,7 +1652,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2346,7 +2347,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
