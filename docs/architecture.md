@@ -101,8 +101,11 @@ not a configurable memorial of every local variation.
 
 ## Platform Coordinate
 
-Linux/X11 is the sole current native-host coordinate. Wayland, macOS, Windows,
-multi-window orchestration, tray behavior, and native dialogs remain outside
-that claim until a product needs and proves them. Logical UI primitives should
-not acquire native assumptions merely because they share a release with the
-host.
+The native host compiles for Linux/X11, macOS, and Windows and admits only the
+target's native wgpu backend: Vulkan, Metal, or DX12. Compilation establishes
+library portability, not an application's support claim. Each product must
+prove startup, first presentation, installation, and its own native behavior
+on every coordinate it advertises. Wayland, multi-window orchestration, tray
+behavior, and native dialogs remain outside this crate's claim. Logical UI
+primitives do not acquire native assumptions merely because they share a
+release with the host.

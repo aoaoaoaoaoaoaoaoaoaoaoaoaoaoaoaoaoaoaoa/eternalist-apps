@@ -20,9 +20,12 @@ Apply `$rust-bootstrap`. Depend on one coherent generation of `egui`,
 `eternalist-apps`. Keep the product's direct Poolrooms dependency when its UI
 uses Poolrooms controls.
 
-Start with the narrowest platform feature set actually claimed. The current
-Linux/X11 host coordinate disables egui-winit and winit default features, then
-enables X11 explicitly.
+Keep direct `egui-wgpu` dependencies on `default-features = false`; the host
+selects exactly Vulkan on Linux, Metal on macOS, and DX12 on Windows. Do not
+re-enable wgpu's omnibus defaults in the product. Direct `egui-winit` and
+`winit` dependencies should likewise disable defaults and enable only the
+window-system coordinate the product claims; Linux applications currently use
+X11 explicitly.
 
 ## 3. Implement The Native Seam
 

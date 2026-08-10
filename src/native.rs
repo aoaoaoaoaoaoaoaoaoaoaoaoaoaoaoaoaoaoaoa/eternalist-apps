@@ -3,9 +3,7 @@
 use crate::responsiveness;
 use anyhow::{Context as _, Result, bail};
 use dwemer_poolrooms::water::{Engine, Frame as WaterFrame};
-use egui_wgpu::{
-    RenderState, Renderer, RendererOptions, ScreenDescriptor, WgpuConfiguration, wgpu,
-};
+use egui_wgpu::{RenderState, Renderer, RendererOptions, ScreenDescriptor, WgpuConfiguration};
 #[cfg(feature = "egui-test")]
 use serde::Serialize;
 use std::{

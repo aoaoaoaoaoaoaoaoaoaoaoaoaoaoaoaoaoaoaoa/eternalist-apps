@@ -36,8 +36,8 @@ impl<A: Exhibit> NativeApp for Atelier<A> {
 
     fn register_gpu(
         _renderer: &mut egui_wgpu::Renderer,
-        _device: &egui_wgpu::wgpu::Device,
-        _format: egui_wgpu::wgpu::TextureFormat,
+        _device: &wgpu::Device,
+        _format: wgpu::TextureFormat,
     ) {
     }
 

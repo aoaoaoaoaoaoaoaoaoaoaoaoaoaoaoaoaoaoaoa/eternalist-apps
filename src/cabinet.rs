@@ -1145,9 +1145,15 @@ fn spare_shelf_name(taken: &HashSet<String>, raw: &str) -> String {
 
 #[inline]
 fn record(ui: &egui::Ui, name: String, rect: egui::Rect) {
-    #[cfg(all(feature = "egui-test", not(target_arch = "wasm32")))]
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
     egui_tester_witness::egui::record(ui, name, rect);
-    #[cfg(not(all(feature = "egui-test", not(target_arch = "wasm32"))))]
+    #[cfg(not(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    )))]
     {
         let _ = (ui, name, rect);
     }

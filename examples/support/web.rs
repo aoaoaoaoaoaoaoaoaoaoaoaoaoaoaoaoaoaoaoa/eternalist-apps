@@ -5,7 +5,7 @@ use anyhow::{Context as _, Result};
 use dwemer_poolrooms::egui_wgpu::WgpuSetup;
 use dwemer_poolrooms::{
     chrome, egui,
-    egui_wgpu::{RenderState, RendererOptions, ScreenDescriptor, WgpuConfiguration, wgpu},
+    egui_wgpu::{RenderState, RendererOptions, ScreenDescriptor, WgpuConfiguration},
     water::{Domain, Engine, Floor, Surface, Wetness},
 };
 use web_time::Instant;

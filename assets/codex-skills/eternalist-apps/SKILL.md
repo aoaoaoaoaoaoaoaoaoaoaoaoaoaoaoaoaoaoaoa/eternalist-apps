@@ -58,8 +58,9 @@ branch is a failed extraction.
 - Witnesses synchronize; external effects and rendered evidence judge.
 - Production motion remains enabled. Never use whole-frame pixel equality or
   stillness as readiness.
-- X11 is the sole current native coordinate. Do not imply Wayland, macOS, or
-  Windows support from compilation.
+- The host is portable across Linux/X11, macOS, and Windows and selects one
+  native GPU backend per target. Compilation alone is not a product support
+  claim; require app-owned runtime, lifecycle, and installation evidence.
 - Promote a logical primitive after two applications prove the same law and a
   further reuse is evident, or after three applications use it identically.
   Require executable evidence, migrate every adopter, and delete every local

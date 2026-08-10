@@ -11,9 +11,9 @@ pub mod cabinet;
 pub mod inspector;
 pub mod living_wait;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod native;
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod responsiveness;
 
 pub use cabinet::{
@@ -24,7 +24,7 @@ pub use cabinet::{
 pub use inspector::{Inspector, InspectorResponse};
 pub use living_wait::LivingWait;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub use native::{CloseDisposition, NativeApp, ResponsivenessSpec, WindowSpec, run};
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub use responsiveness::TraceGuard;

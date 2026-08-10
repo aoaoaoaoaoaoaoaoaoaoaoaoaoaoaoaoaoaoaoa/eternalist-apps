@@ -12,12 +12,12 @@ pub trait Exhibit {
     fn ui(&mut self, ui: &mut egui::Ui, water: &mut Surface);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod native;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub use native::run;
 #[cfg(target_arch = "wasm32")]
 pub use web::run;

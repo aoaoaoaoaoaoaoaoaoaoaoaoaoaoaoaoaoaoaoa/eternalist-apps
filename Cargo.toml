@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.3.1"
+version = "0.3.2"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -21,13 +21,13 @@ egui-test = [
 serde = ["dep:serde"]
 
 [dependencies]
-dwemer_poolrooms = "0.9.1"
+dwemer_poolrooms = "0.9.2"
 egui = "=0.34.3"
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.102"
-egui-wgpu = "=0.34.3"
+egui-wgpu = { version = "=0.34.3", default-features = false }
 egui-winit = { version = "=0.34.3", default-features = false }
 pollster = "0.4.0"
 tracing = "0.1.44"
@@ -38,8 +38,16 @@ winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 [target.'cfg(target_os = "linux")'.dependencies]
 egui-winit = { version = "=0.34.3", default-features = false, features = ["x11"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "x11"] }
+wgpu = { version = "29.0.1", default-features = false, features = ["std", "vulkan", "wgsl"] }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.egui-tester-witness]
+[target.'cfg(target_os = "macos")'.dependencies]
+egui-wgpu = { version = "=0.34.3", default-features = false, features = ["macos-window-resize-jitter-fix"] }
+wgpu = { version = "29.0.1", default-features = false, features = ["metal", "std", "wgsl"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+wgpu = { version = "29.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
+
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
 version = "0.6.1"
 optional = true
 features = ["egui"]
@@ -52,6 +60,7 @@ wasm-bindgen = "=0.2.126"
 wasm-bindgen-futures = "=0.4.76"
 web-time = "1.1.0"
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "29.0.1", default-features = false, features = ["std", "webgpu", "wgsl"] }
 web-sys = { version = "=0.3.103", features = [
   "Document",
   "Element",

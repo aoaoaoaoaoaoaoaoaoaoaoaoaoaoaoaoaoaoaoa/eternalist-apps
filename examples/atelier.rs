@@ -5,6 +5,12 @@
 
 mod support;
 
+#[cfg(any(
+    target_arch = "wasm32",
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "windows"
+))]
 use anyhow::Result;
 use dwemer_poolrooms::{
     chrome::{self, Checkbox, NumberInput, Rail, WheelPlane},
@@ -662,6 +668,20 @@ impl CabinetExhibit {
     }
 }
 
+#[cfg(any(
+    target_arch = "wasm32",
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "windows"
+))]
 fn main() -> Result<()> {
     support::run(Atelier::default())
 }
+
+#[cfg(not(any(
+    target_arch = "wasm32",
+    target_os = "linux",
+    target_os = "macos",
+    target_os = "windows"
+)))]
+fn main() {}
