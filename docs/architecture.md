@@ -68,7 +68,8 @@ panel traversal, or focused-control interaction; those target-relative
 gestures never enter global command routing. The application still executes
 every `CommandDispatch`; the canon has no domain callback or command bus.
 
-Routing consumes only an exact chord. Active contexts are ordered from most to
+Routing consumes only an exact chord and its matching textual projection.
+Active contexts are ordered from most to
 least specific and outrank global commands. Hidden commands relinquish their
 chord; disabled commands own it and return their refusal reason. Text entry
 receives a command by default unless that command explicitly declares capture.

@@ -260,6 +260,22 @@ impl ShortcutKey {
             _ => true,
         }
     }
+
+    fn matches_text(self, text: &str) -> bool {
+        let mut characters = text.chars();
+        let Some(character) = characters.next() else {
+            return false;
+        };
+        if characters.next().is_some() {
+            return false;
+        }
+        match self {
+            Self::Character(expected) => character.eq_ignore_ascii_case(&expected),
+            Self::Slash => character == '/',
+            Self::QuestionMark => character == '?',
+            _ => false,
+        }
+    }
 }
 
 /// One platform-neutral keyboard accelerator.
@@ -764,6 +780,11 @@ pub(crate) fn take(ctx: &egui::Context, shortcut: Shortcut) -> Stroke {
             }
             !matched
         });
+        if fresh || repeated {
+            input.events.retain(
+                |event| !matches!(event, egui::Event::Text(text) if shortcut.key.matches_text(text)),
+            );
+        }
         if fresh {
             Stroke::Fresh
         } else if repeated {
@@ -959,6 +980,21 @@ mod tests {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
         });
         assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Rename)));
+    }
+
+    #[test]
+    fn routed_shortcuts_consume_their_text_projection() {
+        let canon = CommandCanon::new(&SPECS);
+        let ctx = egui::Context::default();
+        let modifiers = egui::Modifiers::ALT;
+        let mut input = key(modifiers, egui::Key::R, false);
+        input.events.push(egui::Event::Text("r".to_owned()));
+        let mut dispatch = None;
+        let _output = ctx.run_ui(input, |ui| {
+            dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
+        });
+        assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Rename)));
+        assert!(ctx.input(|input| input.events.is_empty()));
     }
 
     #[test]

@@ -562,7 +562,7 @@ dependencies = [
 
 [[package]]
 name = "eternalist-apps"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
