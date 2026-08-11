@@ -17,6 +17,7 @@ release-tested = [
 name = "source"
 laws = ["source"]
 run = ["scripts/check-foundry"]
+setup = "wayland"
 timeout-minutes = 60
 
 [[proofs]]
@@ -29,16 +30,20 @@ timeout-minutes = 15
 name = "source-package"
 laws = ["source-package"]
 run = ["cargo", "package", "--locked"]
+setup = "wayland"
 timeout-minutes = 30
+
+[[proofs]]
+name = "host-linux"
+laws = ["host"]
+run = ["cargo", "test", "--locked", "--all-targets", "--all-features"]
+coordinates = ["linux-x86_64"]
+setup = "wayland"
+timeout-minutes = 45
 
 [[proofs]]
 name = "host"
 laws = ["host"]
 run = ["cargo", "test", "--locked", "--all-targets", "--all-features"]
-coordinates = [
-  "linux-x86_64",
-  "macos-aarch64",
-  "macos-x86_64",
-  "windows-x86_64",
-]
+coordinates = ["macos-aarch64", "macos-x86_64", "windows-x86_64"]
 timeout-minutes = 45
