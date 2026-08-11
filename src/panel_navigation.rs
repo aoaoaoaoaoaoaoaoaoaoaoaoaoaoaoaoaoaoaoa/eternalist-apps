@@ -138,6 +138,19 @@ pub struct PanelFrame<'navigator> {
 }
 
 impl PanelFrame<'_> {
+    /// Make a panel active before transferring focus into one of its controls.
+    ///
+    /// Call this in the same UI scope and with the same identity salt used by
+    /// [`Self::section`]. A panel omitted from the pass is discarded during
+    /// finalization, just like an active panel removed by ordinary layout.
+    pub fn activate(&mut self, ui: &egui::Ui, id_salt: impl Hash) {
+        let id = ui.make_persistent_id(id_salt);
+        if self.navigator.active != Some(id) {
+            self.navigator.active = Some(id);
+            self.ctx.request_repaint();
+        }
+    }
+
     /// Show one Poolrooms disclosure as a keyboard-contained logical panel.
     pub fn section(
         &mut self,
@@ -399,6 +412,36 @@ mod tests {
         });
 
         assert_eq!(navigator.active(), Some(remaining));
+    }
+
+    #[test]
+    fn programmatic_focus_transfer_activates_its_panel() {
+        let ctx = egui::Context::default();
+        let mut navigator = PanelNavigator::default();
+        let _ids = pass(&ctx, &mut navigator, egui::RawInput::default());
+
+        let mut second = egui::Id::NULL;
+        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let mut panels = navigator.frame(ui.ctx());
+            second = ui.make_persistent_id(("panel", 1));
+            panels.activate(ui, ("panel", 1));
+            for index in 0..2 {
+                let _panel = panels.section(
+                    ui,
+                    ("panel", index),
+                    if index == 0 { "FIRST" } else { "SECOND" },
+                    true,
+                    |ui| {
+                        let response = ui.button("one");
+                        if index == 1 {
+                            response.request_focus();
+                        }
+                    },
+                );
+            }
+        });
+
+        assert_eq!(navigator.active(), Some(second));
     }
 
     #[test]
