@@ -350,6 +350,10 @@ impl CommandGuide {
     }
 
     fn settle_focus(&mut self, ctx: &egui::Context) {
+        if self.pending_focus.is_some() && ctx.input(focus_return_interdicted) {
+            self.pending_focus = None;
+            return;
+        }
         // egui admits interaction against the preceding pass's modal layer.
         // One complete nonmodal pass must retire it before the underlying
         // target can re-enter the focus census.
@@ -370,6 +374,21 @@ impl CommandGuide {
         }
         ctx.request_repaint();
     }
+}
+
+fn focus_return_interdicted(input: &egui::InputState) -> bool {
+    input.pointer.any_pressed()
+        || input.events.iter().any(|event| {
+            matches!(
+                event,
+                egui::Event::Copy
+                    | egui::Event::Cut
+                    | egui::Event::Paste(_)
+                    | egui::Event::Text(_)
+                    | egui::Event::Key { pressed: true, .. }
+                    | egui::Event::AccessKitActionRequest(_)
+            )
+        })
 }
 
 fn page_button(ui: &mut egui::Ui, label: &'static str, selected: bool) -> bool {
@@ -666,6 +685,51 @@ mod tests {
         });
 
         assert!(restored);
+    }
+
+    #[test]
+    fn fresh_navigation_annuls_delayed_focus_return() {
+        let ctx = egui::Context::default();
+        let mut guide = CommandGuide::default();
+        let modal = || egui::Modal::new(egui::Id::new("focus-annulment-modal"));
+
+        let _open = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let target = ui.button("target");
+            target.request_focus();
+            let _other = ui.button("other");
+            guide.open(ui.ctx());
+            let _modal = modal().show(ui.ctx(), |ui| ui.button("close"));
+        });
+        let _close = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let _target = ui.button("target");
+            let _other = ui.button("other");
+            let _modal = modal().show(ui.ctx(), |ui| ui.button("close"));
+            guide.close(ui.ctx());
+        });
+        let navigation = egui::RawInput {
+            modifiers: egui::Modifiers::CTRL,
+            events: vec![egui::Event::Key {
+                key: egui::Key::Tab,
+                physical_key: Some(egui::Key::Tab),
+                pressed: true,
+                repeat: false,
+                modifiers: egui::Modifiers::CTRL,
+            }],
+            ..egui::RawInput::default()
+        };
+        let _redirect = ctx.run_ui(navigation, |ui| {
+            guide.settle_focus(ui.ctx());
+            let _target = ui.button("target");
+            ui.button("other").request_focus();
+        });
+        let mut redirected = false;
+        let _settled = ctx.run_ui(egui::RawInput::default(), |ui| {
+            guide.settle_focus(ui.ctx());
+            let _target = ui.button("target");
+            redirected = ui.button("other").has_focus();
+        });
+
+        assert!(redirected);
     }
 
     #[test]
