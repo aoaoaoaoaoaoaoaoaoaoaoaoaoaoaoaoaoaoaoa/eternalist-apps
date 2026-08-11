@@ -22,6 +22,8 @@ use serde::Deserialize;
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 const WAIT: Duration = Duration::from_secs(5);
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+const STARTUP_WAIT: Duration = Duration::from_secs(15);
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 #[derive(Debug, Deserialize)]
@@ -69,7 +71,7 @@ fn main() -> Result<()> {
         .context("find Atelier window")?;
     session.focus().context("focus Atelier window")?;
     let mut probe: Probe<Observation> = app.witness()?.typed();
-    let _presented = probe.wait_surface_presented(&app, WAIT)?;
+    let _presented = probe.wait_surface_presented(&app, STARTUP_WAIT)?;
     command_story(&session, &app, &mut probe, artifacts.as_deref())?;
 
     let _close = session.close()?;

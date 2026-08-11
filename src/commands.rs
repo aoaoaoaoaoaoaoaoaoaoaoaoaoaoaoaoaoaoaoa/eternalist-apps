@@ -1000,6 +1000,7 @@ mod tests {
     #[test]
     fn legends_use_symbols_for_punctuation_and_arrows() {
         let ctx = egui::Context::default();
+        let _prime = ctx.run_ui(egui::RawInput::default(), |_| {});
         assert_eq!(
             Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::QuestionMark).label(&ctx),
             "?"
