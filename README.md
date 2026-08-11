@@ -36,12 +36,12 @@ product projection and returns actions for the product to interpret. Other
 logical nouns belong here only after a real common law is proved; they do not
 advertise latent APIs.
 
-The native host compiles on Linux/X11, macOS, and Windows and selects exactly
-one wgpu backend for each: Vulkan, Metal, or DX12. That portability is a
-library contract, not a product support claim; each application still proves
-its declared coordinates through its own native acceptance and lifecycle
-evidence. The WebGPU atelier below is a design surface for renderer-neutral
-primitives, not a web application-host claim.
+The native host compiles on Linux/X11, Linux/Wayland, macOS, and Windows and
+selects exactly one wgpu backend for each operating system: Vulkan, Metal, or
+DX12. That portability is a library contract, not a product support claim;
+each application still proves its declared coordinates through its own native
+acceptance and lifecycle evidence. The WebGPU atelier below is a design
+surface for renderer-neutral primitives, not a web application-host claim.
 
 The optional `egui-test` feature adds only `NativeApp::Observation`,
 `NativeApp::observe`, and post-present witness publication inside `run`. It

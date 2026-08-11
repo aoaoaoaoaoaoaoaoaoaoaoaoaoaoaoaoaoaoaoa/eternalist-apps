@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.3.2"
+version = "0.3.3"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -36,8 +36,8 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-egui-winit = { version = "=0.34.3", default-features = false, features = ["x11"] }
-winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "x11"] }
+egui-winit = { version = "=0.34.3", default-features = false, features = ["wayland", "x11"] }
+winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "wayland", "x11"] }
 wgpu = { version = "29.0.1", default-features = false, features = ["std", "vulkan", "wgsl"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -48,7 +48,7 @@ wgpu = { version = "29.0.1", default-features = false, features = ["metal", "std
 wgpu = { version = "29.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
-version = "0.6.1"
+version = "0.6.2"
 optional = true
 features = ["egui"]
 
