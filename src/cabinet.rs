@@ -659,7 +659,9 @@ fn entry_row<T: CabinetEntry>(
         }
         if delete.clicked() || clone.clicked() || drag.drag_started() {
             cancel_entry_edit(entry_renaming, key);
-        } else if rename.as_ref().is_some_and(|rename| rename.clicked())
+        } else if rename
+            .as_ref()
+            .is_some_and(chrome::MonoglyphResponse::clicked)
             && let EntryRenaming::Enabled(edit) = entry_renaming
         {
             **edit = Some(EntryEdit {

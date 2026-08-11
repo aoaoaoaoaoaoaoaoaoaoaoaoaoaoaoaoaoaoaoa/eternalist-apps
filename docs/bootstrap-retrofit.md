@@ -34,6 +34,13 @@ folder depth, fold, rename, deletion, cloning, and drag-placement laws against
 together and delete both local rivals. Keep product-only active cards,
 favorites, domain commands, and persistence projections outside the primitive.
 
+When shortcuts, visible action labels, disabled reasons, or help are duplicated,
+define the product's closed command and context values, migrate those
+projections to one `CommandCanon`, and delete the local router and parallel
+help strings. Keep command execution and feedback in the application. Adopt
+`PanelNavigator` only where the existing inspector deliberately chooses its
+contained Tab and Control+Tab law.
+
 If the application must circumvent the host to preserve behavior, stop. Either
 the product has uncovered a missing general law or the proposed sharing
 boundary is false; do not add a product-named option.

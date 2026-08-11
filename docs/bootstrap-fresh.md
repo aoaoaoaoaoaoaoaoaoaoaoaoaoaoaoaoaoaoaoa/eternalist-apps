@@ -105,9 +105,18 @@ self.inspector_scroll = inspector.scroll_offset;
 self.water.heave(ui.ctx(), inspector.scroll_offset);
 ```
 
-Use Poolrooms sections inside the body when disclosure is useful. The
-application owns section order and persistence. Do not create an empty or
-ceremonial inspector.
+Use `PanelNavigator` when two or more inspector sections share the active-panel
+keyboard grammar. Use Poolrooms `Section` directly when disclosure alone is
+needed. The application owns section identity, order, contents, fold defaults,
+actions, and persistence. Do not create an empty or ceremonial inspector.
+
+Declare recurring application actions as typed `CommandSpec` values and forge
+one `CommandCanon`. Route input, generate button labels, and render
+`CommandGuide` from that canon; execute each returned `CommandDispatch` through
+the domain. Add Alt mnemonics conservatively. Include `PANEL_IDIOMS`,
+`RAIL_IDIOMS`, and product gesture sections only when their interactions exist.
+The canon owns no callback bus, availability state, feedback channel, or keymap
+persistence.
 
 Adopt `Cabinet` only for a genuine persistent, reorderable, one-level shelved
 collection. Project product storage into `Cabinet::forge`, retain the returned

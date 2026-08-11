@@ -22,15 +22,22 @@ library-shaped DSL, not a registry-shaped framework.
 | Surface | Coordinate | Owns | Leaves To The Application |
 | --- | --- | --- | --- |
 | `WindowSpec`, `ResponsivenessSpec`, and `CloseDisposition` | native | initial window identity and geometry, ordinary frame-work budget, and close-request vocabulary | dynamic title, product close policy, and every window beyond the sole host window |
-| `NativeApp` | native | the explicit hooks consumed by the host, including drawing, water sealing, GPU resource registration, post-present settlement, and optional one-way observation | domain state, workers, persistence, commands, tray behavior, and dialogs |
+| `NativeApp` | native | the explicit hooks consumed by the host, including drawing, water sealing, GPU resource registration, post-present settlement, and optional one-way observation | domain state, workers, persistence, typed command consequences, tray behavior, and dialogs |
 | `run` | native | one-window winit/egui/wgpu lifecycle, Poolrooms-water composition, repaint scheduling, surface recovery, responsiveness spans and trace deadline, and optional post-present witness publication | application construction, product shutdown work, multi-window policy, and recovery after a terminal host error |
 | `Inspector`, `InspectorResponse`, and `inspector::WIDTH` | renderer-neutral | optional fixed left-rail geometry, vertical scrolling, application return value, panel response, and resulting scroll offset | sections, fold state, actions, persistence, and water forcing |
+| `commands::{CommandCanon, CommandSpec, CommandScope, CommandStatus, CommandDispatch, CommandButtonResponse, Shortcut, ShortcutKey, ShortcutModifiers, TextFocusPolicy, RepeatPolicy}` | renderer-neutral | validated typed command metadata, stable IDs, portable exact accelerators, reserved-idiom interlocks, visible Alt mnemonics, context precedence, disabled refusal, text-focus and repeat ownership, generated buttons, and one effective binding projection | command enum and scope enum, dynamic availability, domain execution, feedback presentation, and keymap persistence |
+| `command_guide::{CommandGuide, GuideSection, GuideGesture, KEYBOARD_IDIOMS, PANEL_IDIOMS, RAIL_IDIOMS}` | renderer-neutral | F1/question-mark discovery, focus-restoring modal help generated from the command canon, current/all pages, baseline keyboard idioms, and optional shared or application-supplied gesture sections | applicable shared idiom sections, application-specific gestures, scope names, command availability, and domain help beyond interaction guidance |
+| `panel_navigation::{PanelNavigator, PanelFrame, PanelResponse}` | renderer-neutral | one active inspector panel, Poolrooms section composition, contained Tab/Shift+Tab traversal, Control+Tab panel traversal, pointer activation, and dynamic-panel reconciliation | panel identity, ordering, contents, fold defaults, persistence, and application actions |
 | `LivingWait` | renderer-neutral | one-frame largest-region arbitration and the standard central loading bouncer | task ownership, progress, cancellation, retry, error handling, and copy beyond the standard bouncer |
 | `Cabinet`, `CabinetEntry`, `CabinetKey`, `CabinetAction`, `CabinetBerth`, `CabinetShelfBerth`, `CabinetShelf`, `CabinetEntryEdit`, and `CabinetShelfEdit` | renderer-neutral | globally unique entry identity, root and one-level shelf ordering, entry and shelf drag berths, shelf folds and naming, optional inline entry renaming, shared Poolrooms body, and semantic targets | entry meaning, active-document policy, product commands, storage projection, and persistence timing |
 | `TraceGuard` and `responsiveness` | native | opt-in production-path trace capture, named instrumentation spans, and over-budget reporting | optimization policy, representative hardware, and product latency thresholds |
 
 There is no generic menu model, storage backend, command bus, worker runtime,
-service locator, or persistence framework in the crate today. `Cabinet` is a
+service locator, keymap editor, or persistence framework in the crate today.
+The command canon describes and routes typed application commands; it never
+executes them. Its stable IDs and optionally serializable shortcut values leave
+one clean effective-binding seam for future persisted keymaps without adding
+override storage or an editor prematurely. `Cabinet` is a
 persistence-neutral collection law, not a repository: it accepts an explicit
 product projection and returns actions for the product to interpret. Other
 logical nouns belong here only after a real common law is proved; they do not
@@ -50,7 +57,8 @@ does not alter the renderer-neutral surface.
 ## Visual Atelier
 
 The tabbed atelier is the living visual contract for `Inspector`, `LivingWait`,
-and `Cabinet`. Its native path is a thin `NativeApp` over the public `run` host.
+`Cabinet`, and the command/help/panel-navigation assembly. Its native path is a
+thin `NativeApp` over the public `run` host.
 The browser build executes the same egui composition over Poolrooms' direct
 water render graph through an example-local host; no web host is exported.
 
@@ -104,13 +112,17 @@ The remaining contracts are documented in:
 
 ```sh
 scripts/check
+scripts/test-atelier
 scripts/audit
 ```
 
 The library compiles and tests its own laws. A native product adopter must also
 exercise lifecycle and high-level primitives through its optimized black-box
-acceptance stories. `scripts/check` includes the release WebAssembly build and
-browser-bundle integrity check for the atelier.
+acceptance stories. The Linux `atelier_acceptance` example drives Alt
+mnemonics, exact command refusal and capture, focus-contained panel traversal,
+generated help, focus restoration, keyboard rails, and wheel rails through a
+private egui-tester X11 universe. `scripts/check` includes the release
+WebAssembly build and browser-bundle integrity check for the atelier.
 
 ## License
 

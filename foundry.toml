@@ -47,3 +47,11 @@ laws = ["host"]
 run = ["cargo", "test", "--locked", "--all-targets", "--all-features"]
 coordinates = ["macos-aarch64", "macos-x86_64", "windows-x86_64"]
 timeout-minutes = 45
+
+[[proofs]]
+name = "native-acceptance"
+laws = ["native-acceptance"]
+run = ["scripts/test-atelier"]
+coordinates = ["linux-x86_64"]
+setup = "x11"
+timeout-minutes = 30

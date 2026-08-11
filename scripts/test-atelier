@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+target=$(cargo metadata --format-version 1 --no-deps | jq -r .target_directory)
+artifacts=${1:-"$target/atelier-acceptance-artifacts"}
+
+cargo build --locked --release --example atelier --features egui-test
+cargo run --locked --release --example atelier_acceptance --features egui-test -- \
+    "$target/release/examples/atelier" "$artifacts"

@@ -42,10 +42,12 @@ impl<A: Exhibit> NativeApp for Atelier<A> {
     }
 
     #[cfg(feature = "egui-test")]
-    type Observation = ();
+    type Observation = A::Observation;
 
     #[cfg(feature = "egui-test")]
-    fn observe(&self, _text_edit_focused: bool) -> Self::Observation {}
+    fn observe(&self, text_edit_focused: bool) -> Self::Observation {
+        self.exhibit.observe(text_edit_focused)
+    }
 }
 
 pub fn run(exhibit: impl Exhibit + 'static) -> Result<()> {

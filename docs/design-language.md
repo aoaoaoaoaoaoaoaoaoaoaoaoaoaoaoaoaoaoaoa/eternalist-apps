@@ -6,13 +6,15 @@ interaction response, and displaced water. Install its chrome on the egui
 context and compose its water frame through `NativeApp::water`. Applications
 may build their own Poolrooms chrome directly.
 
-Eternalist Apps is the high-level logical language. Its current visual
+Eternalist Apps is the high-level logical language. Its renderer-neutral
 primitives are the persistent [`Inspector`](../src/inspector.rs),
-[`LivingWait`](../src/living_wait.rs), and shelved
-[`Cabinet`](../src/cabinet.rs). A future manager, menu, storage interaction,
-layout, or application-scale state machine belongs here only after its common
-law is proved. Such primitives accept explicit state and return typed actions;
-the product supplies domain meaning.
+[`LivingWait`](../src/living_wait.rs), shelved [`Cabinet`](../src/cabinet.rs),
+typed [`commands`](../src/commands.rs), generated
+[`command guide`](../src/command_guide.rs), and active
+[`panel navigation`](../src/panel_navigation.rs). A future manager, menu,
+storage interaction, layout, or application-scale state machine belongs here
+only after its common law is proved. Such primitives accept explicit state and
+return typed actions; the product supplies domain meaning.
 
 Eternalist-style applications use several useful semantic roles:
 
@@ -24,6 +26,20 @@ Eternalist-style applications use several useful semantic roles:
 
 These are design vocabulary, not a promise that every role has a library type
 or a universal panel sequence.
+
+Commands have one stable identity, one visible label, one consequence
+description, and one effective shortcut projection. Default accelerators,
+permanent Alt mnemonics, routing, button legends, and help must derive from
+that declaration rather than drift as independent strings. Reserve mnemonics
+for common consequential actions; saturation destroys their value.
+
+Tab and Shift+Tab traverse the active inspector panel. Physical Control+Tab
+and Control+Shift+Tab cross panel boundaries. Enter and Space actuate the
+focused control; arrows and the wheel adjust controls that visibly admit
+adjustment. Escape closes only the topmost transient layer. A target-relative
+gesture belongs in help but is not a global command shortcut; do not advertise
+a shared gesture in an application that lacks its target. Commands and panel
+traversal remain dormant behind a modal layer.
 Permanent collections ordinarily belong in an inspector; transient candidates
 and working detail ordinarily belong in a shelf. Status reports current work;
 it does not repeat hidden implementation state. Applications without a natural

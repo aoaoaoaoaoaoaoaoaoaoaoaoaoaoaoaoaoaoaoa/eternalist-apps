@@ -43,6 +43,28 @@ ordinary accessible controls when it is stable; retain typed custom targets
 for canvases and domain geometry that accessibility cannot honestly name.
 Checked-in xdotool choreography is forbidden.
 
+Focus is a presented synchronization fact, not application state. Instrumented
+egui controls publish their real response through
+`egui_tester_witness::egui::record_response`; painter-only geometry uses
+`record_rect` and cannot claim focus. Acceptance may use `Probe::wait_focus` to
+fence keyboard traversal, then judges the resulting command, pixels, or durable
+effect independently.
+
+An application that adopts the shared command and panel grammar proves at
+least one keyboard-only path through its consequential controls. Exercise an
+Alt mnemonic, forward and backward traversal inside a panel, Control+Tab panel
+movement, Enter or Space activation, one focused adjustable control, text-entry
+deferral or explicit command capture, disabled-command refusal, generated help,
+Escape closure, and focus restoration where those laws exist in the product.
+Modified activation keys must remain available to their exact owner, and
+application commands or panel traversal must not bleed through a modal layer.
+
+The release `atelier` plus `atelier_acceptance` examples are the library's own
+executable specimen. Their hermetic Linux story drives the public command,
+guide, panel-navigation, Poolrooms, host, witness, and egui-tester surfaces as
+one optimized product path. Product stories remain necessary because the
+atelier cannot prove product-specific consequences or persistence.
+
 ## Containment And Motion
 
 The harness owns a private display, XDG tree, process group, network policy,

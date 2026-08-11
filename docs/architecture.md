@@ -12,8 +12,8 @@ always descend to raw egui or Poolrooms when no shared law exists.
 
 | Owner | Responsibility |
 | --- | --- |
-| application | domain model, commands, workers, product persistence projections, unpromoted UI, fixtures, oracles, and acceptance stories |
-| `eternalist-apps` | native lifecycle and reusable logical application primitives: inspectors, managers, menus, storage interactions, loading assemblies, and other proved application-scale state machines |
+| application | domain model, typed command values and consequences, workers, product persistence projections, unpromoted UI, fixtures, oracles, and acceptance stories |
+| `eternalist-apps` | native lifecycle and reusable logical application primitives: command metadata and routing, inspectors, managers, menus, storage interactions, loading assemblies, and other proved application-scale state machines |
 | Dwemer Poolrooms | independently usable low-level physical GUI: geometry, material, buttons, rollers, sliders, tiles, frames, intrinsic control interaction, and water response |
 | `egui-tester` | process containment, native input, capture, synchronization, timing, and failure artifacts |
 | product contract crate | dependency-light semantic names and wire values shared by the GUI and its acceptance executable |
@@ -57,6 +57,57 @@ alter the domain, and how the cabinet is projected into product storage. It is
 neither a storage backend nor a document manager. `serde` support is opt-in
 because serialization is useful to some projections but is not part of the
 collection law.
+
+## Command Canon
+
+An application declares a closed command value, a closed context value, and a
+static `CommandSpec` for each command. `CommandCanon` validates stable
+lowercase dotted IDs and rejects duplicate command values, IDs, mnemonics, or
+bindings wherever scopes overlap. It also rejects chords owned by shared help,
+panel traversal, or focused-control interaction; those target-relative
+gestures never enter global command routing. The application still executes
+every `CommandDispatch`; the canon has no domain callback or command bus.
+
+Routing consumes only an exact chord. Active contexts are ordered from most to
+least specific and outrank global commands. Hidden commands relinquish their
+chord; disabled commands own it and return their refusal reason. Text entry
+receives a command by default unless that command explicitly declares capture.
+Fresh keys dispatch once, rejected repeats are consumed, and repeatable
+commands dispatch at most once per input frame. Generated buttons accept
+pointer, accessibility, or fresh unmodified Enter/Space activation, so a
+modified chord cannot leak through the focused actuator. A preceding modal
+layer suspends application command routing without consuming its keys.
+
+`CommandSpec::default_shortcuts` names only the shipped declaration.
+`CommandCanon::shortcuts`, routing, generated button legends, and the command
+guide all consult the canon's effective projection. Stable command IDs and
+optionally serializable `Shortcut` values make that projection the sole future
+insertion point for persisted keymaps. No override storage, merge law,
+conflict UI, or keymap editor exists yet.
+
+Alt mnemonics are separate from replaceable accelerators: the declared glyph is
+permanently underlined by Poolrooms and its exact Alt chord is validated with
+the rest of the canon. `CommandGuide` renders the same metadata and dynamic
+availability used by routing. F1 always toggles the guide; question mark
+defers to focused text entry. Closing the modal restores its prior focus target
+when that target remains available. Baseline keyboard guidance is automatic;
+panel, rail, and application-specific gesture sections are included only when
+those interactions exist.
+
+## Panel Grammar
+
+`PanelNavigator` composes Poolrooms `Section` disclosures into one active
+inspector panel. Tab and Shift+Tab cycle through its header and focusable
+contents. Physical Control+Tab and Control+Shift+Tab move to the next or
+previous panel header; Control is deliberate because Command+Tab belongs to
+the macOS application switcher. Pointer engagement or header focus activates a
+panel. Dynamic insertion or removal is reconciled after each frame. Modal
+layers suspend panel traversal, leaving their keys to the topmost layer.
+
+Traversal does not create a widget registry. The caller supplies stable panel
+IDs, presentation order, contents, fold defaults, and water handling through
+ordinary composition. Controls outside the navigator retain ordinary egui
+focus behavior and are never pulled into an active panel's Tab loop.
 
 ## Application Primitives
 

@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.3.3"
+version = "0.4.0"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -21,7 +21,7 @@ egui-test = [
 serde = ["dep:serde"]
 
 [dependencies]
-dwemer_poolrooms = "0.9.2"
+dwemer_poolrooms = "0.10.0"
 egui = "=0.34.3"
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 
@@ -40,6 +40,9 @@ egui-winit = { version = "=0.34.3", default-features = false, features = ["wayla
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "wayland", "x11"] }
 wgpu = { version = "29.0.1", default-features = false, features = ["std", "vulkan", "wgsl"] }
 
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+egui-tester = "0.7.0"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.34.3", default-features = false, features = ["macos-window-resize-jitter-fix"] }
 wgpu = { version = "29.0.1", default-features = false, features = ["metal", "std", "wgsl"] }
@@ -48,7 +51,7 @@ wgpu = { version = "29.0.1", default-features = false, features = ["metal", "std
 wgpu = { version = "29.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
-version = "0.6.2"
+version = "0.7.0"
 optional = true
 features = ["egui"]
 

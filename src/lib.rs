@@ -1,15 +1,23 @@
 //! Reusable high-level application primitives and a native lifecycle for
 //! Eternalist-style egui products.
 //!
-//! [`Inspector`] and [`LivingWait`] are renderer-neutral logical primitives.
-//! Native targets additionally expose the one-window `NativeApp` lifecycle,
-//! Poolrooms-water composition, responsiveness tracing, and optional
-//! post-present acceptance witnessing. Domain state, workers, persistence,
-//! fixtures, oracles, and acceptance stories remain application concerns.
+//! [`Inspector`], [`LivingWait`], [`cabinet`], [`commands`],
+//! [`command_guide`], and [`panel_navigation`] are renderer-neutral logical
+//! primitives. Native targets additionally expose the one-window `NativeApp`
+//! lifecycle, Poolrooms-water composition, responsiveness tracing, and
+//! optional post-present acceptance witnessing. Domain state, typed command
+//! consequences, workers, persistence, fixtures, oracles, and acceptance
+//! stories remain application concerns.
+
+#[cfg(all(test, target_os = "linux"))]
+use egui_tester as _;
 
 pub mod cabinet;
+pub mod command_guide;
+pub mod commands;
 pub mod inspector;
 pub mod living_wait;
+pub mod panel_navigation;
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod native;

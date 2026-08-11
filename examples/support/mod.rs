@@ -9,7 +9,19 @@ pub trait Exhibit {
     #[cfg(target_arch = "wasm32")]
     const READY_MESSAGE: &'static str;
 
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
+    type Observation: serde::Serialize + Send + 'static;
+
     fn ui(&mut self, ui: &mut egui::Ui, water: &mut Surface);
+
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
+    fn observe(&self, text_edit_focused: bool) -> Self::Observation;
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]

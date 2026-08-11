@@ -31,6 +31,9 @@ Read [fresh bootstrap](../../../docs/bootstrap-fresh.md),
 - compose the product through `NativeApp`, proved Eternalist application
   primitives, and Poolrooms directly where no high-level law exists;
 - add `Inspector` only when persistent left-side controls or libraries earn it;
+- declare recurring keyboard actions through a typed `CommandCanon`, render
+  their labels and help from that canon, and use `PanelNavigator` only when an
+  inspector has multiple persistent control panels;
 - keep corpus-scale work and durable writes off the event loop;
 - create a dependency-light product contract plus product-owned acceptance
   executable;
@@ -55,6 +58,14 @@ branch is a failed extraction.
   must never depend on Eternalist.
 - Product repositories own domain contracts, state, fixtures, oracles, and
   acceptance stories.
+- Applications own typed command consequences. Eternalist command metadata,
+  exact routing, generated guidance, and panel traversal must not become a
+  callback bus, widget registry, or speculative keymap editor.
+- Command buttons, routing, and help read effective shortcuts through
+  `CommandCanon`; declaration defaults are not a second runtime projection.
+- Focused controls consume only their exact keys. Text entry receives ordinary
+  typing unless a command explicitly declares capture. Tab remains inside the
+  active panel; physical Control+Tab crosses panels.
 - Witnesses synchronize; external effects and rendered evidence judge.
 - Production motion remains enabled. Never use whole-frame pixel equality or
   stillness as readiness.
