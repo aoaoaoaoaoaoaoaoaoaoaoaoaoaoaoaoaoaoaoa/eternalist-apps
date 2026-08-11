@@ -890,6 +890,9 @@ impl CommandsExhibit {
             |command| demo_status(command, selected),
             &[PANEL_IDIOMS, RAIL_IDIOMS],
         );
+        if let Some(rect) = self.guide.rect() {
+            record_rect(ui.ctx(), "atelier.commands.guide", rect);
+        }
     }
 
     fn controls(&mut self, ui: &mut egui::Ui, water: &mut Surface) -> Option<DemoCommand> {
@@ -1022,6 +1025,20 @@ fn record_response(ui: &egui::Ui, name: &'static str, response: &egui::Response)
         any(target_os = "linux", target_os = "macos", target_os = "windows")
     )))]
     let _ = (ui, name, response);
+}
+
+#[inline]
+fn record_rect(ctx: &egui::Context, name: &'static str, rect: egui::Rect) {
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
+    egui_tester_witness::egui::record_rect(ctx, name, rect);
+    #[cfg(not(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    )))]
+    let _ = (ctx, name, rect);
 }
 
 fn demo_status(command: DemoCommand, selected: bool) -> CommandStatus<'static> {

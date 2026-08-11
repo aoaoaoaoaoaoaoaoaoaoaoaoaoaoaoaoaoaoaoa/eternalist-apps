@@ -64,6 +64,9 @@ executable specimen. Their hermetic Linux story drives the public command,
 guide, panel-navigation, Poolrooms, host, witness, and egui-tester surfaces as
 one optimized product path. Product stories remain necessary because the
 atelier cannot prove product-specific consequences or persistence.
+`CommandGuide::rect` exposes the exact open card geometry so an application can
+publish a bounded target and judge its pixels without mistaking ambient canvas
+motion for help presentation.
 
 ## Containment And Motion
 

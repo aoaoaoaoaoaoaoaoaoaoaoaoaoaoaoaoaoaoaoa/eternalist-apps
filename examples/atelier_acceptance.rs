@@ -14,7 +14,9 @@ use std::{
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 use anyhow::{Context as _, Result, ensure};
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
-use egui_tester::{AppCommand, Button, Key, Modifiers, Probe, Testbed, Wheel, WindowQuery};
+use egui_tester::{
+    AppCommand, Button, Key, Modifiers, PixelRegion, Probe, Testbed, Wheel, WindowQuery,
+};
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 use serde::Deserialize;
 
@@ -135,21 +137,50 @@ fn command_story(
         frame.state.status == "saved archive" && frame.state.filter == "ore"
     })?;
 
+    guide_story(session, app, probe, artifacts)?;
+
+    let _next_panel = session.chord(Modifiers::CTRL, Key::Tab)?;
+    wait_focus(probe, app, "atelier.commands.panel.density")?;
+    let _tab = session.key(Key::Tab)?;
+    wait_focus(probe, app, "atelier.commands.density")?;
+    let _right = session.key(Key::Right)?;
+    let _keyboard_adjusted = probe.wait(app, WAIT, "Right adjusts focused rail", |frame| {
+        frame.state.density == 5
+    })?;
+    let rail = probe.wait_anchor(app, "atelier.commands.density", WAIT)?;
+    let (x, y) = rail.center();
+    let _wheel = session.wheel(x, y, -1, Wheel::default())?;
+    let _wheel_adjusted = probe.wait(app, WAIT, "wheel adjusts hovered rail", |frame| {
+        frame.state.density == 6
+    })?;
+
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn guide_story(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+    artifacts: Option<&Path>,
+) -> Result<()> {
     let before_help = session.capture()?;
     let _help = session.key(Key::Function(1))?;
     let _opened = probe.wait(app, WAIT, "F1 opens generated help", |frame| {
         frame.state.guide_open
     })?;
-    let with_help = session.wait_changed(&before_help, 0.15, 2, WAIT)?;
+    let guide = probe.wait_anchor(app, "atelier.commands.guide", WAIT)?;
+    let guide_region = PixelRegion::anchor(&guide);
+    let with_help = session.wait_changed_region(&before_help, guide_region, 0.55, 2, WAIT)?;
     if let Some(directory) = artifacts {
         std::fs::create_dir_all(directory).context("create acceptance artifact directory")?;
         before_help.save_png(directory.join("before-help.png"))?;
         with_help.save_png(directory.join("with-help.png"))?;
     }
-    let help_difference = before_help.difference(&with_help, 2)?;
+    let help_difference = before_help.difference_region(&with_help, guide_region, 2)?;
     ensure!(
-        help_difference > 0.15,
-        "the witnessed guide changed only {help_difference:.4} of product pixels"
+        help_difference > 0.55,
+        "the witnessed guide changed only {help_difference:.4} of its own card pixels"
     );
     let _blocked_panel = session.chord(Modifiers::CTRL, Key::Tab)?;
     let blocked = probe.wait_fresh(app, WAIT)?;
@@ -174,22 +205,6 @@ fn command_story(
     );
     wait_focus(probe, app, "atelier.commands.search")
         .context("Escape to restore focus into search")?;
-
-    let _next_panel = session.chord(Modifiers::CTRL, Key::Tab)?;
-    wait_focus(probe, app, "atelier.commands.panel.density")?;
-    let _tab = session.key(Key::Tab)?;
-    wait_focus(probe, app, "atelier.commands.density")?;
-    let _right = session.key(Key::Right)?;
-    let _keyboard_adjusted = probe.wait(app, WAIT, "Right adjusts focused rail", |frame| {
-        frame.state.density == 5
-    })?;
-    let rail = probe.wait_anchor(app, "atelier.commands.density", WAIT)?;
-    let (x, y) = rail.center();
-    let _wheel = session.wheel(x, y, -1, Wheel::default())?;
-    let _wheel_adjusted = probe.wait(app, WAIT, "wheel adjusts hovered rail", |frame| {
-        frame.state.density == 6
-    })?;
-
     Ok(())
 }
 

@@ -158,6 +158,7 @@ enum GuidePage {
 #[derive(Debug, Default)]
 pub struct CommandGuide {
     open: bool,
+    rect: Option<egui::Rect>,
     page: GuidePage,
     restore_focus: Option<egui::Id>,
     pending_focus: Option<FocusReturn>,
@@ -175,6 +176,15 @@ impl CommandGuide {
     #[must_use]
     pub const fn is_open(&self) -> bool {
         self.open
+    }
+
+    /// Geometry occupied by the guide card in its most recent open pass.
+    ///
+    /// Applications may publish this rectangle as a one-way acceptance
+    /// target. It is absent while the guide is closed.
+    #[must_use]
+    pub const fn rect(&self) -> Option<egui::Rect> {
+        self.rect
     }
 
     /// Open the guide and remember the current focus restoration target.
@@ -198,6 +208,7 @@ impl CommandGuide {
             return;
         }
         self.open = false;
+        self.rect = None;
         self.focus_close = false;
         self.pending_focus = Some(FocusReturn {
             target: self.restore_focus.take(),
@@ -268,6 +279,7 @@ impl CommandGuide {
     {
         self.settle_focus(ctx);
         if !self.open {
+            self.rect = None;
             return;
         }
         let width = (ctx.content_rect().width() - 48.0).clamp(340.0, 760.0);
@@ -328,7 +340,9 @@ impl CommandGuide {
                             show_all(ui, canon, &scope_name, &status, extra_sections);
                         }
                     });
+                ui.min_rect()
             });
+        self.rect = Some(modal.inner);
         self.focus_close = false;
         if close || modal.should_close() {
             self.close(ctx);
@@ -546,6 +560,8 @@ fn show_gesture_group(ui: &mut egui::Ui, section: GuideSection) {
 mod tests {
     use super::*;
 
+    const NO_COMMANDS: [CommandSpec<(), ()>; 0] = [];
+
     #[test]
     fn question_mark_opens_and_f1_closes_the_guide() {
         let ctx = egui::Context::default();
@@ -650,5 +666,29 @@ mod tests {
         });
 
         assert!(restored);
+    }
+
+    #[test]
+    fn open_guide_exposes_only_its_card_geometry() {
+        let ctx = egui::Context::default();
+        let canon = CommandCanon::new(&NO_COMMANDS);
+        let mut guide = CommandGuide::default();
+        guide.open(&ctx);
+        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            guide.show(
+                ui.ctx(),
+                &canon,
+                &[],
+                |()| "NONE",
+                |()| CommandStatus::Hidden,
+                &[],
+            );
+        });
+        let rect = guide.rect().expect("open guide card");
+        assert!(rect.is_positive());
+        assert!(ctx.content_rect().contains_rect(rect));
+
+        guide.close(&ctx);
+        assert!(guide.rect().is_none());
     }
 }
