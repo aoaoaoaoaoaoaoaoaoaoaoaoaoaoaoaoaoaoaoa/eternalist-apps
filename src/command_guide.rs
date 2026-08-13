@@ -183,6 +183,7 @@ enum GuidePage {
 #[derive(Debug, Default)]
 pub struct CommandGuide {
     open: bool,
+    deferred_close_frame: Option<u64>,
     rect: Option<egui::Rect>,
     page: GuidePage,
     restore_focus: Option<egui::Id>,
@@ -222,6 +223,7 @@ impl CommandGuide {
 
     /// Open the guide and remember the current focus restoration target.
     pub fn open(&mut self, ctx: &egui::Context) {
+        self.settle_deferred_close(ctx);
         self.settle_focus(ctx);
         if self.open {
             return;
@@ -237,6 +239,11 @@ impl CommandGuide {
 
     /// Close the guide and restore the control that opened it when possible.
     pub fn close(&mut self, ctx: &egui::Context) {
+        self.deferred_close_frame = None;
+        self.close_now(ctx);
+    }
+
+    fn close_now(&mut self, ctx: &egui::Context) {
         if !self.open {
             return;
         }
@@ -257,6 +264,7 @@ impl CommandGuide {
     /// while the guide is open it quarantines wheel input from underlying
     /// controls and returns that input only to [`Self::show`].
     pub fn take_shortcuts(&mut self, ctx: &egui::Context) -> bool {
+        self.settle_deferred_close(ctx);
         self.settle_focus(ctx);
         let question = if ctx.text_edit_focused() {
             Stroke::None
@@ -282,6 +290,7 @@ impl CommandGuide {
 
     /// Show the persistent small help plunger and toggle the guide when used.
     pub fn activator(&mut self, ui: &mut egui::Ui) -> MonoglyphResponse {
+        self.settle_deferred_close(ui.ctx());
         self.settle_focus(ui.ctx());
         let response = Monoglyph::symbol(Symbol::Help)
             .size(MechanismSize::Small)
@@ -317,6 +326,7 @@ impl CommandGuide {
         C: Copy + Debug + Eq + 'static,
         S: Copy + Debug + Eq + 'static,
     {
+        self.settle_deferred_close(ctx);
         self.settle_focus(ctx);
         if !self.open {
             self.rect = None;
@@ -388,7 +398,21 @@ impl CommandGuide {
         self.rect = Some(modal.inner);
         self.focus_close = false;
         if close || modal.should_close() {
-            self.close(ctx);
+            // The modal belongs to this completed presentation. Delay the
+            // state transition until the next pass so `is_open` and the
+            // witnessed surface cannot describe different realities.
+            self.deferred_close_frame = Some(ctx.cumulative_frame_nr());
+            ctx.request_repaint();
+        }
+    }
+
+    fn settle_deferred_close(&mut self, ctx: &egui::Context) {
+        let due = self
+            .deferred_close_frame
+            .is_some_and(|frame| frame < ctx.cumulative_frame_nr());
+        if due {
+            self.deferred_close_frame = None;
+            self.close_now(ctx);
         }
     }
 
