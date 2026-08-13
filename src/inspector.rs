@@ -23,7 +23,7 @@ pub struct Inspector {
 
 impl Inspector {
     /// Name one inspector and its persistent scroll state.
-    pub fn new(id: impl std::hash::Hash) -> Self {
+    pub fn new(id: impl egui::AsId) -> Self {
         let panel = Id::new(id);
         Self {
             panel,
@@ -42,7 +42,7 @@ impl Inspector {
 
     /// Override the default scroll identity.
     #[must_use]
-    pub fn scroll_id(mut self, id: impl std::hash::Hash) -> Self {
+    pub fn scroll_id(mut self, id: impl egui::AsId) -> Self {
         self.scroll = Id::new(id);
         self
     }
@@ -60,7 +60,7 @@ impl Inspector {
         let panel = egui::Panel::left(self.panel)
             .resizable(false)
             .exact_size(self.width)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 let mut scroll = ScrollArea::vertical()
                     .id_salt(self.scroll)
                     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)

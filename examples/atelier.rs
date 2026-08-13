@@ -175,7 +175,7 @@ impl Atelier {
                     .stroke(egui::Stroke::new(1.0_f32, chrome::EDGE_STRONG))
                     .inner_margin(egui::Margin::symmetric(20, 12)),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 let _heading = ui.horizontal(|ui| {
                     let _title = ui.label(chrome::title("ETERNALIST ATELIER"));
                     ui.add_space(10.0);
@@ -251,7 +251,7 @@ impl InspectorExhibit {
                     .fill(chrome::PAGE)
                     .inner_margin(egui::Margin::same(28)),
             )
-            .show_inside(ui, |ui| self.stage(ui));
+            .show(ui, |ui| self.stage(ui));
     }
 
     fn controls(&mut self, ui: &mut egui::Ui, water: &mut Surface) {
@@ -427,7 +427,7 @@ impl WaitingExhibit {
                     .fill(chrome::PAGE)
                     .inner_margin(egui::Margin::symmetric(28, 16)),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 let _eyebrow = ui.label(chrome::eyebrow("ONE FRAME · ONE PHYSICAL RAFT"));
                 let _title = ui.label(chrome::title("VISIBLE WAIT ARBITRATION"));
                 ui.add_space(10.0);
@@ -446,7 +446,7 @@ impl WaitingExhibit {
                     .fill(chrome::PAGE)
                     .inner_margin(egui::Margin::same(28)),
             )
-            .show_inside(ui, |ui| self.stage(ui));
+            .show(ui, |ui| self.stage(ui));
         self.wait.compose(ui.ctx(), water);
     }
 
@@ -647,7 +647,7 @@ impl CabinetExhibit {
                     .fill(chrome::PAGE)
                     .inner_margin(egui::Margin::same(28)),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 let _eyebrow = ui.label(chrome::eyebrow("APPLICATION PROJECTION"));
                 let _title = ui.label(chrome::title(self.active.to_string().to_uppercase()));
                 let law = self
@@ -859,7 +859,7 @@ impl CommandsExhibit {
                     .fill(chrome::PAGE)
                     .inner_margin(egui::Margin::same(28)),
             )
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 let _eyebrow = ui.label(chrome::eyebrow("TYPED APPLICATION CONSEQUENCE"));
                 let _title = ui.label(chrome::title("COMMAND FOUNDRY"));
                 let _law = ui.label(chrome::muted(

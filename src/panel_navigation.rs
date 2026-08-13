@@ -2,8 +2,6 @@
 
 #![deny(missing_docs)]
 
-use std::hash::Hash;
-
 use dwemer_poolrooms::chrome::{FoldWake, Section};
 
 use crate::commands::{
@@ -143,7 +141,7 @@ impl PanelFrame<'_> {
     /// Call this in the same UI scope and with the same identity salt used by
     /// [`Self::section`]. A panel omitted from the pass is discarded during
     /// finalization, just like an active panel removed by ordinary layout.
-    pub fn activate(&mut self, ui: &egui::Ui, id_salt: impl Hash) {
+    pub fn activate(&mut self, ui: &egui::Ui, id_salt: impl egui::AsIdSalt) {
         let id = ui.make_persistent_id(id_salt);
         if self.navigator.active != Some(id) {
             self.navigator.active = Some(id);
@@ -155,7 +153,7 @@ impl PanelFrame<'_> {
     pub fn section(
         &mut self,
         ui: &mut egui::Ui,
-        id_salt: impl Hash + Clone,
+        id_salt: impl egui::AsIdSalt + Clone,
         title: &'static str,
         default_open: bool,
         add: impl FnOnce(&mut egui::Ui),
