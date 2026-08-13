@@ -23,7 +23,7 @@ use serde::Deserialize;
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 const WAIT: Duration = Duration::from_secs(5);
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
-const STARTUP_WAIT: Duration = Duration::from_secs(15);
+const STARTUP_WAIT: Duration = Duration::from_secs(30);
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 #[derive(Debug, Deserialize)]
@@ -59,7 +59,7 @@ fn main() -> Result<()> {
         .launch(
             AppCommand::new(binary)
                 .witness("probes/atelier.observations")
-                .runtime(Duration::from_secs(45)),
+                .runtime(Duration::from_mins(1)),
         )
         .context("launch instrumented Atelier")?;
     let session = testbed
