@@ -121,6 +121,16 @@ pub trait NativeApp {
         false
     }
 
+    /// Consume an application-owned request to hide the window after the frame
+    /// carrying that request has been presented.
+    ///
+    /// The host publishes any acceptance witness before committing the
+    /// concealment. Applications must use this seam instead of issuing an egui
+    /// viewport visibility command during [`Self::draw`].
+    fn take_conceal_request(&mut self) -> bool {
+        false
+    }
+
     /// Return the next application-service deadline, independent of rendering.
     ///
     /// Use this for semantic clocks such as retries, publication surveys, and
@@ -699,6 +709,13 @@ impl<A: NativeApp> Shell<A> {
                 RepaintOrigin::Frame,
             );
         }
+        let conceal = main_phase!(
+            "frame.take_conceal_request",
+            self.app.take_conceal_request()
+        );
+        if conceal && !self.conceal() {
+            bail!("application requested concealment on a platform without window visibility");
+        }
         warn_frame_overrun(begun.elapsed(), A::RESPONSIVENESS.frame);
         Ok(())
     }
@@ -804,6 +821,24 @@ impl<A: NativeApp> Shell<A> {
             rig.window.focus_window();
         }
         self.reconcile_presentation();
+    }
+
+    fn conceal(&mut self) -> bool {
+        let can_hide = self
+            .rig
+            .as_ref()
+            .is_some_and(|rig| rig.window.is_visible().is_some());
+        if !can_hide {
+            return false;
+        }
+        self.window_standing
+            .concealments
+            .set(Concealment::Hidden, true);
+        self.reconcile_presentation();
+        if let Some(rig) = &self.rig {
+            rig.window.set_visible(false);
+        }
+        true
     }
 
     fn abort(&mut self, event_loop: &ActiveEventLoop, error: anyhow::Error) {
@@ -923,20 +958,8 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
                 match self.app.close_requested() {
                     CloseDisposition::Exit => event_loop.exit(),
                     CloseDisposition::HideOrExit => {
-                        let can_hide = self
-                            .rig
-                            .as_ref()
-                            .is_some_and(|rig| rig.window.is_visible().is_some());
-                        if !can_hide {
+                        if !self.conceal() {
                             event_loop.exit();
-                            return;
-                        }
-                        self.window_standing
-                            .concealments
-                            .set(Concealment::Hidden, true);
-                        self.reconcile_presentation();
-                        if let Some(rig) = &self.rig {
-                            rig.window.set_visible(false);
                         }
                     }
                 }
