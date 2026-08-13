@@ -50,6 +50,12 @@ terminal application signals are observed; concealed presentation resumes
 with one fresh frame when the window returns. No visual animation may be the
 clock for domain work.
 
+Surface acquisition may transiently report occlusion while a newly mapped
+window is becoming presentable. The host admits one finite, backoff-spaced
+acquisition barrage, then sleeps until a platform transition supplies fresh
+authority. A missing first present cannot become a permanent black window, and
+persistent occlusion cannot become a polling cadence.
+
 Semantic clocks use `NativeApp::service_deadline`, never
 `request_repaint_after`. The host services a matured deadline even while the
 window is concealed and requests a frame only when its visible projection

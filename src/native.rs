@@ -466,6 +466,7 @@ pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
         governor,
         rig: None,
         force_redraw: false,
+        surface_occlusion_retries: 0,
         window_standing: WindowStanding::default(),
         window_title: A::WINDOW.title.to_owned(),
         fault: None,
@@ -560,6 +561,7 @@ struct Shell<A: NativeApp> {
     governor: RepaintGovernor,
     rig: Option<Rig>,
     force_redraw: bool,
+    surface_occlusion_retries: usize,
     window_standing: WindowStanding,
     window_title: String,
     fault: Option<anyhow::Error>,
@@ -676,12 +678,28 @@ impl<A: NativeApp> Shell<A> {
                         RepaintOrigin::Frame,
                     );
                 }
-                RenderOutcome::Occluded => *lock_alarm(&self.alarm) = None,
+                RenderOutcome::Occluded => {
+                    *lock_alarm(&self.alarm) = None;
+                    if let Some(delay) = SURFACE_OCCLUSION_RETRY_DELAYS
+                        .get(self.surface_occlusion_retries)
+                        .copied()
+                    {
+                        self.surface_occlusion_retries += 1;
+                        schedule_repaint(
+                            &self.governor,
+                            &self.alarm,
+                            &rig.window,
+                            delay,
+                            RepaintOrigin::Frame,
+                        );
+                    }
+                }
                 RenderOutcome::Presented { .. } => unreachable!(),
             }
             warn_frame_overrun(begun.elapsed(), A::RESPONSIVENESS.frame);
             return Ok(());
         };
+        self.surface_occlusion_retries = 0;
         frame_span.record("presented", true);
         if repaint {
             schedule_repaint(
@@ -788,6 +806,9 @@ impl<A: NativeApp> Shell<A> {
         }
         let presentation = self.window_standing.presentation();
         let prior = self.governor.set(presentation);
+        if presentation == Presentation::Foreground && presentation != prior {
+            self.surface_occlusion_retries = 0;
+        }
         if presentation != prior
             && matches!(
                 presentation,
@@ -972,6 +993,7 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
                 return;
             }
             WindowEvent::Resized(size) => {
+                self.surface_occlusion_retries = 0;
                 self.window_standing
                     .concealments
                     .set(Concealment::ZeroSized, size.width == 0 || size.height == 0);
@@ -1057,6 +1079,13 @@ enum RenderOutcome {
     Retry,
     Occluded,
 }
+
+const SURFACE_OCCLUSION_RETRY_DELAYS: [Duration; 4] = [
+    Duration::from_millis(16),
+    Duration::from_millis(32),
+    Duration::from_millis(64),
+    Duration::from_millis(128),
+];
 
 impl Rig {
     #[allow(

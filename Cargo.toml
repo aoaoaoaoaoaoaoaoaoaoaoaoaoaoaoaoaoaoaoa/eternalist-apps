@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.6.1"
+version = "0.6.2"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
