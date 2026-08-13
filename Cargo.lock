@@ -452,9 +452,9 @@ dependencies = [
 
 [[package]]
 name = "egui-tester"
-version = "0.9.1"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae6c5ea36fc3da32b4e2cbae4e28fbd1f77987622500b0318401d58268cc8ced"
+checksum = "096fb4f1606112af0d562cc24a2a54247192057720d69a63906398b1bc60a241"
 dependencies = [
  "bitflags 2.13.1",
  "egui-tester-witness",
@@ -470,9 +470,9 @@ dependencies = [
 
 [[package]]
 name = "egui-tester-witness"
-version = "0.9.1"
+version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23fcd5f6c8041d2fb86a2049d2d2e00a500f1e95792e31d8b59003978a06beb4"
+checksum = "3bc05a526d70f59631289dba5c4cc4de1b76d0dfc5697cd2fdf10bc735a5c0d2"
 dependencies = [
  "egui",
  "rustix 1.1.4",
@@ -592,12 +592,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
 name = "eternalist-apps"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "anyhow",
  "brass_poolrooms",
@@ -1157,7 +1157,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1889,7 +1889,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2114,7 +2114,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2718,7 +2718,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
