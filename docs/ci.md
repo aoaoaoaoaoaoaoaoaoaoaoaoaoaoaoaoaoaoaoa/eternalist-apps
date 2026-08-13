@@ -17,6 +17,14 @@ The WebGPU gate proves that the renderer-neutral primitives, atelier host, and
 static browser artifact compile together. Hosted CI does not turn that design
 surface into a supported web application host or prove hardware rendering.
 
+Resource conduct is app-owned release evidence, not a compilation claim. Every
+advertised native coordinate runs the real-hardware settled-rest matrix in
+[`responsiveness.md`](responsiveness.md); a hosted Linux, macOS, or Windows
+runner cannot substitute for its compositor, native wgpu backend, GPU driver,
+or process-memory observations. Store the resulting traces and soak readings
+with the release candidate. A coordinate without that evidence remains
+unverified even when its build and installer gates pass.
+
 The Atelier story proves only this library's shared interaction assembly. This
 repository does not own an adopting product's installation, uninstallation,
 XDG persistence, workers, latency budgets, or domain stories. An application

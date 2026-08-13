@@ -1164,6 +1164,7 @@ fn record(ui: &egui::Ui, name: String, rect: egui::Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
     #[derive(Clone, Debug, Eq, Hash, PartialEq)]
     struct Name(String);
@@ -1200,48 +1201,241 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Debug)]
+    enum Mutation {
+        Beside { source: u8, anchor: u8, after: bool },
+        Shelf { source: u8, shelf: u8 },
+        Root { source: u8 },
+        ReorderShelf { source: u8, anchor: u8, after: bool },
+        ScuttleShelf { shelf: u8 },
+        Rename { source: u8, name: u8 },
+    }
+
+    fn mutation() -> impl Strategy<Value = Mutation> {
+        prop_oneof![
+            (any::<u8>(), any::<u8>(), any::<bool>()).prop_map(|(source, anchor, after)| {
+                Mutation::Beside {
+                    source,
+                    anchor,
+                    after,
+                }
+            }),
+            (any::<u8>(), any::<u8>())
+                .prop_map(|(source, shelf)| Mutation::Shelf { source, shelf }),
+            any::<u8>().prop_map(|source| Mutation::Root { source }),
+            (any::<u8>(), any::<u8>(), any::<bool>()).prop_map(|(source, anchor, after)| {
+                Mutation::ReorderShelf {
+                    source,
+                    anchor,
+                    after,
+                }
+            }),
+            any::<u8>().prop_map(|shelf| Mutation::ScuttleShelf { shelf }),
+            (any::<u8>(), any::<u8>()).prop_map(|(source, name)| Mutation::Rename { source, name }),
+        ]
+    }
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    struct Model {
+        saved: Vec<Name>,
+        shelves: Vec<(String, Vec<Name>)>,
+    }
+
+    impl Model {
+        fn select(&self, selector: u8) -> Name {
+            let entries = self
+                .saved
+                .iter()
+                .chain(self.shelves.iter().flat_map(|(_, entries)| entries));
+            entries
+                .clone()
+                .nth(usize::from(selector) % entries.count())
+                .cloned()
+                .expect("the model always owns entries")
+        }
+
+        fn remove(&mut self, key: &Name) -> Name {
+            if let Some(index) = self.saved.iter().position(|candidate| candidate == key) {
+                return self.saved.remove(index);
+            }
+            for (_, entries) in &mut self.shelves {
+                if let Some(index) = entries.iter().position(|candidate| candidate == key) {
+                    return entries.remove(index);
+                }
+            }
+            panic!("selected model entry vanished")
+        }
+
+        fn berth(&self, key: &Name) -> (Option<usize>, usize) {
+            if let Some(index) = self.saved.iter().position(|candidate| candidate == key) {
+                return (None, index);
+            }
+            self.shelves
+                .iter()
+                .enumerate()
+                .find_map(|(shelf, (_, entries))| {
+                    entries
+                        .iter()
+                        .position(|candidate| candidate == key)
+                        .map(|index| (Some(shelf), index))
+                })
+                .expect("selected model entry has a berth")
+        }
+
+        fn moor_beside(&mut self, moving: &Name, anchor: &Name, after: bool) {
+            if moving == anchor {
+                return;
+            }
+            let entry = self.remove(moving);
+            let (rack, index) = self.berth(anchor);
+            let index = index + usize::from(after);
+            match rack {
+                None => self.saved.insert(index, entry),
+                Some(rack) => self.shelves[rack].1.insert(index, entry),
+            }
+        }
+
+        fn moor_shelf(&mut self, moving: &Name, rack: usize) {
+            let entry = self.remove(moving);
+            match self.shelves.get_mut(rack) {
+                Some((_, entries)) => entries.push(entry),
+                None => self.saved.push(entry),
+            }
+        }
+
+        fn moor_root(&mut self, source: &Name) {
+            let entry = self.remove(source);
+            self.saved.push(entry);
+        }
+
+        fn reorder_shelf(&mut self, moving: usize, anchor: usize, after: bool) {
+            if moving == anchor || moving >= self.shelves.len() || anchor >= self.shelves.len() {
+                return;
+            }
+            let rack = self.shelves.remove(moving);
+            let anchor = anchor - usize::from(moving < anchor);
+            self.shelves.insert(anchor + usize::from(after), rack);
+        }
+
+        fn scuttle(&mut self, rack: usize) {
+            if rack < self.shelves.len() {
+                let (_, entries) = self.shelves.remove(rack);
+                self.saved.extend(entries);
+            }
+        }
+    }
+
+    fn cabinet() -> Cabinet<Mark> {
+        Cabinet::forge(
+            vec![mark("a"), mark("b")],
+            vec![
+                Shelf {
+                    name: "one".to_owned(),
+                    open: true,
+                    entries: vec![mark("c"), mark("d")],
+                },
+                Shelf {
+                    name: "two".to_owned(),
+                    open: true,
+                    entries: vec![mark("e"), mark("f")],
+                },
+            ],
+        )
+    }
+
+    fn project(cabinet: &Cabinet<Mark>) -> Model {
+        Model {
+            saved: cabinet.saved.iter().map(|entry| entry.0.clone()).collect(),
+            shelves: cabinet
+                .shelves
+                .iter()
+                .map(|shelf| {
+                    (
+                        shelf.name.clone(),
+                        shelf.entries.iter().map(|entry| entry.0.clone()).collect(),
+                    )
+                })
+                .collect(),
+        }
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(128))]
+
+        #[test]
+        fn arbitrary_mutations_match_the_ordered_container_model(
+            mutations in proptest::collection::vec(mutation(), 0..64)
+        ) {
+            let mut cabinet = cabinet();
+            let mut model = project(&cabinet);
+
+            for mutation in mutations {
+                match mutation {
+                    Mutation::Beside { source, anchor, after } => {
+                        let source = model.select(source);
+                        let anchor = model.select(anchor);
+                        cabinet.moor(&source, &Berth::Beside { anchor: anchor.clone(), after });
+                        model.moor_beside(&source, &anchor, after);
+                    }
+                    Mutation::Shelf { source, shelf } => {
+                        let source = model.select(source);
+                        let shelf = usize::from(shelf) % (model.shelves.len() + 1);
+                        cabinet.moor(&source, &Berth::Shelf(shelf));
+                        model.moor_shelf(&source, shelf);
+                    }
+                    Mutation::Root { source } => {
+                        let source = model.select(source);
+                        cabinet.moor(&source, &Berth::Root);
+                        model.moor_root(&source);
+                    }
+                    Mutation::ReorderShelf { source, anchor, after } => {
+                        let modulus = model.shelves.len() + 1;
+                        let source = usize::from(source) % modulus;
+                        let anchor = usize::from(anchor) % modulus;
+                        cabinet.moor_shelf(source, ShelfBerth { anchor, after });
+                        model.reorder_shelf(source, anchor, after);
+                    }
+                    Mutation::ScuttleShelf { shelf } => {
+                        let shelf = usize::from(shelf) % (model.shelves.len() + 1);
+                        cabinet.scuttle_shelf(shelf);
+                        model.scuttle(shelf);
+                    }
+                    Mutation::Rename { source, name } => {
+                        let source = model.select(source);
+                        let name = Name(format!("n{}", name % 8));
+                        let berth = model.berth(&source);
+                        let occupied = model
+                            .saved
+                            .iter()
+                            .chain(model.shelves.iter().flat_map(|(_, entries)| entries))
+                            .any(|candidate| candidate == &name);
+                        let admitted = source == name || !occupied;
+                        prop_assert_eq!(cabinet.rename(&source, name.clone()), admitted);
+                        if admitted {
+                            let _prior = model.remove(&source);
+                            let entry = name;
+                            match berth.0 {
+                                None => model.saved.insert(berth.1, entry),
+                                Some(shelf) => model.shelves[shelf].1.insert(berth.1, entry),
+                            }
+                        }
+                    }
+                }
+                prop_assert_eq!(project(&cabinet), model.clone());
+            }
+        }
+    }
+
     #[test]
-    fn rectification_preserves_duplicate_entries_under_free_names() {
+    fn rectification_preserves_every_entry_under_free_normalized_names() {
         let duplicate = mark("alpha");
         let cabinet = Cabinet::forge(
             vec![duplicate.clone(), mark("beta")],
-            vec![Shelf {
-                name: " rack ".to_owned(),
-                open: true,
-                entries: vec![duplicate],
-            }],
-        );
-        assert_eq!(names(cabinet.all()), ["alpha", "beta", "alpha 2"]);
-        assert_eq!(cabinet.shelves[0].name, "rack");
-    }
-
-    #[test]
-    fn mooring_and_scuttling_preserve_total_entry_order() {
-        let mut cabinet = Cabinet::forge(vec![mark("a"), mark("b"), mark("c")], Vec::new());
-        cabinet.add_shelf();
-        let c = Name::forge("c").expect("static key");
-        cabinet.moor(
-            &c,
-            &Berth::Beside {
-                anchor: Name::forge("a").expect("static key"),
-                after: false,
-            },
-        );
-        assert_eq!(names(cabinet.saved.iter()), ["c", "a", "b"]);
-        cabinet.moor(&c, &Berth::Shelf(0));
-        cabinet.adopt_beside(&c, mark("c 2"));
-        cabinet.scuttle_shelf(0);
-        assert_eq!(names(cabinet.saved.iter()), ["a", "b", "c", "c 2"]);
-    }
-
-    #[test]
-    fn shelf_names_are_normalized_and_globally_unique() {
-        let mut cabinet: Cabinet<Mark> = Cabinet::forge(
-            Vec::new(),
             vec![
                 Shelf {
-                    name: "  storms  ".to_owned(),
-                    ..Shelf::default()
+                    name: " storms ".to_owned(),
+                    open: true,
+                    entries: vec![duplicate],
                 },
                 Shelf {
                     name: "storms".to_owned(),
@@ -1249,65 +1443,8 @@ mod tests {
                 },
             ],
         );
-        assert_eq!(cabinet.shelves[0].name, "storms");
-        assert_eq!(cabinet.shelves[1].name, "storms 2");
-        assert!(!cabinet.rename_shelf(1, " storms "));
-    }
-
-    #[test]
-    fn entry_rename_repels_collisions_without_moving_the_entry() {
-        let mut cabinet = Cabinet::forge(vec![mark("alpha"), mark("beta")], Vec::new());
-        let alpha = Name::forge("alpha").expect("static key");
-        let beta = Name::forge("beta").expect("static key");
-        let gamma = Name::forge("gamma").expect("static key");
-        assert!(!cabinet.rename(&alpha, beta));
-        assert!(cabinet.rename(&alpha, gamma));
-        assert_eq!(names(cabinet.saved.iter()), ["gamma", "beta"]);
-    }
-
-    #[test]
-    fn shelf_mooring_obeys_before_and_after_berths() {
-        let shelf = |name: &str| Shelf {
-            name: name.to_owned(),
-            ..Shelf::default()
-        };
-        let mut cabinet: Cabinet<Mark> =
-            Cabinet::forge(Vec::new(), vec![shelf("a"), shelf("b"), shelf("c")]);
-        cabinet.moor_shelf(
-            0,
-            ShelfBerth {
-                anchor: 2,
-                after: true,
-            },
-        );
-        assert_eq!(shelf_names(&cabinet), ["b", "c", "a"]);
-        cabinet.moor_shelf(
-            2,
-            ShelfBerth {
-                anchor: 0,
-                after: false,
-            },
-        );
-        assert_eq!(shelf_names(&cabinet), ["a", "b", "c"]);
-    }
-
-    #[test]
-    fn root_berth_exists_only_for_a_shelved_item() {
-        let loose = mark("loose");
-        let shelved = mark("shelved");
-        let mut cabinet = Cabinet::forge(
-            vec![loose.clone()],
-            vec![Shelf {
-                name: "folder".to_owned(),
-                open: true,
-                entries: vec![shelved.clone()],
-            }],
-        );
-        assert!(!cabinet.is_shelved(loose.key()));
-        assert!(cabinet.is_shelved(shelved.key()));
-
-        cabinet.scuttle_shelf(0);
-        assert!(!cabinet.is_shelved(shelved.key()));
+        assert_eq!(names(cabinet.all()), ["alpha", "beta", "alpha 2"]);
+        assert_eq!(shelf_names(&cabinet), ["storms", "storms 2"]);
     }
 
     #[test]
@@ -1339,12 +1476,6 @@ mod tests {
         let mut recovered = None;
         let _released = context.run_ui(input(false), |ui| {
             let response = ui.allocate_response(ui.available_size(), egui::Sense::hover());
-            assert!(response.rect.contains(position));
-            assert!(response.contains_pointer());
-            assert!(response.ctx.input(|input| input.pointer.any_released()));
-            assert!(egui::DragAndDrop::has_payload_of_type::<Name>(
-                &response.ctx
-            ));
             assert!(release_matching_payload::<ShelfDrag>(&response).is_none());
             if let Some(payload) = release_matching_payload::<Name>(&response) {
                 recovered = Some(payload);

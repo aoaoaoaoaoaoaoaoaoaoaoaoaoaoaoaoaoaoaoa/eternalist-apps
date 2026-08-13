@@ -1,5 +1,10 @@
 # Native Verification
 
+Unit tests within this architecture follow the house
+[Unit Test Doctrine](/home/main/programming/projects/skills/dies-irae/doctrines/unit-test-doctrine/SKILL.md).
+This document governs native acceptance witnesses independently; it does not
+require a test per feature, widget, bug, or implementation change.
+
 Each acceptance scenario is a complete user story executed against the
 optimized product path. The acceptance executable lives in the product
 repository, has no dependency on product internals, and controls the real
@@ -30,7 +35,7 @@ An observation cannot satisfy the verdict it describes. Functional timeouts
 bound hangs; production budgets independently measure from input through
 surface presentation or another external effect.
 
-The standard first suite covers:
+The standard first-suite risk vocabulary is:
 
 1. boot to externally visible readiness;
 2. one ordinary durable state transition;
@@ -38,10 +43,13 @@ The standard first suite covers:
 4. one product-defining rich gesture;
 5. inert launch without the observational feature.
 
-Add stories by user obligation, not widget count. Prefer AccessKit identity for
-ordinary accessible controls when it is stable; retain typed custom targets
-for canvases and domain geometry that accessibility cannot honestly name.
-Checked-in xdotool choreography is forbidden.
+Derive the smallest suite that owns the application's credible risks. One story
+may cover several rows, and an inapplicable row remains empty. Add stories by
+user obligation and marginal fault reach, not widget count, incidents, or
+diffs. Prefer AccessKit identity for ordinary accessible controls when it is
+stable; retain typed custom targets for canvases and domain geometry that
+accessibility cannot honestly name. Checked-in xdotool choreography is
+forbidden.
 
 Focus is a presented synchronization fact, not application state. Instrumented
 egui controls publish their real response through

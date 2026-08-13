@@ -12,6 +12,7 @@ router, not an independent framework specification.
 
 1. Read the target repository's `AGENTS.md` and current implementation.
 2. Load `$style-doctrine`, `$product-doctrine`, and `$ui-doctrine`. Load
+   `$unit-test-doctrine` whenever unit tests are in scope. Load
    `$rust-bootstrap` for a fresh Rust project or lint retrofit.
 3. Read [architecture](../../../docs/architecture.md) and
    [design language](../../../docs/design-language.md).
@@ -37,8 +38,9 @@ Read [fresh bootstrap](../../../docs/bootstrap-fresh.md),
 - keep corpus-scale work and durable writes off the event loop;
 - create a dependency-light product contract plus product-owned acceptance
   executable;
-- prove boot, one durable action, restart, one rich native gesture, install,
-  uninstall, and the declared platform coordinate.
+- establish the smallest product-owned acceptance basis that discriminates
+  boot, durable action, restart, rich native interaction, installation,
+  removal, and the declared platform coordinate where those risks exist.
 
 ## Retrofit
 
@@ -69,9 +71,35 @@ branch is a failed extraction.
 - Witnesses synchronize; external effects and rendered evidence judge.
 - Production motion remains enabled. Never use whole-frame pixel equality or
   stillness as readiness.
-- The host is portable across Linux/X11, macOS, and Windows and selects one
-  native GPU backend per target. Compilation alone is not a product support
-  claim; require app-owned runtime, lifecycle, and installation evidence.
+- The event-loop thread never waits on worker capacity or durable I/O. Give
+  result drains item and wall ceilings; use the shared superseding mailbox for
+  latest-demand-wins work, and use `SettledScribe` for settled background
+  persistence when the product needs it.
+- Workers and platform callbacks use `NativeWake` for domain-result repaint,
+  reveal, and exit signals. Streams of progress, tiles, thumbnails, or other
+  results whose consumption can create more demand use the foreground-only
+  repaint methods, leaving bounded-channel backpressure in authority while the
+  window is unfocused. Do not treat egui's coalescing repaint request as a
+  reliable cross-thread event channel.
+- Retries, surveys, persistence settlement, and other semantic clocks use
+  `NativeApp::service_deadline`. They never borrow visual repaint cadence and
+  must advance every matured deadline before returning to the host.
+- Inventory every resident loop. Each needs a named product purpose, blocking
+  wait, bounded queues and retained state, terminal or steady-state cadence,
+  and shutdown law. Measure elected background services independently from
+  domain-quiescent rest; continued domain work never licenses presentation or
+  an unmetered resource budget.
+- The host is portable across Linux/X11, Linux/Wayland, macOS, and Windows and
+  selects one native GPU backend per target. Compilation alone is not a product
+  support claim; require app-owned runtime, lifecycle, and installation
+  evidence.
+- Exclude platform-exclusive dependencies, modules, assets, workers, and
+  initialization paths at compile time with target or feature `cfg`s. A runtime
+  no-op is not a lean target. Keep runtime capability detection for facts such
+  as concealment or tray availability that the OS name cannot decide.
+- Every advertised coordinate also requires the real-hardware settled-rest
+  preflight in `docs/responsiveness.md`; hosted compilation and software
+  rendering cannot prove compositor, driver, or GPU-memory conduct.
 - Promote a logical primitive after two applications prove the same law and a
   further reuse is evident, or after three applications use it identically.
   Require executable evidence, migrate every adopter, and delete every local

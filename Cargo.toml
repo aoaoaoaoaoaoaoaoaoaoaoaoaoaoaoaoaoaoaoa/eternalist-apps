@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.4.4"
+version = "0.4.5"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -21,12 +21,13 @@ egui-test = [
 serde = ["dep:serde"]
 
 [dependencies]
-dwemer_poolrooms = "0.10.0"
+dwemer_poolrooms = { version = "0.10.1", path = "../dwemer_poolrooms" }
 egui = "=0.34.3"
 serde = { version = "1.0.228", features = ["derive"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.102"
+crossbeam-channel = "0.5.15"
 egui-wgpu = { version = "=0.34.3", default-features = false }
 egui-winit = { version = "=0.34.3", default-features = false }
 pollster = "0.4.0"
@@ -42,6 +43,7 @@ wgpu = { version = "29.0.1", default-features = false, features = ["std", "vulka
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 egui-tester = "0.7.0"
+proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.34.3", default-features = false, features = ["macos-window-resize-jitter-fix"] }

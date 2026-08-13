@@ -1,7 +1,12 @@
 #!/bin/sh
 set -eu
 
-rustup target add wasm32-unknown-unknown
+if command -v rustup >/dev/null 2>&1; then
+    rustup target add wasm32-unknown-unknown
+elif [ ! -d "$(rustc --print target-libdir --target wasm32-unknown-unknown)" ]; then
+    printf '%s\n' 'wasm32-unknown-unknown is absent and rustup is unavailable' >&2
+    exit 1
+fi
 if ! command -v wasm-bindgen >/dev/null 2>&1 ||
     [ "$(wasm-bindgen --version)" != 'wasm-bindgen 0.2.126' ]; then
     cargo install wasm-bindgen-cli --version 0.2.126 --locked

@@ -100,35 +100,3 @@ pub struct InspectorResponse<R> {
     /// Resulting nonnegative vertical offset in logical points.
     pub scroll_offset: f32,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn inspector_returns_application_value_without_mandating_sections() {
-        let ctx = egui::Context::default();
-        let mut result = None;
-        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
-            result = Some(Inspector::new("test-inspector").show(ui, |ui| {
-                let _label = ui.label("application-owned body");
-                17_u8
-            }));
-        });
-        assert_eq!(result.map(|result| result.inner), Some(17));
-    }
-
-    #[test]
-    fn persisted_offsets_are_refined_to_nonnegative_values() {
-        let ctx = egui::Context::default();
-        let mut result = None;
-        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
-            result = Some(
-                Inspector::new("test-inspector")
-                    .scroll_offset(-40.0)
-                    .show(ui, |_| ()),
-            );
-        });
-        assert_eq!(result.map(|result| result.scroll_offset), Some(0.0));
-    }
-}

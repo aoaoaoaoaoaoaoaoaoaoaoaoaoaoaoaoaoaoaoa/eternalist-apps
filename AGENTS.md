@@ -1,7 +1,8 @@
 # Eternalist Apps Agent Guidance
 
 Read and obey the `$style-doctrine`, `$product-doctrine`, and `$ui-doctrine`
-skills before changing public code or doctrine.
+skills before changing public code or doctrine. Read `$unit-test-doctrine`
+before changing unit tests.
 
 The crate owns native lifecycle and reusable high-level logical application
 primitives. Its north star is a product expressed as thin domain glue over

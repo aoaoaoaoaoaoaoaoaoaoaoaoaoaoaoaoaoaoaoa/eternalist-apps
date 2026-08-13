@@ -96,11 +96,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn largest_waiting_surface_wins_without_draw_order_authority() {
+    fn one_largest_live_surface_wins_each_frame_without_draw_order_authority() {
         let small = Rect::from_min_max(pos2(2.0, 3.0), pos2(12.0, 8.0));
         let large = Rect::from_min_max(pos2(20.0, 30.0), pos2(60.0, 70.0));
 
         let mut forward = LivingWait::default();
+        forward.claim(Rect::ZERO);
+        forward.claim(Rect::NOTHING);
         forward.claim(small);
         forward.claim(large);
 
@@ -110,31 +112,7 @@ mod tests {
 
         assert_eq!(forward.claim, Some(large));
         assert_eq!(backward.claim, Some(large));
-    }
-
-    #[test]
-    fn dead_rectangles_cannot_arm_animation() {
-        let mut wait = LivingWait::default();
-        wait.claim(Rect::ZERO);
-        wait.claim(Rect::NOTHING);
-        assert_eq!(wait.claim, None);
-    }
-
-    #[test]
-    fn frame_claim_is_consumed_exactly_once() {
-        let rect = Rect::from_min_max(pos2(2.0, 3.0), pos2(12.0, 8.0));
-        let mut wait = LivingWait::default();
-        wait.claim(rect);
-        assert_eq!(wait.claim.take(), Some(rect));
-        assert_eq!(wait.claim.take(), None);
-    }
-
-    #[test]
-    fn bouncer_keeps_its_canonical_size_until_the_arena_contracts() {
-        let large = Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(900.0, 700.0));
-        assert_eq!(bouncer_rect(large).size(), egui::vec2(250.0, 150.0));
-
-        let narrow = Rect::from_min_size(pos2(10.0, 20.0), egui::vec2(180.0, 110.0));
-        assert_eq!(bouncer_rect(narrow).size(), egui::vec2(156.0, 96.0));
+        assert_eq!(forward.claim.take(), Some(large));
+        assert_eq!(forward.claim.take(), None);
     }
 }

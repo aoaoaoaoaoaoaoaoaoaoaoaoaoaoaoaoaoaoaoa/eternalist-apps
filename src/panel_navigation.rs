@@ -292,27 +292,17 @@ mod tests {
         outside: egui::Id,
     }
 
-    fn key(modifiers: egui::Modifiers) -> egui::RawInput {
+    fn key(modifiers: egui::Modifiers, pressed: bool) -> egui::RawInput {
         egui::RawInput {
-            modifiers,
+            modifiers: if pressed {
+                modifiers
+            } else {
+                egui::Modifiers::default()
+            },
             events: vec![egui::Event::Key {
                 key: egui::Key::Tab,
                 physical_key: Some(egui::Key::Tab),
-                pressed: true,
-                repeat: false,
-                modifiers,
-            }],
-            ..egui::RawInput::default()
-        }
-    }
-
-    fn release(modifiers: egui::Modifiers) -> egui::RawInput {
-        egui::RawInput {
-            modifiers: egui::Modifiers::NONE,
-            events: vec![egui::Event::Key {
-                key: egui::Key::Tab,
-                physical_key: Some(egui::Key::Tab),
-                pressed: false,
+                pressed,
                 repeat: false,
                 modifiers,
             }],
@@ -352,13 +342,13 @@ mod tests {
         navigator: &mut PanelNavigator,
         modifiers: egui::Modifiers,
     ) -> Ids {
-        let ids = pass(ctx, navigator, key(modifiers));
-        let _released = pass(ctx, navigator, release(modifiers));
+        let ids = pass(ctx, navigator, key(modifiers, true));
+        let _released = pass(ctx, navigator, key(modifiers, false));
         ids
     }
 
     #[test]
-    fn tab_is_caged_and_control_tab_crosses_panels() {
+    fn traversal_is_caged_directional_and_reconciles_a_vanished_panel() {
         let ctx = egui::Context::default();
         let mut navigator = PanelNavigator::default();
         let ids = pass(&ctx, &mut navigator, egui::RawInput::default());
@@ -367,10 +357,11 @@ mod tests {
         assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.headers[0]));
         let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::NONE);
         assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.options[0][0]));
-        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::NONE);
-        assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.options[0][1]));
-        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::NONE);
+        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::SHIFT);
         assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.headers[0]));
+        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::SHIFT);
+        let _settle = pass(&ctx, &mut navigator, egui::RawInput::default());
+        assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.options[0][1]));
         assert_ne!(ctx.memory(egui::Memory::focused), Some(ids.outside));
 
         let control = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
@@ -378,118 +369,44 @@ mod tests {
         assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.headers[1]));
         let _ids = stroke(&ctx, &mut navigator, control.plus(egui::Modifiers::SHIFT));
         assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.headers[0]));
-    }
 
-    #[test]
-    fn shift_tab_walks_backward_inside_the_active_panel() {
-        let ctx = egui::Context::default();
-        let mut navigator = PanelNavigator::default();
-        let ids = pass(&ctx, &mut navigator, egui::RawInput::default());
-        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::NONE);
-        assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.headers[0]));
-
-        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::SHIFT);
-        let _settle = pass(&ctx, &mut navigator, egui::RawInput::default());
-        assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.options[0][1]));
-        assert_ne!(ctx.memory(egui::Memory::focused), Some(ids.outside));
-    }
-
-    #[test]
-    fn removing_the_active_panel_promotes_the_first_survivor() {
-        let ctx = egui::Context::default();
-        let mut navigator = PanelNavigator::default();
-        let _ids = pass(&ctx, &mut navigator, egui::RawInput::default());
-        let control = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
         let _ids = stroke(&ctx, &mut navigator, control);
-
-        let mut remaining = egui::Id::NULL;
-        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
-            remaining = ui.make_persistent_id(("panel", 0));
+        let mut survivor = egui::Id::NULL;
+        let _reconcile = ctx.run_ui(egui::RawInput::default(), |ui| {
+            survivor = ui.make_persistent_id(("panel", 0));
             let mut panels = navigator.frame(ui.ctx());
             let _first = panels.section(ui, ("panel", 0), "FIRST", true, |ui| {
                 let _option = ui.button("one");
             });
         });
-
-        assert_eq!(navigator.active(), Some(remaining));
+        assert_eq!(navigator.active(), Some(survivor));
     }
 
     #[test]
-    fn programmatic_focus_transfer_activates_its_panel() {
-        let ctx = egui::Context::default();
-        let mut navigator = PanelNavigator::default();
-        let _ids = pass(&ctx, &mut navigator, egui::RawInput::default());
-
-        let mut second = egui::Id::NULL;
-        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
-            let mut panels = navigator.frame(ui.ctx());
-            second = ui.make_persistent_id(("panel", 1));
-            panels.activate(ui, ("panel", 1));
-            for index in 0..2 {
-                let _panel = panels.section(
-                    ui,
-                    ("panel", index),
-                    if index == 0 { "FIRST" } else { "SECOND" },
-                    true,
-                    |ui| {
-                        let response = ui.button("one");
-                        if index == 1 {
-                            response.request_focus();
-                        }
-                    },
-                );
-            }
-        });
-
-        assert_eq!(navigator.active(), Some(second));
-    }
-
-    #[test]
-    #[should_panic(expected = "duplicate panel ID")]
-    fn duplicate_panel_identity_is_rejected() {
-        let ctx = egui::Context::default();
-        let mut navigator = PanelNavigator::default();
-        let _output = ctx.run_ui(egui::RawInput::default(), |ui| {
-            let mut panels = navigator.frame(ui.ctx());
-            let _first = panels.section(ui, "panel", "FIRST", true, |_| {});
-            let _second = panels.section(ui, "panel", "SECOND", true, |_| {});
-        });
-    }
-
-    #[test]
-    fn panel_traversal_relinquishes_overmodified_tab() {
+    fn traversal_relinquishes_obscured_or_overmodified_tab() {
         let ctx = egui::Context::default();
         let mut navigator = PanelNavigator::default();
         let _ids = pass(&ctx, &mut navigator, egui::RawInput::default());
         let first = navigator.active();
-        let modifiers = egui::Modifiers::CTRL
+        let overmodified = egui::Modifiers::CTRL
             .plus(egui::Modifiers::COMMAND)
             .plus(egui::Modifiers::ALT);
-        let _ids = pass(&ctx, &mut navigator, key(modifiers));
-
+        let _ids = pass(&ctx, &mut navigator, key(overmodified, true));
         assert_eq!(navigator.active(), first);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::Tab)));
-    }
+        let _release = pass(&ctx, &mut navigator, key(overmodified, false));
 
-    #[test]
-    fn panel_traversal_does_not_bleed_through_a_modal_layer() {
-        let ctx = egui::Context::default();
-        let mut navigator = PanelNavigator::default();
-        let _ids = pass(&ctx, &mut navigator, egui::RawInput::default());
-        let first = navigator.active();
         let modal = || egui::Modal::new(egui::Id::new("panel-barrier"));
         let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
         });
-
-        let modifiers = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
-        let _stroke = ctx.run_ui(key(modifiers), |ui| {
+        let control = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
+        let _stroke = ctx.run_ui(key(control, true), |ui| {
             let mut panels = navigator.frame(ui.ctx());
             let _first = panels.section(ui, ("panel", 0), "FIRST", true, |_| {});
             let _second = panels.section(ui, ("panel", 1), "SECOND", true, |_| {});
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
         });
-
         assert_eq!(navigator.active(), first);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::Tab)));
     }

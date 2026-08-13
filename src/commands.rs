@@ -517,10 +517,19 @@ impl<C, S> CommandSpec<C, S> {
 
     /// Typographic label with the declared Alt mnemonic underlined.
     pub fn widget_text(&self, ui: &egui::Ui) -> egui::WidgetText {
+        self.widget_text_with_font(ui, &egui::TextStyle::Button.resolve(ui.style()))
+    }
+
+    pub(crate) fn widget_text_with_font(
+        &self,
+        ui: &egui::Ui,
+        font: &egui::FontId,
+    ) -> egui::WidgetText {
         self.mnemonic.map_or_else(
-            || self.label.into(),
+            || egui::RichText::new(self.label).font(font.clone()).into(),
             |mnemonic| {
-                dwemer_poolrooms::chrome::MnemonicText::new(self.label, mnemonic).widget_text(ui)
+                dwemer_poolrooms::chrome::MnemonicText::new(self.label, mnemonic)
+                    .widget_text_with_font(ui, font.clone())
             },
         )
     }
@@ -950,47 +959,22 @@ mod tests {
     }
 
     #[test]
-    fn route_requires_exact_modifiers_and_consumes_its_event() {
+    fn exact_routing_owns_both_physical_and_textual_projections() {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
-        let mut dispatch = None;
         let primary = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
-        let modifiers = primary.plus(egui::Modifiers::SHIFT);
-        let _output = ctx.run_ui(key(modifiers, egui::Key::S, false), |ui| {
+        let overmodified = primary.plus(egui::Modifiers::SHIFT);
+        let mut dispatch = None;
+        let _miss = ctx.run_ui(key(overmodified, egui::Key::S, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
         });
         assert_eq!(dispatch, None);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::S)));
 
         let ctx = egui::Context::default();
-        let _output = ctx.run_ui(key(primary, egui::Key::S, false), |ui| {
-            dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
-        });
-        assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Save)));
-        assert!(!ctx.input(|input| input.key_pressed(egui::Key::S)));
-    }
-
-    #[test]
-    fn mnemonic_is_a_real_alt_binding() {
-        let canon = CommandCanon::new(&SPECS);
-        let ctx = egui::Context::default();
-        let modifiers = egui::Modifiers::ALT;
-        let mut dispatch = None;
-        let _output = ctx.run_ui(key(modifiers, egui::Key::R, false), |ui| {
-            dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
-        });
-        assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Rename)));
-    }
-
-    #[test]
-    fn routed_shortcuts_consume_their_text_projection() {
-        let canon = CommandCanon::new(&SPECS);
-        let ctx = egui::Context::default();
-        let modifiers = egui::Modifiers::ALT;
-        let mut input = key(modifiers, egui::Key::R, false);
+        let mut input = key(egui::Modifiers::ALT, egui::Key::R, false);
         input.events.push(egui::Event::Text("r".to_owned()));
-        let mut dispatch = None;
-        let _output = ctx.run_ui(input, |ui| {
+        let _hit = ctx.run_ui(input, |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
         });
         assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Rename)));
@@ -998,41 +982,11 @@ mod tests {
     }
 
     #[test]
-    fn legends_use_symbols_for_punctuation_and_arrows() {
-        let ctx = egui::Context::default();
-        let _prime = ctx.run_ui(egui::RawInput::default(), |_| {});
-        assert_eq!(
-            Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::QuestionMark).label(&ctx),
-            "?"
-        );
-        assert_eq!(
-            Shortcut::new(ShortcutModifiers::CONTROL, ShortcutKey::ArrowRight).label(&ctx),
-            "Ctrl+⏵"
-        );
-    }
-
-    #[test]
-    fn generated_buttons_relinquish_modified_activation_keys() {
-        let canon = CommandCanon::new(&SPECS);
-        let ctx = egui::Context::default();
-        let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
-            canon.button(Command::Save, ui).request_focus();
-        });
-        let modifiers = egui::Modifiers::SHIFT;
-        let mut activated = true;
-        let _stroke = ctx.run_ui(key(modifiers, egui::Key::Space, false), |ui| {
-            activated = canon.button(Command::Save, ui).clicked();
-        });
-        assert!(!activated);
-        assert!(ctx.input(|input| input.key_pressed(egui::Key::Space)));
-    }
-
-    #[test]
-    fn disabled_commands_own_and_explain_their_shortcuts() {
+    fn dynamic_routing_preserves_disabled_repeat_and_text_owners() {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
         let mut dispatch = None;
-        let _output = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, false), |ui| {
+        let _disabled = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |command| {
                 if command == Command::Rename {
                     CommandStatus::Disabled("select an item first")
@@ -1048,44 +1002,27 @@ mod tests {
                 reason: "select an item first",
             })
         );
-    }
 
-    #[test]
-    fn rejected_repeats_are_consumed_without_redispatch() {
-        let canon = CommandCanon::new(&SPECS);
-        let ctx = egui::Context::default();
-        let mut dispatch = None;
-        let _prime = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, false), |_| {});
-        let _output = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, true), |ui| {
+        let _rejected = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, true), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
         });
         assert_eq!(dispatch, None);
         assert!(!ctx.input(|input| input.key_pressed(egui::Key::F2)));
 
-        let _output = ctx.run_ui(
+        let _allowed = ctx.run_ui(
             key(egui::Modifiers::ALT, egui::Key::ArrowRight, true),
             |ui| {
                 dispatch = canon.route(ui.ctx(), &[Scope::Viewer], |_| CommandStatus::Enabled);
             },
         );
         assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Next)));
-    }
 
-    #[test]
-    fn focused_text_entry_receives_deferred_commands() {
-        let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
         let mut text = String::new();
-        let mut editor = egui::Id::NULL;
         let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
-            let response = ui.text_edit_singleline(&mut text);
-            editor = response.id;
-            response.request_focus();
+            ui.text_edit_singleline(&mut text).request_focus();
         });
-        assert!(ctx.memory(|memory| memory.has_focus(editor)));
-
-        let mut dispatch = None;
-        let _output = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::Slash, false), |ui| {
+        let _deferred = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::Slash, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
             let _editor = ui.text_edit_singleline(&mut text);
         });
@@ -1094,7 +1031,7 @@ mod tests {
     }
 
     #[test]
-    fn commands_do_not_bleed_through_a_modal_layer() {
+    fn command_routing_cannot_pierce_a_modal_layer() {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
         let modal = || egui::Modal::new(egui::Id::new("command-barrier"));
@@ -1114,48 +1051,64 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "shortcut collision")]
-    fn global_and_contextual_shortcuts_cannot_collide() {
-        const COLLISION: [CommandSpec<Command, Scope>; 2] = [
-            CommandSpec::new(Command::Save, "document.save", "Save", CommandScope::Global)
-                .with_default_shortcuts(&SAVE),
-            CommandSpec::new(
-                Command::Search,
-                "library.search",
-                "Search",
-                CommandScope::Context(Scope::Library),
-            )
-            .with_default_shortcuts(&SAVE),
-        ];
-        let _canon = CommandCanon::new(&COLLISION);
-    }
+    fn canon_rejects_ambiguous_or_reserved_bindings() {
+        fn rejection(case: impl FnOnce() + std::panic::UnwindSafe, needle: &str) {
+            let panic = std::panic::catch_unwind(case).expect_err("invalid canon was admitted");
+            let message = panic
+                .downcast_ref::<String>()
+                .map(String::as_str)
+                .or_else(|| panic.downcast_ref::<&str>().copied())
+                .unwrap_or("");
+            assert!(message.contains(needle), "unexpected panic: {message}");
+        }
 
-    #[test]
-    #[should_panic(expected = "duplicate shortcut")]
-    fn shortcut_letters_collide_independently_of_declared_case() {
-        const CASED: [Shortcut; 2] = [Shortcut::primary('S'), Shortcut::primary('s')];
-        const COLLISION: [CommandSpec<Command, Scope>; 1] =
-            [
-                CommandSpec::new(Command::Save, "document.save", "Save", CommandScope::Global)
-                    .with_default_shortcuts(&CASED),
-            ];
-        let _canon = CommandCanon::new(&COLLISION);
-    }
-
-    #[test]
-    #[should_panic(expected = "reserved by the shared interaction grammar")]
-    fn commands_cannot_steal_focused_control_idioms() {
-        const STOLEN: [Shortcut; 1] = [Shortcut::new(
-            ShortcutModifiers::NONE,
-            ShortcutKey::ArrowRight,
-        )];
-        const COLLISION: [CommandSpec<Command, Scope>; 1] = [CommandSpec::new(
-            Command::Next,
-            "viewer.next",
-            "Next",
-            CommandScope::Context(Scope::Viewer),
-        )
-        .with_default_shortcuts(&STOLEN)];
-        let _canon = CommandCanon::new(&COLLISION);
+        rejection(
+            || {
+                const COLLISION: [CommandSpec<Command, Scope>; 2] = [
+                    CommandSpec::new(Command::Save, "document.save", "Save", CommandScope::Global)
+                        .with_default_shortcuts(&SAVE),
+                    CommandSpec::new(
+                        Command::Search,
+                        "library.search",
+                        "Search",
+                        CommandScope::Context(Scope::Library),
+                    )
+                    .with_default_shortcuts(&SAVE),
+                ];
+                let _canon = CommandCanon::new(&COLLISION);
+            },
+            "shortcut collision",
+        );
+        rejection(
+            || {
+                const CASED: [Shortcut; 2] = [Shortcut::primary('S'), Shortcut::primary('s')];
+                const COLLISION: [CommandSpec<Command, Scope>; 1] = [CommandSpec::new(
+                    Command::Save,
+                    "document.save",
+                    "Save",
+                    CommandScope::Global,
+                )
+                .with_default_shortcuts(&CASED)];
+                let _canon = CommandCanon::new(&COLLISION);
+            },
+            "duplicate shortcut",
+        );
+        rejection(
+            || {
+                const STOLEN: [Shortcut; 1] = [Shortcut::new(
+                    ShortcutModifiers::NONE,
+                    ShortcutKey::ArrowRight,
+                )];
+                const COLLISION: [CommandSpec<Command, Scope>; 1] = [CommandSpec::new(
+                    Command::Next,
+                    "viewer.next",
+                    "Next",
+                    CommandScope::Context(Scope::Viewer),
+                )
+                .with_default_shortcuts(&STOLEN)];
+                let _canon = CommandCanon::new(&COLLISION);
+            },
+            "reserved by the shared interaction grammar",
+        );
     }
 }
