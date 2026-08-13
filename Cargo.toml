@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.4.6"
+version = "0.4.7"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -36,6 +36,9 @@ tracing-chrome = "0.7.2"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dev-dependencies]
+proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+
 [target.'cfg(target_os = "linux")'.dependencies]
 egui-winit = { version = "=0.34.3", default-features = false, features = ["wayland", "x11"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "wayland", "x11"] }
@@ -43,7 +46,6 @@ wgpu = { version = "29.0.1", default-features = false, features = ["std", "vulka
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 egui-tester = "0.7.1"
-proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.34.3", default-features = false, features = ["macos-window-resize-jitter-fix"] }
