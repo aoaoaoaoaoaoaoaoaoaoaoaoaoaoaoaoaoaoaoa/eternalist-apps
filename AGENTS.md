@@ -8,8 +8,15 @@ The crate owns native lifecycle and reusable high-level logical application
 primitives. Its north star is a product expressed as thin domain glue over
 typed, composable Eternalist primitives. It does not own domain behavior,
 workers, product-specific persistence projections, or low-level physical GUI
-elements. Dwemer Poolrooms owns that visual and mechanical substrate and must
+elements. Brass Poolrooms owns that visual and mechanical substrate and must
 remain independently usable without Eternalist, including through WebGPU.
+
+The crate is published to crates.io for dependency distribution but remains
+internal substrate, not a standalone product or portfolio project. The Atelier
+is internal development and verification apparatus, not a product, release
+deliverable, or supported execution surface. Neither may be listed or
+advertised on the Eternalist portfolio; Atelier evidence cannot establish a
+public WebGPU claim.
 
 Read [README.md](README.md) before changing the public surface. Its Present
 Surface table is exhaustive: architectural examples of future primitive

@@ -1,6 +1,6 @@
 use super::Exhibit;
 use anyhow::Result;
-use dwemer_poolrooms::{
+use brass_poolrooms::{
     chrome, egui,
     water::{Domain, Floor, Frame, Surface, Wetness},
 };

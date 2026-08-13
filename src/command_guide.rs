@@ -4,7 +4,7 @@
 
 use std::fmt::Debug;
 
-use dwemer_poolrooms::chrome::{self, Keycap, MechanismSize, Monoglyph, MonoglyphResponse, Symbol};
+use brass_poolrooms::chrome::{self, Keycap, MechanismSize, Monoglyph, MonoglyphResponse, Symbol};
 
 use crate::commands::{
     ACTIVATE, ADJUST, BOUNDS, CommandCanon, CommandScope, CommandSpec, CommandStatus,
@@ -188,12 +188,20 @@ pub struct CommandGuide {
     restore_focus: Option<egui::Id>,
     pending_focus: Option<FocusReturn>,
     focus_close: bool,
+    wheel: Option<QuarantinedWheel>,
 }
 
 #[derive(Debug)]
 struct FocusReturn {
     target: Option<egui::Id>,
     closed_frame: u64,
+}
+
+#[derive(Debug)]
+struct QuarantinedWheel {
+    frame: u64,
+    events: Vec<egui::Event>,
+    smooth_delta: egui::Vec2,
 }
 
 impl CommandGuide {
@@ -245,7 +253,9 @@ impl CommandGuide {
     /// Consume F1 or question mark and toggle the guide.
     ///
     /// Question mark defers to a focused text editor; F1 remains an
-    /// application-level help key.
+    /// application-level help key. Call this before rendering application UI:
+    /// while the guide is open it quarantines wheel input from underlying
+    /// controls and returns that input only to [`Self::show`].
     pub fn take_shortcuts(&mut self, ctx: &egui::Context) -> bool {
         self.settle_focus(ctx);
         let question = if ctx.text_edit_focused() {
@@ -261,6 +271,11 @@ impl CommandGuide {
             } else {
                 self.open(ctx);
             }
+        }
+        if self.open {
+            self.quarantine_wheel(ctx);
+        } else {
+            self.wheel = None;
         }
         invoked
     }
@@ -305,8 +320,10 @@ impl CommandGuide {
         self.settle_focus(ctx);
         if !self.open {
             self.rect = None;
+            self.wheel = None;
             return;
         }
+        self.restore_wheel(ctx);
         let width = (ctx.content_rect().width() - 48.0).clamp(340.0, 760.0);
         let body_height = (ctx.content_rect().height() - 230.0).clamp(220.0, 560.0);
         let mut close = false;
@@ -367,11 +384,52 @@ impl CommandGuide {
                     });
                 ui.min_rect()
             });
+        consume_wheel(ctx);
         self.rect = Some(modal.inner);
         self.focus_close = false;
         if close || modal.should_close() {
             self.close(ctx);
         }
+    }
+
+    fn quarantine_wheel(&mut self, ctx: &egui::Context) {
+        let frame = ctx.cumulative_frame_nr();
+        if self
+            .wheel
+            .as_ref()
+            .is_some_and(|wheel| wheel.frame == frame)
+        {
+            return;
+        }
+        self.wheel = Some(ctx.input_mut(|input| {
+            let mut events = Vec::new();
+            input.events.retain(|event| {
+                if matches!(event, egui::Event::MouseWheel { .. }) {
+                    events.push(event.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+            QuarantinedWheel {
+                frame,
+                events,
+                smooth_delta: std::mem::take(&mut input.smooth_scroll_delta),
+            }
+        }));
+    }
+
+    fn restore_wheel(&mut self, ctx: &egui::Context) {
+        let Some(wheel) = self.wheel.take() else {
+            return;
+        };
+        if wheel.frame != ctx.cumulative_frame_nr() {
+            return;
+        }
+        ctx.input_mut(|input| {
+            input.events.extend(wheel.events);
+            input.smooth_scroll_delta += wheel.smooth_delta;
+        });
     }
 
     fn settle_focus(&mut self, ctx: &egui::Context) {
@@ -399,6 +457,15 @@ impl CommandGuide {
         }
         ctx.request_repaint();
     }
+}
+
+fn consume_wheel(ctx: &egui::Context) {
+    ctx.input_mut(|input| {
+        input
+            .events
+            .retain(|event| !matches!(event, egui::Event::MouseWheel { .. }));
+        input.smooth_scroll_delta = egui::Vec2::ZERO;
+    });
 }
 
 fn focus_return_interdicted(input: &egui::InputState) -> bool {
@@ -638,16 +705,23 @@ fn guide_detail(text: impl Into<String>) -> egui::RichText {
 mod tests {
     use super::*;
 
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum Never {}
+
+    const NO_COMMANDS: [CommandSpec<Never, ()>; 0] = [];
+
     fn question_mark() -> egui::RawInput {
         egui::RawInput {
-            modifiers: egui::Modifiers::SHIFT,
-            events: vec![egui::Event::Key {
-                key: egui::Key::Questionmark,
-                physical_key: Some(egui::Key::Slash),
-                pressed: true,
-                repeat: false,
-                modifiers: egui::Modifiers::SHIFT,
-            }],
+            events: vec![
+                egui::Event::ModifiersChanged(egui::Modifiers::SHIFT),
+                egui::Event::Key {
+                    key: egui::Key::Questionmark,
+                    physical_key: Some(egui::Key::Slash),
+                    pressed: true,
+                    repeat: false,
+                    modifiers: egui::Modifiers::SHIFT,
+                },
+            ],
             ..egui::RawInput::default()
         }
     }
@@ -657,15 +731,82 @@ mod tests {
         let ctx = egui::Context::default();
         let mut guide = CommandGuide::default();
         let mut text = String::new();
-        let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
             ui.text_edit_singleline(&mut text).request_focus();
-        });
-        let _output = ctx.run_ui(question_mark(), |ui| {
+        })
+        .drop_without_applying_deltas();
+        ctx.run_ui(question_mark(), |ui| {
             assert!(!guide.take_shortcuts(ui.ctx()));
             let _editor = ui.text_edit_singleline(&mut text);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(!guide.is_open());
         assert!(ctx.input(|state| state.key_pressed(egui::Key::Questionmark)));
+    }
+
+    #[test]
+    fn open_guide_owns_wheel_across_its_late_render() {
+        fn wheel_present(ctx: &egui::Context) -> bool {
+            ctx.input(|input| {
+                input.smooth_scroll_delta != egui::Vec2::ZERO
+                    || input
+                        .events
+                        .iter()
+                        .any(|event| matches!(event, egui::Event::MouseWheel { .. }))
+            })
+        }
+
+        let ctx = egui::Context::default();
+        let canon = CommandCanon::new(&NO_COMMANDS);
+        let mut guide = CommandGuide::default();
+        let show = |guide: &mut CommandGuide, ctx: &egui::Context| {
+            guide.show(
+                ctx,
+                &canon,
+                &[()],
+                |()| "APPLICATION",
+                |command| match command {},
+                &[],
+            );
+        };
+        ctx.run_ui(egui::RawInput::default(), |ui| {
+            guide.open(ui.ctx());
+            show(&mut guide, ui.ctx());
+        })
+        .drop_without_applying_deltas();
+
+        let input = egui::RawInput {
+            screen_rect: Some(egui::Rect::from_min_size(
+                egui::Pos2::ZERO,
+                egui::vec2(900.0, 700.0),
+            )),
+            events: vec![
+                egui::Event::PointerMoved(egui::pos2(450.0, 350.0)),
+                egui::Event::MouseWheel {
+                    unit: egui::MouseWheelUnit::Line,
+                    delta: egui::vec2(0.0, -1.0),
+                    phase: egui::TouchPhase::Move,
+                    modifiers: egui::Modifiers::NONE,
+                },
+            ],
+            ..egui::RawInput::default()
+        };
+        let mut arrived = false;
+        let mut reached_underlay = false;
+        let mut escaped_modal = false;
+        ctx.run_ui(input, |ui| {
+            arrived = wheel_present(ui.ctx());
+            let _invoked = guide.take_shortcuts(ui.ctx());
+            reached_underlay = wheel_present(ui.ctx());
+            show(&mut guide, ui.ctx());
+            escaped_modal = wheel_present(ui.ctx());
+        })
+        .drop_without_applying_deltas();
+
+        assert!(arrived);
+        assert!(!reached_underlay);
+        assert!(!escaped_modal);
+        assert!(guide.is_open());
     }
 
     #[test]
@@ -675,47 +816,53 @@ mod tests {
             let mut guide = CommandGuide::default();
             let modal = || egui::Modal::new(egui::Id::new("focus-return-modal"));
 
-            let _open = ctx.run_ui(egui::RawInput::default(), |ui| {
+            ctx.run_ui(egui::RawInput::default(), |ui| {
                 ui.button("target").request_focus();
                 let _other = ui.button("other");
                 guide.open(ui.ctx());
                 let _modal = modal().show(ui.ctx(), |ui| ui.button("close"));
-            });
-            let _close = ctx.run_ui(egui::RawInput::default(), |ui| {
+            })
+            .drop_without_applying_deltas();
+            ctx.run_ui(egui::RawInput::default(), |ui| {
                 let _target = ui.button("target");
                 let _other = ui.button("other");
                 let _modal = modal().show(ui.ctx(), |ui| ui.button("close"));
                 guide.close(ui.ctx());
-            });
+            })
+            .drop_without_applying_deltas();
             let input = if navigate {
                 egui::RawInput {
-                    modifiers: egui::Modifiers::CTRL,
-                    events: vec![egui::Event::Key {
-                        key: egui::Key::Tab,
-                        physical_key: Some(egui::Key::Tab),
-                        pressed: true,
-                        repeat: false,
-                        modifiers: egui::Modifiers::CTRL,
-                    }],
+                    events: vec![
+                        egui::Event::ModifiersChanged(egui::Modifiers::CTRL),
+                        egui::Event::Key {
+                            key: egui::Key::Tab,
+                            physical_key: Some(egui::Key::Tab),
+                            pressed: true,
+                            repeat: false,
+                            modifiers: egui::Modifiers::CTRL,
+                        },
+                    ],
                     ..egui::RawInput::default()
                 }
             } else {
                 egui::RawInput::default()
             };
-            let _retire = ctx.run_ui(input, |ui| {
+            ctx.run_ui(input, |ui| {
                 guide.settle_focus(ui.ctx());
                 let _target = ui.button("target");
                 let other = ui.button("other");
                 if navigate {
                     other.request_focus();
                 }
-            });
+            })
+            .drop_without_applying_deltas();
             let mut focused = (false, false);
-            let _handoff = ctx.run_ui(egui::RawInput::default(), |ui| {
+            ctx.run_ui(egui::RawInput::default(), |ui| {
                 guide.settle_focus(ui.ctx());
                 focused.0 = ui.button("target").has_focus();
                 focused.1 = ui.button("other").has_focus();
-            });
+            })
+            .drop_without_applying_deltas();
             focused
         }
 

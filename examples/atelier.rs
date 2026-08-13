@@ -12,7 +12,7 @@ mod support;
     target_os = "windows"
 ))]
 use anyhow::Result;
-use dwemer_poolrooms::{
+use brass_poolrooms::{
     chrome::{self, Checkbox, NumberInput, Rail, WheelPlane},
     egui,
     water::Surface,

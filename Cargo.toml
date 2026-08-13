@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.5.0"
+version = "0.6.0"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -8,6 +8,7 @@ repository = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/eternal
 rust-version = "1.96"
 keywords = ["egui", "wgpu", "winit", "desktop"]
 categories = ["gui"]
+exclude = ["vendor/**"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -16,20 +17,20 @@ all-features = true
 egui-test = [
   "dep:egui-tester-witness",
   "serde",
-  "dwemer_poolrooms/instrumentation",
+  "brass_poolrooms/instrumentation",
 ]
 serde = ["dep:serde"]
 
 [dependencies]
-dwemer_poolrooms = "0.11.0"
-egui = "=0.35.0"
+brass_poolrooms = "0.12.1"
+egui = "=0.36.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.104"
 crossbeam-channel = "0.5.16"
-egui-wgpu = { version = "=0.35.0", default-features = false }
-egui-winit = { version = "=0.35.0", default-features = false }
+egui-wgpu = { version = "=0.36.1", default-features = false }
+egui-winit = { version = "=0.36.1", default-features = false }
 pollster = "1.0.1"
 tracing = "0.1.44"
 tracing-chrome = "0.7.2"
@@ -40,34 +41,34 @@ winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-egui-winit = { version = "=0.35.0", default-features = false, features = ["wayland", "x11"] }
+egui-winit = { version = "=0.36.1", default-features = false, features = ["wayland", "x11"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "wayland", "x11"] }
-wgpu = { version = "29.0.1", default-features = false, features = ["std", "vulkan", "wgsl"] }
+wgpu = { version = "30.0.0", default-features = false, features = ["std", "vulkan", "wgsl"] }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-egui-tester = "0.8.0"
+egui-tester = "0.9.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-egui-wgpu = { version = "=0.35.0", default-features = false, features = ["macos-window-resize-jitter-fix"] }
-wgpu = { version = "29.0.1", default-features = false, features = ["metal", "std", "wgsl"] }
+egui-wgpu = { version = "=0.36.1", default-features = false, features = ["macos-window-resize-jitter-fix"] }
+wgpu = { version = "30.0.0", default-features = false, features = ["metal", "std", "wgsl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-wgpu = { version = "29.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
+wgpu = { version = "30.0.0", default-features = false, features = ["dx12", "std", "wgsl"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
-version = "0.8.0"
+version = "0.9.1"
 optional = true
 features = ["egui"]
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 anyhow = "1.0.104"
 console_error_panic_hook = "0.1.7"
-egui-winit = { version = "=0.35.0", default-features = false }
+egui-winit-wasm = { package = "egui-winit", path = "vendor/egui-winit-0.36.1", default-features = false }
 wasm-bindgen = "=0.2.127"
 wasm-bindgen-futures = "=0.4.77"
 web-time = "1.1.0"
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
-wgpu = { version = "29.0.1", default-features = false, features = ["std", "webgpu", "wgsl"] }
+wgpu = { version = "30.0.0", default-features = false, features = ["std", "webgpu", "wgsl"] }
 web-sys = { version = "=0.3.104", features = [
   "Document",
   "Element",

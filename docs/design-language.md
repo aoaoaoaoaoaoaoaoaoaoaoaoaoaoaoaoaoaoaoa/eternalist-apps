@@ -1,6 +1,6 @@
 # Application Design Language
 
-Dwemer Poolrooms is the low-level visual and physical language. It owns the
+Brass Poolrooms is the low-level visual and physical language. It owns the
 embodiment of controls and surfaces: geometry, material, constrained motion,
 interaction response, and displaced water. Install its chrome on the egui
 context and compose its water frame through `NativeApp::water`. Applications
@@ -50,6 +50,14 @@ must communicate a user fact, admit an action, or supply necessary feedback.
 Use domain language, never renderer or storage terminology. Loading surfaces
 must acknowledge life through Poolrooms motion and water; the underlying work
 must progress independently of repaint animation.
+
+Explanatory prose is not ambient furniture. A self-explanatory selector stands
+alone; never paraphrase it in a note immediately beneath it. Put command
+consequences in the generated guide and transient facts in status. When a
+domain term still needs interpretation, attach a compact glossary card to the
+term or control and use the platform Help cursor on hover. Such cards have one
+short title and one direct definition; ordinary hover text remains sufficient
+for a terse action hint or disabled reason.
 
 Motion invalidates whole-frame pixel equality as a general test oracle. Test
 semantic readiness through a presented witness, then judge a bounded rendered

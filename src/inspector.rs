@@ -6,7 +6,7 @@
 use egui::{Id, InnerResponse, Response, ScrollArea, Ui};
 
 /// Default width for a dense inspector rail.
-pub const WIDTH: f32 = dwemer_poolrooms::chrome::INSPECTOR_WIDTH;
+pub const WIDTH: f32 = brass_poolrooms::chrome::INSPECTOR_WIDTH;
 
 /// An optional persistent left rail containing application-owned controls.
 ///
@@ -76,7 +76,7 @@ impl Inspector {
             });
         let InnerResponse { inner, response } = panel;
         let mut scroll_offset = inner.state.offset.y.max(0.0);
-        if dwemer_poolrooms::chrome::take_control_wheel(ui.ctx()) {
+        if brass_poolrooms::chrome::take_control_wheel(ui.ctx()) {
             let prior = scroll_before.unwrap_or_default();
             scroll_offset = prior.offset.y.max(0.0);
             prior.store(ui.ctx(), inner.id);

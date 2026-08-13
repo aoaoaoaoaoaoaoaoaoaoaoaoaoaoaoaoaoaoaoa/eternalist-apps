@@ -13,7 +13,7 @@ use std::{
     sync::Arc,
 };
 
-use dwemer_poolrooms::{
+use brass_poolrooms::{
     chrome::{self, Coupled, CouplingGap, DragHandle, MechanismSize, Monoglyph, Symbol},
     water::Surface,
 };
@@ -1467,20 +1467,24 @@ mod tests {
             ],
             ..egui::RawInput::default()
         };
-        let _pressed = context.run_ui(input(true), |ui| {
-            let _drop_zone = ui.allocate_response(ui.available_size(), egui::Sense::hover());
-        });
+        context
+            .run_ui(input(true), |ui| {
+                let _drop_zone = ui.allocate_response(ui.available_size(), egui::Sense::hover());
+            })
+            .drop_without_applying_deltas();
 
         let expected = Name("dragged item".to_owned());
         egui::DragAndDrop::set_payload(&context, expected.clone());
         let mut recovered = None;
-        let _released = context.run_ui(input(false), |ui| {
-            let response = ui.allocate_response(ui.available_size(), egui::Sense::hover());
-            assert!(release_matching_payload::<ShelfDrag>(&response).is_none());
-            if let Some(payload) = release_matching_payload::<Name>(&response) {
-                recovered = Some(payload);
-            }
-        });
+        context
+            .run_ui(input(false), |ui| {
+                let response = ui.allocate_response(ui.available_size(), egui::Sense::hover());
+                assert!(release_matching_payload::<ShelfDrag>(&response).is_none());
+                if let Some(payload) = release_matching_payload::<Name>(&response) {
+                    recovered = Some(payload);
+                }
+            })
+            .drop_without_applying_deltas();
 
         assert_eq!(recovered.as_deref(), Some(&expected));
     }

@@ -1,4 +1,4 @@
-use dwemer_poolrooms::{egui, water::Surface};
+use brass_poolrooms::{egui, water::Surface};
 
 pub trait Exhibit {
     const TITLE: &'static str;

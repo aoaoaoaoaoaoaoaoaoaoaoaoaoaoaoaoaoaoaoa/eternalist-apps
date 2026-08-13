@@ -14,7 +14,7 @@ always descend to raw egui or Poolrooms when no shared law exists.
 | --- | --- |
 | application | domain model, typed command values and consequences, workers, product persistence projections, unpromoted UI, fixtures, oracles, and acceptance stories |
 | `eternalist-apps` | native lifecycle and reusable logical application primitives: command metadata and routing, inspectors, managers, menus, storage interactions, loading assemblies, and other proved application-scale state machines |
-| Dwemer Poolrooms | independently usable low-level physical GUI: geometry, material, buttons, rollers, sliders, tiles, frames, intrinsic control interaction, and water response |
+| Brass Poolrooms | independently usable low-level physical GUI: geometry, material, buttons, rollers, sliders, tiles, frames, intrinsic control interaction, and water response |
 | `egui-tester` | process containment, native input, capture, synchronization, timing, and failure artifacts |
 | product contract crate | dependency-light semantic names and wire values shared by the GUI and its acceptance executable |
 
@@ -91,9 +91,12 @@ permanently underlined by Poolrooms and its exact Alt chord is validated with
 the rest of the canon. `CommandGuide` renders the same metadata and dynamic
 availability used by routing. F1 always toggles the guide; question mark
 defers to focused text entry. Closing the modal restores its prior focus target
-when that target remains available. Baseline keyboard guidance is automatic;
-panel, rail, and application-specific gesture sections are included only when
-those interactions exist.
+when that target remains available. While open, the guide owns wheel input as
+well as pointer and keyboard interaction: `take_shortcuts` quarantines wheel
+motion before application layout and `show` returns it only to the guide's
+scroll surface. Baseline keyboard guidance is automatic; panel, rail, and
+application-specific gesture sections are included only when those
+interactions exist.
 
 ## Panel Grammar
 

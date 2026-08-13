@@ -1,6 +1,6 @@
 ---
 name: eternalist-apps
-description: Bootstrap, retrofit, verify, or release an Eternalist-style Rust egui application using eternalist-apps lifecycle and high-level UI primitives, Dwemer Poolrooms physical controls and water, egui-tester, XDG product conduct, responsiveness doctrine, and capability-honest CI. Use when creating an Eternalist app, migrating duplicated lifecycle or logical application primitives, establishing native user-story acceptance tests, or preparing an app for release.
+description: Bootstrap, retrofit, verify, or release an Eternalist-style Rust egui application using eternalist-apps lifecycle and high-level UI primitives, Brass Poolrooms physical controls and water, egui-tester, XDG product conduct, responsiveness doctrine, and capability-honest CI. Use when creating an Eternalist app, migrating duplicated lifecycle or logical application primitives, establishing native user-story acceptance tests, or preparing an app for release.
 ---
 
 # Eternalist Apps
@@ -16,7 +16,7 @@ router, not an independent framework specification.
    `$rust-bootstrap` for a fresh Rust project or lint retrofit.
 3. Read [architecture](../../../docs/architecture.md) and
    [design language](../../../docs/design-language.md).
-4. Inspect the current `eternalist-apps`, Dwemer Poolrooms, and `egui-tester`
+4. Inspect the current `eternalist-apps`, Brass Poolrooms, and `egui-tester`
    APIs. Do not code from remembered versions.
 5. Classify the work as fresh bootstrap, retrofit, verification, or release.
 

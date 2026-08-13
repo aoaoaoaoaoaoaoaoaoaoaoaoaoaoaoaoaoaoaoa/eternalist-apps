@@ -528,7 +528,7 @@ impl<C, S> CommandSpec<C, S> {
         self.mnemonic.map_or_else(
             || egui::RichText::new(self.label).font(font.clone()).into(),
             |mnemonic| {
-                dwemer_poolrooms::chrome::MnemonicText::new(self.label, mnemonic)
+                brass_poolrooms::chrome::MnemonicText::new(self.label, mnemonic)
                     .widget_text_with_font(ui, font.clone())
             },
         )
@@ -658,7 +658,7 @@ where
             button = button.shortcut_text(shortcut.label(ui.ctx()));
         }
         let response = ui.add(button);
-        let activated = dwemer_poolrooms::chrome::exact_activation(ui, &response);
+        let activated = brass_poolrooms::chrome::exact_activation(ui, &response);
         if activated {
             response.request_focus();
         }
@@ -946,14 +946,16 @@ mod tests {
 
     fn key(modifiers: egui::Modifiers, key: egui::Key, repeat: bool) -> egui::RawInput {
         egui::RawInput {
-            modifiers,
-            events: vec![egui::Event::Key {
-                key,
-                physical_key: Some(key),
-                pressed: true,
-                repeat,
-                modifiers,
-            }],
+            events: vec![
+                egui::Event::ModifiersChanged(modifiers),
+                egui::Event::Key {
+                    key,
+                    physical_key: Some(key),
+                    pressed: true,
+                    repeat,
+                    modifiers,
+                },
+            ],
             ..egui::RawInput::default()
         }
     }
@@ -965,20 +967,27 @@ mod tests {
         let primary = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
         let overmodified = primary.plus(egui::Modifiers::SHIFT);
         let mut dispatch = None;
-        let _miss = ctx.run_ui(key(overmodified, egui::Key::S, false), |ui| {
+        ctx.run_ui(key(overmodified, egui::Key::S, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(dispatch, None);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::S)));
 
         let ctx = egui::Context::default();
         let mut input = key(egui::Modifiers::ALT, egui::Key::R, false);
         input.events.push(egui::Event::Text("r".to_owned()));
-        let _hit = ctx.run_ui(input, |ui| {
+        ctx.run_ui(input, |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Rename)));
-        assert!(ctx.input(|input| input.events.is_empty()));
+        assert!(ctx.input(|input| {
+            input
+                .events
+                .iter()
+                .all(|event| !matches!(event, egui::Event::Key { .. } | egui::Event::Text(_)))
+        }));
     }
 
     #[test]
@@ -986,7 +995,7 @@ mod tests {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
         let mut dispatch = None;
-        let _disabled = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, false), |ui| {
+        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |command| {
                 if command == Command::Rename {
                     CommandStatus::Disabled("select an item first")
@@ -994,7 +1003,8 @@ mod tests {
                     CommandStatus::Enabled
                 }
             });
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(
             dispatch,
             Some(CommandDispatch::Refused {
@@ -1003,29 +1013,33 @@ mod tests {
             })
         );
 
-        let _rejected = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, true), |ui| {
+        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, true), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(dispatch, None);
         assert!(!ctx.input(|input| input.key_pressed(egui::Key::F2)));
 
-        let _allowed = ctx.run_ui(
+        ctx.run_ui(
             key(egui::Modifiers::ALT, egui::Key::ArrowRight, true),
             |ui| {
                 dispatch = canon.route(ui.ctx(), &[Scope::Viewer], |_| CommandStatus::Enabled);
             },
-        );
+        )
+        .drop_without_applying_deltas();
         assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Next)));
 
         let ctx = egui::Context::default();
         let mut text = String::new();
-        let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
             ui.text_edit_singleline(&mut text).request_focus();
-        });
-        let _deferred = ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::Slash, false), |ui| {
+        })
+        .drop_without_applying_deltas();
+        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::Slash, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
             let _editor = ui.text_edit_singleline(&mut text);
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(dispatch, None);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::Slash)));
     }
@@ -1035,16 +1049,18 @@ mod tests {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
         let modal = || egui::Modal::new(egui::Id::new("command-barrier"));
-        let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
-        });
+        })
+        .drop_without_applying_deltas();
 
         let primary = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
         let mut dispatch = None;
-        let _stroke = ctx.run_ui(key(primary, egui::Key::S, false), |ui| {
+        ctx.run_ui(key(primary, egui::Key::S, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
-        });
+        })
+        .drop_without_applying_deltas();
 
         assert_eq!(dispatch, None);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::S)));

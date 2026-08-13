@@ -16,7 +16,7 @@ later.
 ## 2. Establish Rust And Dependencies
 
 Apply `$rust-bootstrap`. Depend on one coherent generation of `egui`,
-`egui-wgpu`, `egui-winit`, `winit`, Dwemer Poolrooms, and
+`egui-wgpu`, `egui-winit`, `winit`, Brass Poolrooms, and
 `eternalist-apps`. Keep the product's direct Poolrooms dependency when its UI
 uses Poolrooms controls.
 
@@ -30,7 +30,7 @@ X11 explicitly.
 ## 3. Implement The Native Seam
 
 ```rust
-use dwemer_poolrooms::water::{Frame, Surface};
+use brass_poolrooms::water::{Frame, Surface};
 use eternalist_apps::{NativeApp, TraceGuard, WindowSpec};
 
 struct App {
@@ -78,7 +78,7 @@ impl NativeApp for App {
 fn run(app: App) -> anyhow::Result<()> {
     let trace = TraceGuard::arm()?;
     let ctx = egui::Context::default();
-    dwemer_poolrooms::chrome::install(&ctx);
+    brass_poolrooms::chrome::install(&ctx);
     let result = eternalist_apps::run(ctx, app);
     trace.flush();
     result

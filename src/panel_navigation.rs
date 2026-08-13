@@ -2,7 +2,7 @@
 
 #![deny(missing_docs)]
 
-use dwemer_poolrooms::chrome::{FoldWake, Section};
+use brass_poolrooms::chrome::{FoldWake, Section};
 
 use crate::commands::{
     NEXT_CONTROL, NEXT_PANEL, PREVIOUS_CONTROL, PREVIOUS_PANEL, Shortcut, Stroke, take,
@@ -292,18 +292,20 @@ mod tests {
 
     fn key(modifiers: egui::Modifiers, pressed: bool) -> egui::RawInput {
         egui::RawInput {
-            modifiers: if pressed {
-                modifiers
-            } else {
-                egui::Modifiers::default()
-            },
-            events: vec![egui::Event::Key {
-                key: egui::Key::Tab,
-                physical_key: Some(egui::Key::Tab),
-                pressed,
-                repeat: false,
-                modifiers,
-            }],
+            events: vec![
+                egui::Event::ModifiersChanged(if pressed {
+                    modifiers
+                } else {
+                    egui::Modifiers::default()
+                }),
+                egui::Event::Key {
+                    key: egui::Key::Tab,
+                    physical_key: Some(egui::Key::Tab),
+                    pressed,
+                    repeat: false,
+                    modifiers,
+                },
+            ],
             ..egui::RawInput::default()
         }
     }
@@ -314,7 +316,7 @@ mod tests {
             options: [[egui::Id::NULL; 2]; 2],
             outside: egui::Id::NULL,
         };
-        let _output = ctx.run_ui(input, |ui| {
+        ctx.run_ui(input, |ui| {
             let mut panels = navigator.frame(ui.ctx());
             for index in 0..2 {
                 let panel = panels.section(
@@ -331,7 +333,8 @@ mod tests {
             }
             drop(panels);
             ids.outside = ui.button("outside").id;
-        });
+        })
+        .drop_without_applying_deltas();
         ids
     }
 
@@ -370,13 +373,14 @@ mod tests {
 
         let _ids = stroke(&ctx, &mut navigator, control);
         let mut survivor = egui::Id::NULL;
-        let _reconcile = ctx.run_ui(egui::RawInput::default(), |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
             survivor = ui.make_persistent_id(("panel", 0));
             let mut panels = navigator.frame(ui.ctx());
             let _first = panels.section(ui, ("panel", 0), "FIRST", true, |ui| {
                 let _option = ui.button("one");
             });
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(navigator.active(), Some(survivor));
     }
 
@@ -395,16 +399,18 @@ mod tests {
         let _release = pass(&ctx, &mut navigator, key(overmodified, false));
 
         let modal = || egui::Modal::new(egui::Id::new("panel-barrier"));
-        let _prime = ctx.run_ui(egui::RawInput::default(), |ui| {
+        ctx.run_ui(egui::RawInput::default(), |ui| {
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
-        });
+        })
+        .drop_without_applying_deltas();
         let control = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
-        let _stroke = ctx.run_ui(key(control, true), |ui| {
+        ctx.run_ui(key(control, true), |ui| {
             let mut panels = navigator.frame(ui.ctx());
             let _first = panels.section(ui, ("panel", 0), "FIRST", true, |_| {});
             let _second = panels.section(ui, ("panel", 1), "SECOND", true, |_| {});
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
-        });
+        })
+        .drop_without_applying_deltas();
         assert_eq!(navigator.active(), first);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::Tab)));
     }

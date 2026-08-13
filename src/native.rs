@@ -2,7 +2,7 @@
 
 use crate::responsiveness;
 use anyhow::{Context as _, Result, bail};
-use dwemer_poolrooms::water::{Engine, Frame as WaterFrame};
+use brass_poolrooms::water::{Engine, Frame as WaterFrame};
 use egui_wgpu::{
     RenderState, Renderer, RendererOptions, ScreenDescriptor, WgpuConfiguration, WgpuSetup,
 };
@@ -1156,8 +1156,10 @@ impl Rig {
         );
         let user_commands = main_phase!("render.prepare", {
             let mut renderer = self.gpu.renderer.write();
-            for (id, image_delta) in &delta.set {
-                renderer.update_texture(&self.gpu.device, &self.gpu.queue, *id, image_delta);
+            for (id, image_deltas) in &delta.set {
+                for image_delta in image_deltas {
+                    renderer.update_texture(&self.gpu.device, &self.gpu.queue, *id, image_delta);
+                }
             }
             renderer.update_buffers(
                 &self.gpu.device,
@@ -1252,7 +1254,7 @@ impl Rig {
         );
         main_phase!("render.free_textures", self.free_textures(delta));
         self.window.pre_present_notify();
-        main_phase!("render.present", frame.present());
+        main_phase!("render.present", self.gpu.queue.present(frame));
         let _maintained = main_phase!(
             "render.maintain",
             self.gpu.device.poll(wgpu::PollType::Poll)
@@ -1274,7 +1276,7 @@ fn install_witness(ctx: &egui::Context) {
     ctx.on_begin_pass(
         "clear poolrooms witness anchors",
         Arc::new(|ui| {
-            drop(dwemer_poolrooms::instrumentation::take(ui.ctx()));
+            drop(brass_poolrooms::instrumentation::take(ui.ctx()));
         }),
     );
 }
@@ -1290,7 +1292,7 @@ fn stage_witness<T: Serialize>(
     use egui_tester_witness::Anchor;
 
     let anchors = egui_tester_witness::egui::take(ctx, pixels_per_point)?;
-    let poolrooms = dwemer_poolrooms::instrumentation::take(ctx)
+    let poolrooms = brass_poolrooms::instrumentation::take(ctx)
         .into_iter()
         .map(|anchor| {
             Anchor::logical(

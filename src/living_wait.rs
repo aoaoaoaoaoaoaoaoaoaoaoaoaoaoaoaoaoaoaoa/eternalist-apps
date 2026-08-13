@@ -3,7 +3,7 @@
 //! This module owns visible-region selection only. It does not own task state,
 //! progress, cancellation, retry, errors, or worker lifetime.
 
-use dwemer_poolrooms::{chrome, water::Surface};
+use brass_poolrooms::{chrome, water::Surface};
 use egui::{Context, Rect, Stroke, StrokeKind, Vec2};
 
 const BOUNCER_WIDTH: f32 = 250.0;

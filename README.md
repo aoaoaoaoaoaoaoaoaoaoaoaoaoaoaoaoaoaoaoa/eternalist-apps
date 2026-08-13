@@ -5,7 +5,7 @@ owns the native winit/egui/wgpu lifecycle and proved high-level logical
 primitives that give applications a uniform interaction grammar without taking
 authority over their domain.
 
-Dwemer Poolrooms remains the independently usable low-level visual and physical
+Brass Poolrooms remains the independently usable low-level visual and physical
 substrate. It owns buttons, rollers, sliders, tiles, frames, material response,
 and living water. Eternalist primitives compose Poolrooms mechanisms; Poolrooms
 never depends on Eternalist. Products retain their domain model, workers,
