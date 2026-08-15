@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "eternalist-apps"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "anyhow",
  "brass_poolrooms",

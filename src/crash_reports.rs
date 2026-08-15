@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, mpsc},
     thread,
-    time::{Duration, SystemTime},
+    time::Duration,
 };
 
 use brass_poolrooms::chrome;
@@ -480,8 +480,8 @@ fn deliver(endpoint: &str, body: Vec<u8>, digest: String) -> Result<u16, ureq::E
 #[cfg(feature = "egui-test")]
 #[doc(hidden)]
 pub fn native_crash_acceptance(endpoint: &str) -> Result<(), String> {
-    let nonce = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
+    let nonce = std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
         .map_err(|error| format!("read system time: {error}"))?
         .as_nanos();
     let state = std::env::temp_dir().join(format!(

@@ -68,6 +68,7 @@ coordinates = [
   "macos-x86_64",
   "windows-x86_64",
 ]
+setup = "wayland"
 timeout-minutes = 15
 
 [[proofs]]
