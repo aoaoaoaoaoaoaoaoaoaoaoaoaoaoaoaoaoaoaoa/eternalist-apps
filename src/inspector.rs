@@ -56,11 +56,16 @@ impl Inspector {
 
     /// Show the rail inside an application's root UI.
     pub fn show<R>(self, ui: &mut Ui, add: impl FnOnce(&mut Ui) -> R) -> InspectorResponse<R> {
-        let scroll_before = egui::scroll_area::State::load(ui.ctx(), self.scroll);
+        let mut scroll_before = None;
         let panel = egui::Panel::left(self.panel)
             .resizable(false)
             .exact_size(self.width)
             .show(ui, |ui| {
+                let scroll_id = ui.make_persistent_id(egui::IdSalt::new(self.scroll));
+                scroll_before = Some((
+                    scroll_id,
+                    egui::scroll_area::State::load(ui.ctx(), scroll_id).unwrap_or_default(),
+                ));
                 let mut scroll = ScrollArea::vertical()
                     .id_salt(self.scroll)
                     .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
@@ -77,9 +82,9 @@ impl Inspector {
         let InnerResponse { inner, response } = panel;
         let mut scroll_offset = inner.state.offset.y.max(0.0);
         if brass_poolrooms::chrome::take_control_wheel(ui.ctx()) {
-            let prior = scroll_before.unwrap_or_default();
+            let (scroll_id, prior) = scroll_before.expect("inspector body did not run");
             scroll_offset = prior.offset.y.max(0.0);
-            prior.store(ui.ctx(), inner.id);
+            prior.store(ui.ctx(), scroll_id);
             ui.ctx().request_repaint();
         }
         InspectorResponse {
@@ -99,4 +104,72 @@ pub struct InspectorResponse<R> {
     pub response: Response,
     /// Resulting nonnegative vertical offset in logical points.
     pub scroll_offset: f32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn viewport() -> egui::Rect {
+        egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(600.0, 320.0))
+    }
+
+    fn frame(
+        ctx: &egui::Context,
+        input: egui::RawInput,
+        offset: Option<f32>,
+        value: &mut u16,
+    ) -> (f32, egui::Rect) {
+        let mut outcome = None;
+        ctx.run_ui(input, |ui| {
+            let mut inspector = Inspector::new("wheel-regression");
+            if let Some(offset) = offset {
+                inspector = inspector.scroll_offset(offset);
+            }
+            let response = inspector.show(ui, |ui| {
+                ui.add_space(200.0);
+                let rail = brass_poolrooms::chrome::Rail::new(value, 1..=12).show(ui);
+                ui.add_space(400.0);
+                rail.rect
+            });
+            outcome = Some((response.scroll_offset, response.inner));
+        })
+        .drop_without_applying_deltas();
+        outcome.expect("inspector did not render")
+    }
+
+    fn input(events: Vec<egui::Event>) -> egui::RawInput {
+        egui::RawInput {
+            screen_rect: Some(viewport()),
+            events,
+            ..egui::RawInput::default()
+        }
+    }
+
+    #[test]
+    fn rail_wheel_preserves_enclosing_inspector_scroll() {
+        let ctx = egui::Context::default();
+        let mut value = 6;
+        let (prior_offset, rail) = frame(&ctx, input(Vec::new()), Some(160.0), &mut value);
+        assert!(prior_offset > 100.0);
+
+        let wheel = vec![
+            egui::Event::PointerMoved(rail.center()),
+            egui::Event::MouseWheel {
+                unit: egui::MouseWheelUnit::Line,
+                delta: egui::vec2(0.0, 1.0),
+                phase: egui::TouchPhase::Move,
+                modifiers: egui::Modifiers::NONE,
+            },
+        ];
+        let (claimed_offset, _) = frame(&ctx, input(wheel), None, &mut value);
+        let (settled_offset, _) = frame(&ctx, input(Vec::new()), None, &mut value);
+
+        // A ScrollArea scopes its salt through the containing panel. Loading
+        // the raw salt here silently produced a default state, so a rail's
+        // wheel claim reset the inspector to its origin.
+        assert_eq!(value, 7);
+        assert!((claimed_offset - prior_offset).abs() <= f32::EPSILON);
+        assert!((settled_offset - prior_offset).abs() <= f32::EPSILON);
+    }
 }

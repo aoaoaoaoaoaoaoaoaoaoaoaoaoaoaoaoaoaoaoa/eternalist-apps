@@ -177,9 +177,9 @@ dependencies = [
 
 [[package]]
 name = "brass_poolrooms"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31487f9406cacb3af950712759105cbc7f6f1597399f01b24642e686c79b8d6f"
+checksum = "e74044916f8544c87db16420277af63349d918dd02e1f38da32f212eb6ac3183"
 dependencies = [
  "anyhow",
  "bytemuck",
@@ -667,7 +667,7 @@ dependencies = [
 
 [[package]]
 name = "eternalist-apps"
-version = "0.7.2"
+version = "0.7.3"
 dependencies = [
  "anyhow",
  "brass_poolrooms",
