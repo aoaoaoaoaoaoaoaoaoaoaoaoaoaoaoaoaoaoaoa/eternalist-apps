@@ -49,6 +49,28 @@ coordinates = ["macos-aarch64", "macos-x86_64", "windows-x86_64"]
 timeout-minutes = 45
 
 [[proofs]]
+name = "crash-path-native"
+laws = ["host"]
+run = [
+  "cargo",
+  "run",
+  "--locked",
+  "--example",
+  "crash_native_acceptance",
+  "--features",
+  "egui-test",
+  "--",
+  "https://faults.eternalist.moe/v1/report",
+]
+coordinates = [
+  "linux-x86_64",
+  "macos-aarch64",
+  "macos-x86_64",
+  "windows-x86_64",
+]
+timeout-minutes = 15
+
+[[proofs]]
 name = "native-acceptance"
 laws = ["native-acceptance"]
 run = ["scripts/test-atelier"]

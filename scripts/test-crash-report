@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+if [ "$#" -ne 2 ]; then
+    printf 'usage: scripts/test-crash-report INTAKE_URL REPORTS_BUCKET\n' >&2
+    exit 2
+fi
+
+target=$(cargo metadata --format-version 1 --no-deps | jq -r .target_directory)
+cargo build --locked --release --example crash_specimen --features egui-test
+cargo run --locked --release --example crash_acceptance --features egui-test -- \
+    "$target/release/examples/crash_specimen" "$1" "$2"

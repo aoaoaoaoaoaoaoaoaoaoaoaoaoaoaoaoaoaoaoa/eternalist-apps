@@ -1,6 +1,9 @@
 //! One-window native winit, egui, wgpu, water, and witness lifecycle.
 
-use crate::responsiveness;
+use crate::{
+    crash_reports::{CrashReports, HostFailureGuard},
+    responsiveness,
+};
 use anyhow::{Context as _, Result, bail};
 use brass_poolrooms::water::{Engine, Frame as WaterFrame};
 use egui_wgpu::{
@@ -98,6 +101,16 @@ pub trait NativeApp {
     const WINDOW: WindowSpec;
     /// Main-thread frame-work obligation checked by the host instrumentation.
     const RESPONSIVENESS: ResponsivenessSpec = ResponsivenessSpec::interactive();
+
+    /// Opt this product into local crash recovery and explicit report consent.
+    ///
+    /// The host never transmits a report without a fresh user gesture. Storage
+    /// placement remains a product decision because it is part of the
+    /// product's filesystem contract.
+    #[must_use]
+    fn crash_reports() -> Option<crate::CrashReportSpec> {
+        None
+    }
 
     /// Current top-level window identity.
     fn window_title(&self) -> String {
@@ -442,6 +455,37 @@ impl RepaintGovernor {
 /// Returns the first event-loop, window, GPU, rendering, tracing, or witness
 /// failure. The host does not continue after a corrupt frame path.
 pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
+    let crash_reports = CrashReports::arm(A::crash_reports(), &ctx);
+    let host_failure = crash_reports.host_failure_guard();
+    run_armed(ctx, app, crash_reports, host_failure)
+}
+
+/// Construct and run one native application inside the recoverable host boundary.
+///
+/// Prefer this entry point when application construction performs fallible
+/// platform or storage work. The crash hook is armed before `build` runs.
+///
+/// # Errors
+///
+/// Returns the first application-construction, event-loop, window, GPU,
+/// rendering, tracing, or witness failure.
+pub fn run_with<A, F>(ctx: egui::Context, build: F) -> Result<()>
+where
+    A: NativeApp,
+    F: FnOnce(&egui::Context) -> Result<A>,
+{
+    let crash_reports = CrashReports::arm(A::crash_reports(), &ctx);
+    let host_failure = crash_reports.host_failure_guard();
+    let app = build(&ctx)?;
+    run_armed(ctx, app, crash_reports, host_failure)
+}
+
+fn run_armed<A: NativeApp>(
+    ctx: egui::Context,
+    app: A,
+    crash_reports: CrashReports,
+    mut host_failure: HostFailureGuard,
+) -> Result<()> {
     let event_loop = EventLoop::<Spark>::with_user_event()
         .build()
         .context("build event loop")?;
@@ -470,6 +514,7 @@ pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
         window_standing: WindowStanding::default(),
         window_title: A::WINDOW.title.to_owned(),
         fault: None,
+        crash_reports,
         trace_deadline: responsiveness::deadline()?,
         #[cfg(feature = "egui-test")]
         witness,
@@ -481,7 +526,11 @@ pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
     if let Some(witness) = &shell.witness {
         witness.flush().context("flush egui-tester witness")?;
     }
-    shell.fault.map_or(Ok(()), Err)
+    let result = shell.fault.map_or(Ok(()), Err);
+    if result.is_ok() {
+        host_failure.complete();
+    }
+    result
 }
 
 fn arm_repaints(
@@ -565,6 +614,7 @@ struct Shell<A: NativeApp> {
     window_standing: WindowStanding,
     window_title: String,
     fault: Option<anyhow::Error>,
+    crash_reports: CrashReports,
     trace_deadline: Option<Instant>,
     #[cfg(feature = "egui-test")]
     witness: Option<egui_tester_witness::Publisher<A::Observation>>,
@@ -603,9 +653,14 @@ impl<A: NativeApp> Shell<A> {
             .as_ref()
             .map(|_| egui_tester_witness::FramePulse::begin());
         let raw_input = main_phase!("frame.input", rig.input.take_egui_input(&rig.window));
-        let output = main_phase!(
+        let mut output = main_phase!(
             "frame.ui",
-            self.ctx.run_ui(raw_input, |ui| self.app.draw(ui))
+            self.ctx.run_ui(raw_input, |ui| {
+                self.crash_reports.quarantine_input(ui.ctx());
+                self.app.draw(ui);
+                self.crash_reports.restore_input(ui.ctx());
+                self.crash_reports.show(ui.ctx());
+            })
         );
         frame_span.record("pixels_per_point", output.pixels_per_point);
         let title = self.app.window_title();
@@ -664,8 +719,12 @@ impl<A: NativeApp> Shell<A> {
                 &output.textures_delta,
                 output.pixels_per_point,
                 &water,
-            )?
+            )
         );
+        // Egui's delta is a one-shot transaction. The renderer has now either
+        // applied it or deliberately retired it on a surface failure.
+        output.textures_delta.clear();
+        let rendered = rendered?;
         let RenderOutcome::Presented { repaint } = rendered else {
             frame_span.record("presented", false);
             match rendered {

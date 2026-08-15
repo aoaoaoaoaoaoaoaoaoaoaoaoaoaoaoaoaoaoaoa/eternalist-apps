@@ -42,6 +42,38 @@ registries, persistence hooks, or a service locator.
 commit requires another frame. Expensive preparation, filesystem work, and
 complete queue drains never belong there.
 
+## Crash Recovery
+
+A product enrolls through `NativeApp::crash_reports` and supplies its lawful
+state directory. Fallible products enter through `run_with`, which arms
+recovery before their constructor runs. The host retains at most one private,
+bounded JSON capsule.
+It contains only closed product and platform identity, a fault class, a
+source-relative panic location when available, and sanitized function names.
+Panic text is excluded because it may contain paths, input, or domain state.
+
+The next launch places a modal consent surface above the ordinary application.
+The exact payload is inspectable. Declining deletes the capsule; consenting
+performs one five-second delivery attempt on a worker thread. Failure keeps the
+capsule for an explicit retry or discard. There is no automatic retry, always-
+send mode, usage telemetry, ambient state collection, or networking before the
+user's gesture. Application input is quarantined while the modal owns the
+surface.
+
+This is recoverable Rust-fault reporting, not a process oracle. It can record
+panics after the native host is armed and terminal errors returned through the
+host. It cannot record an out-of-memory kill, abort, segmentation fault,
+external signal, machine loss, or a panic before either native entry point is
+called. Those absences are part of the contract rather than silent best-effort
+claims.
+
+Every native release coordinate executes the filesystem and transport seams:
+starting from a nonexistent state directory, it persists and reloads a real
+capsule, then sends a deliberately invalid body through the production HTTPS
+edge and requires the closed refusal response. The probe stores no report.
+Linux separately proves the complete crash, restart, consent, delivery, and
+stored-object equality path through a hermetic GUI process.
+
 `Inspector` is optional. It owns fixed left-rail geometry and vertical scroll
 behavior only. An application chooses whether it exists, what it contains,
 which sections are open, how state persists, and how scrolling agitates water.

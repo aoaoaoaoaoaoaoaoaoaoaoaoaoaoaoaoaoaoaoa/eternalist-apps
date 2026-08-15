@@ -22,8 +22,9 @@ library-shaped DSL, not a registry-shaped framework.
 | Surface | Coordinate | Owns | Leaves To The Application |
 | --- | --- | --- | --- |
 | `WindowSpec`, `ResponsivenessSpec`, and `CloseDisposition` | native | initial window identity and geometry, ordinary frame-work budget, and close-request vocabulary | dynamic title, product close policy, and every window beyond the sole host window |
-| `NativeApp` | native | the explicit hooks consumed by the host, including drawing, water sealing, GPU resource registration, post-present settlement, one-shot reveal and exit signals, rendering-independent service deadlines, and optional one-way observation | domain state, service meaning, workers, persistence projection, typed command consequences, tray behavior, and dialogs |
-| `run` | native | one-window winit/egui/wgpu lifecycle, Poolrooms-water composition, focus- and concealment-aware repaint authority, rendering-independent service wakeups, surface recovery, responsiveness spans and trace deadline, and optional post-present witness publication | application construction, product shutdown work, multi-window policy, and recovery after a terminal host error |
+| `NativeApp` | native | the explicit hooks consumed by the host, including drawing, water sealing, GPU resource registration, post-present settlement, one-shot reveal and exit signals, rendering-independent service deadlines, optional crash-report enrollment, and optional one-way observation | domain state, service meaning, workers, persistence projection, typed command consequences, product state-directory selection, tray behavior, and dialogs |
+| `run` and `run_with` | native | one-window winit/egui/wgpu lifecycle, optional pre-construction recovery boundary, Poolrooms-water composition, focus- and concealment-aware repaint authority, rendering-independent service wakeups, surface recovery, responsiveness spans and trace deadline, local crash-capsule recovery, explicit report consent, and optional post-present witness publication | construction policy and dependencies, product shutdown work, multi-window policy, and faults outside the recoverable Rust host boundary |
+| `CrashProduct` and `CrashReportSpec` | native | a closed report identity, one bounded local capsule, sanitized panic or terminal-host evidence, next-launch consent, and one short background delivery attempt | enrollment, XDG state placement, server operation, and every fault that cannot execute a Rust panic hook |
 | `Inspector`, `InspectorResponse`, and `inspector::WIDTH` | renderer-neutral | optional fixed left-rail geometry, vertical scrolling, application return value, panel response, and resulting scroll offset | sections, fold state, actions, persistence, and water forcing |
 | `commands::{CommandCanon, CommandSpec, CommandScope, CommandStatus, CommandDispatch, CommandButtonResponse, Shortcut, ShortcutKey, ShortcutModifiers, TextFocusPolicy, RepeatPolicy}` | renderer-neutral | validated typed command metadata, stable IDs, portable exact accelerators, reserved-idiom interlocks, visible Alt mnemonics, context precedence, disabled refusal, text-focus and repeat ownership, generated buttons, and one effective binding projection | command enum and scope enum, dynamic availability, domain execution, feedback presentation, and keymap persistence |
 | `command_guide::{CommandGuide, GuideSection, GuideGesture, KEYBOARD_IDIOMS, PANEL_IDIOMS, RAIL_IDIOMS}` | renderer-neutral | F1/question-mark discovery, focus-restoring modal help generated from the command canon, current/all pages, baseline keyboard idioms, and optional shared or application-supplied gesture sections | applicable shared idiom sections, application-specific gestures, scope names, command availability, and domain help beyond interaction guidance |
@@ -55,9 +56,10 @@ each application still proves its declared coordinates through its own native
 acceptance and lifecycle evidence. The WebGPU atelier below is a design
 surface for renderer-neutral primitives, not a web application-host claim.
 
-The optional `egui-test` feature adds only `NativeApp::Observation`,
-`NativeApp::observe`, and post-present witness publication inside `run`. It
-does not alter the renderer-neutral surface.
+The optional `egui-test` feature adds one-way observation and response anchors,
+post-present witness publication inside `run`, and an isolated-endpoint
+constructor used only by the crash-path acceptance. It does not alter the
+renderer-neutral surface or production endpoint.
 
 ## Visual Atelier
 
@@ -128,6 +130,11 @@ mnemonics, exact command refusal and capture, focus-contained panel traversal,
 generated help, focus restoration, keyboard rails, and wheel rails through a
 private egui-tester X11 universe. `scripts/check` includes the release
 WebAssembly build and browser-bundle integrity check for the atelier.
+After deploying an isolated fault-intake stack,
+`scripts/test-crash-report INTAKE_URL REPORTS_BUCKET` detonates a real native
+process, restarts it, clicks consent, crosses the public network boundary,
+compares the stored object byte-for-byte with the local capsule, and deletes
+the specimen. It uses the ordinary admission gate; there is no test bypass.
 
 ## License
 

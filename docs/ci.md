@@ -10,6 +10,7 @@ locally.
 | `scripts/check` | formatting, strict native all-target/all-feature lints, browser-target linting, tests, warning-free rustdoc, release WebAssembly compilation, and browser-bundle integrity | the checked source and documented package surface cohere |
 | `scripts/test-atelier` | optimized Atelier under egui-tester's private X11, XDG, process, and software-Vulkan universe | command routing, focus traversal, generated help, Poolrooms controls, witness focus, and the native host compose end to end |
 | Foundry `host` proof | ordinary host compilation and tests on Linux, macOS, and Windows | portability regressions are caught; runtime support is not implied |
+| Foundry `crash-path-native` proof | a nonexistent state directory followed by capsule persistence, reload, and an invalid HTTPS delivery through the production edge on Linux, macOS, and Windows | native filesystem semantics, TLS linkage, platform trust roots, and the reporting route compose without storing a report |
 | `scripts/audit` | the locked dependency graph against the checked policy | known dependency advisories are adjudicated |
 | `cargo package --locked` | the exact publishable archive and its dependency resolution | crates.io receives the intended source, examples, and documentation |
 
@@ -35,6 +36,13 @@ create a platform claim.
 The `native-acceptance` proof requests Foundry's private X11 substrate on the
 Linux coordinate, then invokes `scripts/test-atelier`. Display setup belongs to
 the scheduler; the interaction story and its verdict remain owned here.
+
+Crash delivery has one stateful release acceptance rather than a permanent PR
+test. Against an isolated deployed stack, `scripts/test-crash-report` proves a
+real panic, cold restart, exact consented capsule, native HTTPS delivery,
+ordinary global admission, private S3 persistence, and specimen deletion. It
+has no privileged rate-limit path. Ordinary compilation and UI suites remain
+networkless.
 
 ## Library Releases
 

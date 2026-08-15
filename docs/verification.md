@@ -76,6 +76,14 @@ atelier cannot prove product-specific consequences or persistence.
 publish a bounded target and judge its pixels without mistaking ambient canvas
 motion for help presentation.
 
+`crash_specimen` plus `crash_acceptance` is the single durable exception to the
+normally networkless harness. A release operator supplies an isolated intake
+URL and reports bucket. The story crashes the optimized host, proves the local
+capsule after process death, restarts, activates the witnessed consent button,
+waits for capsule retirement, and compares the private stored object with the
+consented JSON before deleting it. It traverses the ordinary quota and fails on
+content drift, missing storage, duplicate storage, or involuntary retry.
+
 ## Containment And Motion
 
 The harness owns a private display, XDG tree, process group, network policy,
