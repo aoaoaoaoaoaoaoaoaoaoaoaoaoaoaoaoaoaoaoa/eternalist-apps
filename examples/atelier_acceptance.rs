@@ -72,7 +72,7 @@ fn main() -> Result<()> {
     session.focus().context("focus Atelier window")?;
     let mut probe: Probe<Observation> = app.witness()?.typed();
     let _presented = probe.wait_surface_presented(&app, STARTUP_WAIT)?;
-    command_story(&session, &app, &mut probe, artifacts.as_deref())?;
+    command_story(&testbed, &session, &app, &mut probe, artifacts.as_deref())?;
 
     let _close = session.close()?;
     let exit = app.wait(WAIT).context("Atelier to honor native close")?;
@@ -83,6 +83,7 @@ fn main() -> Result<()> {
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 fn command_story(
+    testbed: &Testbed,
     session: &egui_tester::X11Session<'_, '_>,
     app: &egui_tester::Application<'_>,
     probe: &mut Probe<Observation>,
@@ -155,7 +156,41 @@ fn command_story(
     let _wheel_adjusted = probe.wait(app, WAIT, "wheel adjusts hovered rail", |frame| {
         frame.state.density == 6
     })?;
+    clipboard_story(testbed, session, app, probe)?;
 
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn clipboard_story(
+    testbed: &Testbed,
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+) -> Result<()> {
+    let label = probe.wait_anchor(app, "atelier.commands.copy", WAIT)?;
+    let (x, y) = label.center();
+    let _selected = session.click(x, y, Button::Primary)?;
+    let _selection_frame = probe.wait_fresh(app, WAIT)?;
+    let _copy = session.chord(Modifiers::CTRL, Key::Character('c'))?;
+    let _copy_frame = probe.wait_fresh(app, WAIT)?;
+
+    let clipboard = testbed.launch(
+        AppCommand::new("/usr/bin/xclip")
+            .args(["-selection", "clipboard", "-out"])
+            .runtime(WAIT),
+    )?;
+    let exit = clipboard.wait(WAIT)?;
+    ensure!(
+        exit.success(),
+        "xclip could not read the native clipboard: {exit:#?}"
+    );
+    ensure!(
+        exit.stdout.trim() == "COPY CAPABILITY SENTINEL",
+        "native clipboard contains {:?}",
+        exit.stdout,
+    );
+    clipboard.terminate().context("collect clipboard probe")?;
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.7.3"
+version = "0.7.4"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -30,7 +30,7 @@ serde = { version = "1.0.229", features = ["derive"], optional = true }
 anyhow = "1.0.104"
 crossbeam-channel = "0.5.16"
 egui-wgpu = { version = "=0.36.1", default-features = false }
-egui-winit = { version = "=0.36.1", default-features = false }
+egui-winit = { version = "=0.36.1", default-features = false, features = ["clipboard"] }
 pollster = "1.0.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.149"

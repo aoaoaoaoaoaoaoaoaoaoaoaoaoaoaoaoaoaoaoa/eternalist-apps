@@ -33,13 +33,16 @@ permanent Alt mnemonics, routing, button legends, and help must derive from
 that declaration rather than drift as independent strings. Reserve mnemonics
 for common consequential actions; saturation destroys their value.
 
-Tab and Shift+Tab traverse the active inspector panel. Physical Control+Tab
-and Control+Shift+Tab cross panel boundaries. Enter and Space actuate the
-focused control; arrows and the wheel adjust controls that visibly admit
-adjustment. Escape closes only the topmost transient layer. A target-relative
-gesture belongs in help but is not a global command shortcut; do not advertise
-a shared gesture in an application that lacks its target. Commands and panel
-traversal remain dormant behind a modal layer.
+Tab and Shift+Tab traverse the active inspector panel; from a collapsed header
+they continue to the adjacent panel instead of cycling through absent contents.
+Physical Control+Tab and Control+Shift+Tab cross panel boundaries. Enter and
+Space actuate the focused control; arrows and the wheel adjust controls that
+visibly admit adjustment. Escape closes only the topmost transient layer. A
+target-relative gesture belongs in help but is not a global command shortcut;
+do not advertise a shared gesture in an application that lacks its target.
+Commands and panel traversal remain dormant behind a modal layer.
+Ordinary labels remain selectable. Native hosts export their copy, cut, and
+paste commands through the platform clipboard.
 Permanent collections ordinarily belong in an inspector; transient candidates
 and working detail ordinarily belong in a shelf. Status reports current work;
 it does not repeat hidden implementation state. Applications without a natural

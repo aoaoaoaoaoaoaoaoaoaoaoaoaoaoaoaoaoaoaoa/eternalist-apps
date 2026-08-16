@@ -879,6 +879,9 @@ impl CommandsExhibit {
                     ui,
                     "Use Tab within the lit panel. Control+Tab crosses panels. Alt mnemonics are permanently underlined.",
                 );
+                ui.add_space(18.0);
+                let copy = ui.label(chrome::muted("COPY CAPABILITY SENTINEL"));
+                record_response(ui, "atelier.commands.copy", &copy);
             });
 
         let selected = self.selected;
