@@ -682,6 +682,34 @@ where
         if ctx.memory(|memory| memory.top_modal_layer().is_some()) {
             return None;
         }
+        self.route_unchecked(ctx, contexts, status)
+    }
+
+    /// Consume at most one accelerator while an application-owned modal layer
+    /// is topmost.
+    ///
+    /// This admits the modal's own command context without letting it pierce a
+    /// later modal above it. Ordinary application surfaces should use
+    /// [`Self::route`].
+    pub fn route_in_modal<'reason>(
+        &self,
+        ctx: &egui::Context,
+        layer: egui::LayerId,
+        contexts: &[S],
+        status: impl Fn(C) -> CommandStatus<'reason>,
+    ) -> Option<CommandDispatch<'reason, C>> {
+        if ctx.memory(egui::Memory::top_modal_layer) != Some(layer) {
+            return None;
+        }
+        self.route_unchecked(ctx, contexts, status)
+    }
+
+    fn route_unchecked<'reason>(
+        &self,
+        ctx: &egui::Context,
+        contexts: &[S],
+        status: impl Fn(C) -> CommandStatus<'reason>,
+    ) -> Option<CommandDispatch<'reason, C>> {
         for context in contexts {
             for spec in self
                 .specs
@@ -1048,7 +1076,9 @@ mod tests {
     fn command_routing_cannot_pierce_a_modal_layer() {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
-        let modal = || egui::Modal::new(egui::Id::new("command-barrier"));
+        let modal_id = egui::Id::new("command-barrier");
+        let modal_layer = egui::LayerId::new(egui::Order::Foreground, modal_id);
+        let modal = || egui::Modal::new(modal_id);
         ctx.run_ui(egui::RawInput::default(), |ui| {
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
         })
@@ -1064,6 +1094,32 @@ mod tests {
 
         assert_eq!(dispatch, None);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::S)));
+        assert_eq!(ctx.memory(egui::Memory::top_modal_layer), Some(modal_layer));
+        ctx.run_ui(
+            egui::RawInput {
+                events: vec![egui::Event::Key {
+                    key: egui::Key::S,
+                    physical_key: Some(egui::Key::S),
+                    pressed: false,
+                    repeat: false,
+                    modifiers: primary,
+                }],
+                ..egui::RawInput::default()
+            },
+            |ui| {
+                let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
+            },
+        )
+        .drop_without_applying_deltas();
+
+        ctx.run_ui(key(primary, egui::Key::S, false), |ui| {
+            dispatch = canon.route_in_modal(ui.ctx(), modal_layer, &[Scope::Library], |_| {
+                CommandStatus::Enabled
+            });
+            let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
+        })
+        .drop_without_applying_deltas();
+        assert_eq!(dispatch, Some(CommandDispatch::Invoke(Command::Save)));
     }
 
     #[test]

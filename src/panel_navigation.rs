@@ -49,29 +49,21 @@ impl PanelNavigator {
             return;
         }
         let focused = ctx.memory(egui::Memory::focused);
-        let backward = take_shortcut(ctx, PREVIOUS_PANEL[0]);
-        let forward = if backward {
-            false
-        } else {
-            take_shortcut(ctx, NEXT_PANEL[0])
-        };
-        if backward || forward {
-            let active = self
+        if let Some(backward) = take_direction(ctx, PREVIOUS_PANEL[0], NEXT_PANEL[0]) {
+            let origin = self
                 .active
                 .and_then(|active| self.prior.iter().position(|panel| panel.id == active))
                 .unwrap_or_default();
-            let target = if backward {
-                active.checked_sub(1).unwrap_or(self.prior.len() - 1)
-            } else {
-                (active + 1) % self.prior.len()
-            };
-            let panel = self.prior[target];
-            self.active = Some(panel.id);
-            ctx.memory_mut(|memory| {
-                memory.move_focus(egui::FocusDirection::None);
-                memory.request_focus(panel.header);
-            });
-            ctx.request_repaint();
+            self.focus_adjacent(ctx, origin, backward);
+            return;
+        }
+        if let Some(origin) = focused.and_then(|focused| {
+            self.prior
+                .iter()
+                .position(|panel| panel.header == focused && !panel.open)
+        }) && let Some(backward) = take_direction(ctx, PREVIOUS_CONTROL[0], NEXT_CONTROL[0])
+        {
+            self.focus_adjacent(ctx, origin, backward);
             return;
         }
         if focused.is_some() {
@@ -93,6 +85,21 @@ impl PanelNavigator {
             });
             ctx.request_repaint();
         }
+    }
+
+    fn focus_adjacent(&mut self, ctx: &egui::Context, origin: usize, backward: bool) {
+        let target = if backward {
+            origin.checked_sub(1).unwrap_or(self.prior.len() - 1)
+        } else {
+            (origin + 1) % self.prior.len()
+        };
+        let panel = self.prior[target];
+        self.active = Some(panel.id);
+        ctx.memory_mut(|memory| {
+            memory.move_focus(egui::FocusDirection::None);
+            memory.request_focus(panel.header);
+        });
+        ctx.request_repaint();
     }
 
     fn finish(&mut self, ctx: &egui::Context) {
@@ -126,6 +133,7 @@ impl PanelNavigator {
 struct PanelRecord {
     id: egui::Id,
     header: egui::Id,
+    open: bool,
 }
 
 /// One-pass guard used to show every navigable inspector panel.
@@ -198,6 +206,12 @@ impl PanelFrame<'_> {
             .default_open(default_open)
             .active(active)
             .show(ui, id_salt, add);
+        let open = egui::collapsing_header::CollapsingState::load_with_default_open(
+            ui.ctx(),
+            id,
+            default_open,
+        )
+        .is_open();
         if section.header.gained_focus() {
             section.header.scroll_to_me(Some(egui::Align::Center));
         }
@@ -243,6 +257,7 @@ impl PanelFrame<'_> {
         self.navigator.next.push(PanelRecord {
             id,
             header: header_id,
+            open,
         });
         PanelResponse {
             wake: section.wake,
@@ -279,6 +294,16 @@ fn take_shortcut(ctx: &egui::Context, shortcut: Shortcut) -> bool {
     take(ctx, shortcut) == Stroke::Fresh
 }
 
+fn take_direction(ctx: &egui::Context, previous: Shortcut, next: Shortcut) -> Option<bool> {
+    if take_shortcut(ctx, previous) {
+        Some(true)
+    } else if take_shortcut(ctx, next) {
+        Some(false)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -311,6 +336,15 @@ mod tests {
     }
 
     fn pass(ctx: &egui::Context, navigator: &mut PanelNavigator, input: egui::RawInput) -> Ids {
+        pass_with_openness(ctx, navigator, input, [true; 2])
+    }
+
+    fn pass_with_openness(
+        ctx: &egui::Context,
+        navigator: &mut PanelNavigator,
+        input: egui::RawInput,
+        open: [bool; 2],
+    ) -> Ids {
         let mut ids = Ids {
             headers: [egui::Id::NULL; 2],
             options: [[egui::Id::NULL; 2]; 2],
@@ -318,12 +352,12 @@ mod tests {
         };
         ctx.run_ui(input, |ui| {
             let mut panels = navigator.frame(ui.ctx());
-            for index in 0..2 {
+            for (index, default_open) in open.into_iter().enumerate() {
                 let panel = panels.section(
                     ui,
                     ("panel", index),
                     if index == 0 { "FIRST" } else { "SECOND" },
-                    true,
+                    default_open,
                     |ui| {
                         ids.options[index][0] = ui.button("one").id;
                         ids.options[index][1] = ui.button("two").id;
@@ -382,6 +416,21 @@ mod tests {
         })
         .drop_without_applying_deltas();
         assert_eq!(navigator.active(), Some(survivor));
+
+        // A collapsed panel has no interior focus cycle. Treating its absent
+        // body like an open panel used to strand Tab on the same header.
+        let ctx = egui::Context::default();
+        let mut navigator = PanelNavigator::default();
+        let ids = pass_with_openness(
+            &ctx,
+            &mut navigator,
+            egui::RawInput::default(),
+            [false, true],
+        );
+        ctx.memory_mut(|memory| memory.request_focus(ids.headers[0]));
+        let _settled = pass(&ctx, &mut navigator, egui::RawInput::default());
+        let _ids = stroke(&ctx, &mut navigator, egui::Modifiers::NONE);
+        assert_eq!(ctx.memory(egui::Memory::focused), Some(ids.headers[1]));
     }
 
     #[test]

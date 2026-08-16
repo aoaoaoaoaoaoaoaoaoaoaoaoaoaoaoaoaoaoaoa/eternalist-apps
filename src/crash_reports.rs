@@ -116,7 +116,6 @@ struct Fault {
 #[serde(rename_all = "snake_case")]
 enum FaultKind {
     Panic,
-    HostFailure,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -133,7 +132,7 @@ struct Recorder {
 }
 
 impl Recorder {
-    fn capture(&self, kind: FaultKind, site: Option<FaultSite>) -> std::io::Result<()> {
+    fn capture(&self, site: Option<FaultSite>) -> std::io::Result<()> {
         if self.capsule.exists() {
             return Ok(());
         }
@@ -146,7 +145,7 @@ impl Recorder {
                 arch: std::env::consts::ARCH.to_owned(),
             },
             fault: Fault {
-                kind,
+                kind: FaultKind::Panic,
                 site,
                 stack: capture_stack(),
             },
@@ -196,27 +195,6 @@ pub(crate) struct CrashReports {
     quarantined: Option<QuarantinedInput>,
 }
 
-pub(crate) struct HostFailureGuard {
-    recorder: Option<Arc<Recorder>>,
-    complete: bool,
-}
-
-impl HostFailureGuard {
-    pub(crate) fn complete(&mut self) {
-        self.complete = true;
-    }
-}
-
-impl Drop for HostFailureGuard {
-    fn drop(&mut self) {
-        if !self.complete
-            && let Some(recorder) = &self.recorder
-        {
-            let _captured = recorder.capture(FaultKind::HostFailure, None);
-        }
-    }
-}
-
 impl CrashReports {
     pub(crate) fn arm(spec: Option<CrashReportSpec>, ctx: &egui::Context) -> Self {
         let Some(spec) = spec else {
@@ -234,7 +212,7 @@ impl CrashReports {
                 line: location.line(),
                 column: location.column(),
             });
-            let _captured = hook_recorder.capture(FaultKind::Panic, site);
+            let _captured = hook_recorder.capture(site);
             hook_previous(panic);
         }));
         Self {
@@ -257,13 +235,6 @@ impl CrashReports {
             delivery: Delivery::Idle,
             exact_open: false,
             quarantined: None,
-        }
-    }
-
-    pub(crate) fn host_failure_guard(&self) -> HostFailureGuard {
-        HostFailureGuard {
-            recorder: self.recorder.clone(),
-            complete: false,
         }
     }
 
@@ -500,7 +471,7 @@ pub fn native_crash_acceptance(endpoint: &str) -> Result<(), String> {
         let capsule = state.join(CAPSULE_NAME);
         let recorder = Recorder { spec, capsule };
         recorder
-            .capture(FaultKind::HostFailure, None)
+            .capture(None)
             .map_err(|error| format!("persist capsule in new state directory: {error}"))?;
         load_pending(&recorder.capsule, CrashProduct::Hrrr)
             .ok_or_else(|| "reload the persisted capsule".to_owned())?;

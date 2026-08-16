@@ -1,9 +1,6 @@
 //! One-window native winit, egui, wgpu, water, and witness lifecycle.
 
-use crate::{
-    crash_reports::{CrashReports, HostFailureGuard},
-    responsiveness,
-};
+use crate::{crash_reports::CrashReports, responsiveness};
 use anyhow::{Context as _, Result, bail};
 use brass_poolrooms::water::{Engine, Frame as WaterFrame};
 use egui_wgpu::{
@@ -456,11 +453,10 @@ impl RepaintGovernor {
 /// failure. The host does not continue after a corrupt frame path.
 pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
     let crash_reports = CrashReports::arm(A::crash_reports(), &ctx);
-    let host_failure = crash_reports.host_failure_guard();
-    run_armed(ctx, app, crash_reports, host_failure)
+    run_armed(ctx, app, crash_reports)
 }
 
-/// Construct and run one native application inside the recoverable host boundary.
+/// Construct and run one native application inside the recoverable panic boundary.
 ///
 /// Prefer this entry point when application construction performs fallible
 /// platform or storage work. The crash hook is armed before `build` runs.
@@ -475,17 +471,11 @@ where
     F: FnOnce(&egui::Context) -> Result<A>,
 {
     let crash_reports = CrashReports::arm(A::crash_reports(), &ctx);
-    let host_failure = crash_reports.host_failure_guard();
     let app = build(&ctx)?;
-    run_armed(ctx, app, crash_reports, host_failure)
+    run_armed(ctx, app, crash_reports)
 }
 
-fn run_armed<A: NativeApp>(
-    ctx: egui::Context,
-    app: A,
-    crash_reports: CrashReports,
-    mut host_failure: HostFailureGuard,
-) -> Result<()> {
+fn run_armed<A: NativeApp>(ctx: egui::Context, app: A, crash_reports: CrashReports) -> Result<()> {
     let event_loop = EventLoop::<Spark>::with_user_event()
         .build()
         .context("build event loop")?;
@@ -526,11 +516,7 @@ fn run_armed<A: NativeApp>(
     if let Some(witness) = &shell.witness {
         witness.flush().context("flush egui-tester witness")?;
     }
-    let result = shell.fault.map_or(Ok(()), Err);
-    if result.is_ok() {
-        host_failure.complete();
-    }
-    result
+    shell.fault.map_or(Ok(()), Err)
 }
 
 fn arm_repaints(

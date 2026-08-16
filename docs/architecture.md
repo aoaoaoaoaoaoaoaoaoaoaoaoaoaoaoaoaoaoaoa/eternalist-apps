@@ -60,12 +60,14 @@ send mode, usage telemetry, ambient state collection, or networking before the
 user's gesture. Application input is quarantined while the modal owns the
 surface.
 
-This is recoverable Rust-fault reporting, not a process oracle. It can record
-panics after the native host is armed and terminal errors returned through the
-host. It cannot record an out-of-memory kill, abort, segmentation fault,
-external signal, machine loss, or a panic before either native entry point is
-called. Those absences are part of the contract rather than silent best-effort
-claims.
+This is recoverable Rust-panic reporting, not a process oracle. It records
+panics after the native host is armed. Returned construction, event-loop,
+window, GPU, rendering, tracing, and witness errors are deliberately excluded:
+a generic terminal error does not prove that a non-bespoke code change can
+repair the affected machine. It also cannot record an out-of-memory kill,
+abort, segmentation fault, external signal, machine loss, or a panic before
+either native entry point is called. Unknown failures are unreported rather
+than laundered into an actionable category.
 
 Every native release coordinate executes the filesystem and transport seams:
 starting from a nonexistent state directory, it persists and reloads a real
@@ -109,7 +111,10 @@ Fresh keys dispatch once, rejected repeats are consumed, and repeatable
 commands dispatch at most once per input frame. Generated buttons accept
 pointer, accessibility, or fresh unmodified Enter/Space activation, so a
 modified chord cannot leak through the focused actuator. A preceding modal
-layer suspends application command routing without consuming its keys.
+layer suspends ordinary application command routing without consuming its
+keys. An application-owned modal may route its own context through
+`route_in_modal`; the route remains dormant when any later modal is above its
+declared layer.
 
 `CommandSpec::default_shortcuts` names only the shipped declaration.
 `CommandCanon::shortcuts`, routing, generated button legends, and the command
@@ -134,11 +139,13 @@ interactions exist.
 
 `PanelNavigator` composes Poolrooms `Section` disclosures into one active
 inspector panel. Tab and Shift+Tab cycle through its header and focusable
-contents. Physical Control+Tab and Control+Shift+Tab move to the next or
-previous panel header; Control is deliberate because Command+Tab belongs to
-the macOS application switcher. Pointer engagement or header focus activates a
-panel. Dynamic insertion or removal is reconciled after each frame. Modal
-layers suspend panel traversal, leaving their keys to the topmost layer.
+contents. A collapsed panel has no interior cycle, so Tab and Shift+Tab move
+from its header to the adjacent panel header. Physical Control+Tab and
+Control+Shift+Tab move to the next or previous panel header regardless of fold
+state; Control is deliberate because Command+Tab belongs to the macOS
+application switcher. Pointer engagement or header focus activates a panel.
+Dynamic insertion or removal is reconciled after each frame. Modal layers
+suspend panel traversal, leaving their keys to the topmost layer.
 
 Traversal does not create a widget registry. The caller supplies stable panel
 IDs, presentation order, contents, fold defaults, and water handling through
