@@ -24,6 +24,8 @@ use serde::Deserialize;
 const WAIT: Duration = Duration::from_secs(5);
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 const STARTUP_WAIT: Duration = Duration::from_secs(30);
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+const CLIPBOARD_PROBE: &str = "--clipboard-probe";
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 #[derive(Debug, Deserialize)]
@@ -39,10 +41,16 @@ struct Observation {
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 fn main() -> Result<()> {
     let mut arguments = std::env::args_os().skip(1);
-    let binary = arguments
+    let first = arguments
         .next()
-        .map(PathBuf::from)
         .context("usage: atelier_acceptance PATH_TO_ATELIER [ARTIFACT_DIRECTORY]")?;
+    if first == CLIPBOARD_PROBE {
+        ensure!(arguments.next().is_none(), "usage: {CLIPBOARD_PROBE}");
+        let mut clipboard = arboard::Clipboard::new().context("open native clipboard")?;
+        print!("{}", clipboard.get_text().context("read native clipboard")?);
+        return Ok(());
+    }
+    let binary = PathBuf::from(first);
     let artifacts = arguments.next().map(PathBuf::from);
     ensure!(
         arguments.next().is_none(),
@@ -175,15 +183,12 @@ fn clipboard_story(
     let _copy = session.chord(Modifiers::CTRL, Key::Character('c'))?;
     let _copy_frame = probe.wait_fresh(app, WAIT)?;
 
-    let clipboard = testbed.launch(
-        AppCommand::new("/usr/bin/xclip")
-            .args(["-selection", "clipboard", "-out"])
-            .runtime(WAIT),
-    )?;
+    let probe = std::env::current_exe().context("resolve clipboard probe")?;
+    let clipboard = testbed.launch(AppCommand::new(probe).arg(CLIPBOARD_PROBE).runtime(WAIT))?;
     let exit = clipboard.wait(WAIT)?;
     ensure!(
         exit.success(),
-        "xclip could not read the native clipboard: {exit:#?}"
+        "clipboard probe could not read the native clipboard: {exit:#?}"
     );
     ensure!(
         exit.stdout.trim() == "COPY CAPABILITY SENTINEL",

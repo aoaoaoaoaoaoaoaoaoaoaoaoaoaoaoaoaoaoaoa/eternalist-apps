@@ -12,6 +12,8 @@
 //! application concerns.
 
 #[cfg(all(test, target_os = "linux"))]
+use arboard as _;
+#[cfg(all(test, target_os = "linux"))]
 use egui_tester as _;
 
 pub mod cabinet;
