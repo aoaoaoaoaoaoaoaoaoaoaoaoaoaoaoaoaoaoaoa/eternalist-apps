@@ -92,10 +92,16 @@ impl X11CursorFoundry {
 impl Forge {
     fn strike(&mut self, image: &CustomCursorImage) -> Result<()> {
         let key = Arc::as_ptr(&image.rgba).cast::<u8>() as usize;
-        if self
-            .installed
-            .is_some_and(|(installed, _)| installed == key)
-        {
+        if let Some((_, cursor)) = self.installed.filter(|(installed, _)| *installed == key) {
+            // egui-winit may rewrite the same X11 window attribute when its
+            // standard icon changes. Native bitmap authority is final.
+            self.connection
+                .change_window_attributes(
+                    self.window,
+                    &ChangeWindowAttributesAux::new().cursor(cursor),
+                )
+                .context("reassert cursor on X11 window")?;
+            self.connection.flush().context("flush reasserted cursor")?;
             return Ok(());
         }
         let [width, height] = image.size;
