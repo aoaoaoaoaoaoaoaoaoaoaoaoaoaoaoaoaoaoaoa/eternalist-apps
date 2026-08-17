@@ -18,7 +18,7 @@ use std::{
     time::{Duration, Instant},
 };
 #[cfg(target_os = "linux")]
-use winit::platform::x11::{WindowAttributesExtX11 as _, WindowType};
+use winit::platform::x11::{ActiveEventLoopExtX11 as _, WindowAttributesExtX11 as _, WindowType};
 use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
@@ -611,7 +611,7 @@ impl<A: NativeApp> Shell<A> {
         clippy::too_many_lines,
         reason = "the canonical native frame is one ordered presentation transaction"
     )]
-    fn paint(&mut self) -> Result<()> {
+    fn paint(&mut self, event_loop: &ActiveEventLoop) -> Result<()> {
         let presentation = self.governor.presentation();
         match presentation {
             Presentation::Concealed => return Ok(()),
@@ -656,8 +656,7 @@ impl<A: NativeApp> Shell<A> {
         }
         main_phase!(
             "frame.platform_output",
-            rig.input
-                .handle_platform_output(&rig.window, output.platform_output)
+            rig.handle_platform_output(event_loop, output.platform_output)?
         );
         if let Some(viewport) = output.viewport_output.get(&egui::ViewportId::ROOT) {
             main_phase!(
@@ -1032,7 +1031,7 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
                 return;
             }
             WindowEvent::RedrawRequested => {
-                if let Err(error) = self.paint() {
+                if let Err(error) = self.paint(event_loop) {
                     self.abort(event_loop, error);
                 }
                 return;
@@ -1112,6 +1111,8 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
 struct Rig {
     window: Arc<Window>,
     input: egui_winit::State,
+    #[cfg(target_os = "linux")]
+    cursor_foundry: crate::native_cursor::X11CursorFoundry,
     surface: wgpu::Surface<'static>,
     gpu: RenderState,
     config: wgpu::SurfaceConfiguration,
@@ -1133,6 +1134,37 @@ const SURFACE_OCCLUSION_RETRY_DELAYS: [Duration; 4] = [
 ];
 
 impl Rig {
+    fn handle_platform_output(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        platform_output: egui::PlatformOutput,
+    ) -> Result<()> {
+        #[cfg(target_os = "linux")]
+        {
+            let cursor_image = platform_output.cursor_image.clone();
+            if event_loop.is_x11() {
+                self.input
+                    .handle_platform_output(&self.window, platform_output);
+            } else {
+                self.input.handle_platform_output_with_event_loop(
+                    &self.window,
+                    event_loop,
+                    platform_output,
+                );
+            }
+            self.cursor_foundry
+                .apply(cursor_image.as_ref())
+                .context("apply X11 custom cursor")?;
+        }
+        #[cfg(not(target_os = "linux"))]
+        self.input.handle_platform_output_with_event_loop(
+            &self.window,
+            event_loop,
+            platform_output,
+        );
+        Ok(())
+    }
+
     #[allow(
         clippy::cast_possible_truncation,
         reason = "winit reports DPI as f64 while egui's scale contract is f32"
@@ -1161,6 +1193,9 @@ impl Rig {
             window.theme(),
             None,
         );
+        #[cfg(target_os = "linux")]
+        let cursor_foundry = crate::native_cursor::X11CursorFoundry::bind(&window)
+            .context("bind X11 cursor foundry")?;
         let mut configuration = WgpuConfiguration::default();
         if let WgpuSetup::CreateNew(setup) = &mut configuration.wgpu_setup {
             let inherited = Arc::clone(&setup.device_descriptor);
@@ -1196,6 +1231,8 @@ impl Rig {
         Ok(Self {
             window,
             input,
+            #[cfg(target_os = "linux")]
+            cursor_foundry,
             surface,
             gpu,
             config,

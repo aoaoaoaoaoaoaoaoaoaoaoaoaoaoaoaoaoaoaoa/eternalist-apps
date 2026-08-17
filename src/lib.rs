@@ -27,6 +27,8 @@ pub mod panel_navigation;
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod native;
+#[cfg(target_os = "linux")]
+mod native_cursor;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod persistence;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
