@@ -190,6 +190,14 @@ impl Forge {
     fn release(&mut self) -> Result<()> {
         if let Some((_, cursor)) = self.installed.take() {
             self.connection
+                .change_window_attributes(
+                    self.window,
+                    &ChangeWindowAttributesAux::new().cursor(x11rb::NONE),
+                )
+                .context("release cursor from X11 window")?
+                .check()
+                .context("establish released X11 cursor")?;
+            self.connection
                 .free_cursor(cursor)
                 .context("free released cursor")?;
             self.connection.flush().context("flush released cursor")?;

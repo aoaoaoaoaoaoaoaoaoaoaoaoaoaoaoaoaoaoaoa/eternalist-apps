@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.7.8"
+version = "0.7.9"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,7 @@ egui-test = [
 serde = ["dep:serde"]
 
 [dependencies]
-brass_poolrooms = "0.13.1"
+brass_poolrooms = "0.13.8"
 egui = "=0.36.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
