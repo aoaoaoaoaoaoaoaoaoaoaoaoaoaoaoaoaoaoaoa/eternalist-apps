@@ -1151,7 +1151,14 @@ fn record(ui: &egui::Ui, name: String, rect: egui::Rect) {
         feature = "egui-test",
         any(target_os = "linux", target_os = "macos", target_os = "windows")
     ))]
-    egui_tester_witness::egui::record(ui, name, rect);
+    {
+        // Scroll areas lay out concealed children; their disjoint interaction
+        // rectangles are inverted and cannot name a reachable test target.
+        let visible = rect.intersect(ui.clip_rect());
+        if visible.is_positive() {
+            egui_tester_witness::egui::record(ui, name, visible);
+        }
+    }
     #[cfg(not(all(
         feature = "egui-test",
         any(target_os = "linux", target_os = "macos", target_os = "windows")
