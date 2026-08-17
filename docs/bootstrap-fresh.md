@@ -113,10 +113,11 @@ actions, and persistence. Do not create an empty or ceremonial inspector.
 Declare recurring application actions as typed `CommandSpec` values and forge
 one `CommandCanon`. Route input, generate button labels, and render
 `CommandGuide` from that canon; execute each returned `CommandDispatch` through
-the domain. Add Alt mnemonics conservatively. Include `PANEL_IDIOMS`,
-`RAIL_IDIOMS`, and product gesture sections only when their interactions exist.
-The canon owns no callback bus, availability state, feedback channel, or keymap
-persistence.
+the domain. Add Alt mnemonics conservatively. Apply the design language's
+[basic-controls checklist](design-language.md#basic-controls) to every
+navigable surface. Include `PANEL_IDIOMS`, `RAIL_IDIOMS`, and product gesture
+sections only when their interactions exist. The canon owns no callback bus,
+availability state, feedback channel, or keymap persistence.
 
 Adopt `Cabinet` only for a genuine persistent, reorderable, one-level shelved
 collection. Project product storage into `Cabinet::forge`, retain the returned
