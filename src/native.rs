@@ -242,7 +242,7 @@ impl NativeWake {
     /// Wake the event loop and request one externally caused product frame.
     ///
     /// Presentation policy still suppresses the frame while the window is
-    /// concealed and admits at most one frame while it is unfocused.
+    /// concealed.
     /// Returns `false` before the native host is armed or after it retires.
     #[must_use]
     pub fn request_repaint(&self) -> bool {
@@ -434,13 +434,9 @@ impl RepaintGovernor {
     fn delay(&self, requested: Duration, origin: RepaintOrigin) -> Option<Duration> {
         match (self.presentation(), origin) {
             (Presentation::Concealed, _)
-            | (
-                Presentation::Background,
-                RepaintOrigin::ForegroundExternal | RepaintOrigin::Frame,
-            ) => None,
-            (Presentation::Background, RepaintOrigin::External) | (Presentation::Foreground, _) => {
-                Some(requested)
-            }
+            | (Presentation::Background, RepaintOrigin::ForegroundExternal) => None,
+            (Presentation::Background, RepaintOrigin::External | RepaintOrigin::Frame)
+            | (Presentation::Foreground, _) => Some(requested),
         }
     }
 }
@@ -853,12 +849,7 @@ impl<A: NativeApp> Shell<A> {
         if presentation == Presentation::Foreground && presentation != prior {
             self.surface_occlusion_retries = 0;
         }
-        if presentation != prior
-            && matches!(
-                presentation,
-                Presentation::Concealed | Presentation::Background
-            )
-        {
+        if presentation != prior && presentation == Presentation::Concealed {
             *lock_alarm(&self.alarm) = None;
         }
         if presentation != prior
@@ -1456,7 +1447,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn repaint_authority_distinguishes_control_results_from_streams() {
+    fn repaint_authority_distinguishes_visibility_from_focus() {
         let governor = RepaintGovernor::new();
         let delay = Duration::from_millis(7);
         for origin in [
@@ -1473,7 +1464,7 @@ mod tests {
             governor.delay(delay, RepaintOrigin::ForegroundExternal),
             None
         );
-        assert_eq!(governor.delay(delay, RepaintOrigin::Frame), None);
+        assert_eq!(governor.delay(delay, RepaintOrigin::Frame), Some(delay));
 
         let _prior = governor.set(Presentation::Concealed);
         for origin in [

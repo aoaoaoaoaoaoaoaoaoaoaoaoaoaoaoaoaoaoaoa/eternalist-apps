@@ -41,14 +41,15 @@ changes whose visible publication still matters while unfocused. A worker
 completion must never form a result → frame → fresh-demand oscillator in the
 background.
 
-Presentation has three states. A focused window renders on demand. An
-unfocused window may admit one frame caused by new input, an OS event, or an
-external domain wake, but a repaint requested by that frame cannot produce a
-successor. Known minimized, occluded, zero-sized, or deliberately hidden
-windows render nothing. Worker repaint requests still wake the event loop so
-terminal application signals are observed; concealed presentation resumes
-with one fresh frame when the window returns. No visual animation may be the
-clock for domain work.
+Presentation has three states. Focused and unfocused visible windows render on
+demand, including every frame in a finite visual lease. Focus loss alone says
+nothing about visibility and cannot freeze a surface the user may still be
+watching. Foreground-only worker streams remain throttled while unfocused.
+Known minimized, occluded, zero-sized, or deliberately hidden windows render
+nothing. Worker repaint requests still wake the event loop so terminal
+application signals are observed; concealed presentation resumes with one
+fresh frame when the window returns. No visual animation may be the clock for
+domain work.
 
 Surface acquisition may transiently report occlusion while a newly mapped
 window is becoming presentable. The host admits one finite, backoff-spaced
@@ -83,11 +84,10 @@ reported once rather than establishing an automatic I/O retry cadence; a later
 mutation, explicit action, or orderly retirement may try again.
 
 This distinction is the portability fallback. Some window systems do not tell
-a client whether it is minimized or fully occluded. Lack of that signal never
-licenses an optimistic animation cadence: focus loss suppresses all
-frame-originated continuation, while genuine external events remain capable of
-publishing one bounded frame. Do not poll platform state to synthesize a
-visibility oracle.
+a client whether it is minimized or fully occluded. Lack of that signal means
+the host must treat the window as potentially visible: focus loss still
+throttles foreground-only worker streams, but does not arrest finite visual
+leases. Do not poll platform state to synthesize a visibility oracle.
 
 Same-window concealment is likewise a capability, not an OS-name guess.
 `CloseDisposition::HideOrExit` keeps the process resident only where the host
@@ -181,8 +181,8 @@ that affected GPU vendor until the repair has matching evidence.
 | State | Required evidence |
 | --- | --- |
 | Fully armed foreground rest | Leave the pointer over a tension-bearing control and keyboard focus inside the UI. After every declared lease expires, the trace has no new frames until input, a domain event, or a real deadline arrives. |
-| Unfocused but visible | A real input, OS, or explicitly unconditional domain event may cause one frame. That frame's own repaint requests cause no successor; the trace returns immediately to zero. Streaming results use foreground-only wakes, their queues remain bounded, and backpressure rather than presentation becomes their idle governor. |
-| Minimized or compositor-occluded | When the backend reports concealment, the trace has no UI, submission, or presentation work. When it cannot, each genuine external wake may cause at most one attempted frame and never establishes cadence. Exit and ordinary OS restoration still wake the host. Record which law the coordinate can actually observe. |
+| Unfocused but visible | Finite physical and visual leases continue to settlement. Streaming results use foreground-only wakes, their queues remain bounded, and backpressure rather than presentation becomes their idle governor. Once leases settle, the trace returns to zero. |
+| Minimized or compositor-occluded | When the backend reports concealment, the trace has no UI, submission, or presentation work. When it cannot, the host treats the window as potentially visible and permits only finite visual leases plus genuine external wakes. Exit and ordinary OS restoration still wake the host. Record which law the coordinate can actually observe. |
 | Application-hidden | When the product supports tray concealment, hidden time has no frames or GPU submissions. Explicit reveal and exit signals work without a polling frame. |
 | Elected background service | Run each crawler, mirror, cache custodian, or updater with presentation suppressed. It blocks between bounded units, stays within its declared CPU/network/disk/memory envelope, exposes status and pause where activity is material, and neither depends on nor manufactures frames. |
 | Restored interaction | The first restored frame contains current state; input, water, custom GPU callbacks, and post-present settlement resume without a burst drain or stale generation. |

@@ -8,6 +8,7 @@
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 use std::{
     path::{Path, PathBuf},
+    thread,
     time::Duration,
 };
 
@@ -65,7 +66,7 @@ fn main() -> Result<()> {
     let testbed = Testbed::raise().context("raise hermetic X11 testbed")?;
     let app = testbed
         .launch(
-            AppCommand::new(binary)
+            AppCommand::new(&binary)
                 .witness("probes/atelier.observations")
                 .runtime(Duration::from_mins(1)),
         )
@@ -81,11 +82,56 @@ fn main() -> Result<()> {
     let mut probe: Probe<Observation> = app.witness()?.typed();
     let _presented = probe.wait_surface_presented(&app, STARTUP_WAIT)?;
     command_story(&testbed, &session, &app, &mut probe, artifacts.as_deref())?;
+    visible_background_water_story(&testbed, &binary, &session, &app, &mut probe)?;
 
     let _close = session.close()?;
     let exit = app.wait(WAIT).context("Atelier to honor native close")?;
     ensure!(exit.success(), "Atelier close failed: {exit:#?}");
     app.terminate().context("collect Atelier cgroup")?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn visible_background_water_story(
+    testbed: &Testbed,
+    binary: &Path,
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+) -> Result<()> {
+    let sentinel = testbed.launch(
+        AppCommand::new(binary)
+            .arg("--focus-sentinel")
+            .runtime(Duration::from_mins(1)),
+    )?;
+    let sentinel_session = testbed.x11_session(
+        &sentinel,
+        WindowQuery::title_exact("Eternalist · focus sentinel"),
+        STARTUP_WAIT,
+    )?;
+
+    session.focus()?;
+    let tab = probe.wait_anchor(app, "atelier.tab.commands", WAIT)?;
+    let (x, y) = tab.center();
+    let _hover = session.move_to(x, y)?;
+    let _armed = probe.wait_fresh(app, WAIT)?;
+    let _departure = session.leave()?;
+    let _departed = probe.wait_fresh(app, WAIT)?;
+    sentinel_session.focus()?;
+    // Drain every present that could have been queued before FocusOut. The
+    // next witness must therefore be a continuation owned by visible
+    // background presentation, not stale foreground work.
+    thread::sleep(Duration::from_millis(120));
+    let _background_baseline = probe.read()?;
+    let _water_continues = probe
+        .wait_fresh(app, Duration::from_millis(400))
+        .context("visible water to continue after pointer departure and focus loss")?;
+
+    let _close = sentinel_session.close()?;
+    let exit = sentinel.wait(WAIT)?;
+    ensure!(exit.success(), "second Atelier close failed: {exit:#?}");
+    sentinel.terminate()?;
+    session.focus()?;
     Ok(())
 }
 

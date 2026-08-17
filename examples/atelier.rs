@@ -31,6 +31,9 @@ use std::{
     fmt::{Display, Formatter},
     sync::OnceLock,
 };
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+const FOCUS_SENTINEL: &str = "--focus-sentinel";
 use support::Exhibit;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -149,6 +152,28 @@ impl Exhibit for Atelier {
             density: self.commands.density,
         }
     }
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+struct FocusSentinel;
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+impl Exhibit for FocusSentinel {
+    const TITLE: &'static str = "Eternalist · focus sentinel";
+    const SIZE: [f64; 2] = [220.0, 140.0];
+    type Observation = ();
+
+    fn ui(&mut self, ui: &mut egui::Ui, _water: &mut Surface) {
+        let _panel = egui::CentralPanel::default()
+            .frame(egui::Frame::new().fill(chrome::PAGE))
+            .show(ui, |ui| {
+                let _label = ui.centered_and_justified(|ui| {
+                    ui.label(chrome::muted("FOCUS SENTINEL"));
+                });
+            });
+    }
+
+    fn observe(&self, _text_edit_focused: bool) -> Self::Observation {}
 }
 
 #[cfg(all(
@@ -1059,6 +1084,10 @@ fn demo_status(command: DemoCommand, selected: bool) -> CommandStatus<'static> {
     target_os = "windows"
 ))]
 fn main() -> Result<()> {
+    #[cfg(all(target_os = "linux", feature = "egui-test"))]
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(FOCUS_SENTINEL)) {
+        return support::run(FocusSentinel);
+    }
     support::run(Atelier::default())
 }
 
