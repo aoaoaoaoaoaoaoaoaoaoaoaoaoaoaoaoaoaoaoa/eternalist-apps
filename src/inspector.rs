@@ -183,7 +183,7 @@ fn visibility_actuator(
         .order(egui::Order::Foreground)
         .fixed_pos(boundary_rect.min)
         .show(ctx, |ui| {
-            ui.allocate_exact_size(boundary_rect.size(), egui::Sense::click())
+            ui.allocate_exact_size(boundary_rect.size(), egui::Sense::CLICK)
                 .1
         })
         .inner;
@@ -227,6 +227,7 @@ fn visibility_actuator(
             .show(ctx, |ui| {
                 Monoglyph::new(if expanded { '◀' } else { '▶' })
                     .size(MechanismSize::Small)
+                    .focusable(false)
                     .show(ui)
                     .on_hover_text(if expanded {
                         "Hide inspector · F9"
