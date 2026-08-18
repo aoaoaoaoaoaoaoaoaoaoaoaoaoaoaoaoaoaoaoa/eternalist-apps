@@ -102,7 +102,7 @@ let inspector = eternalist_apps::Inspector::new("product-inspector")
     .scroll_offset(self.inspector_scroll)
     .show(ui, |ui| self.inspector(ui));
 self.inspector_scroll = inspector.scroll_offset;
-self.water.heave(ui.ctx(), inspector.scroll_offset);
+inspector.agitate(&mut self.water);
 ```
 
 Use `PanelNavigator` when two or more inspector sections share the active-panel
@@ -115,9 +115,11 @@ one `CommandCanon`. Route input, generate button labels, and render
 `CommandGuide` from that canon; execute each returned `CommandDispatch` through
 the domain. Add Alt mnemonics conservatively. Apply the design language's
 [basic-controls checklist](design-language.md#basic-controls) to every
-navigable surface. Include `PANEL_IDIOMS`, `RAIL_IDIOMS`, and product gesture
-sections only when their interactions exist. The canon owns no callback bus,
-availability state, feedback channel, or keymap persistence.
+navigable surface. `CommandGuide` supplies only universal keyboard and guide
+sections. Author every target-specific `GuideSection` in the product, name it
+in user vocabulary, and include it only where its target exists. Physical
+control classes never propagate help into applications. The canon owns no
+callback bus, availability state, feedback channel, or keymap persistence.
 
 Adopt `Cabinet` only for a genuine persistent, reorderable, one-level shelved
 collection. Project product storage into `Cabinet::forge`, retain the returned

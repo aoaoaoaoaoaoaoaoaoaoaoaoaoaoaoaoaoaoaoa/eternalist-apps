@@ -76,10 +76,13 @@ edge and requires the closed refusal response. The probe stores no report.
 Linux separately proves the complete crash, restart, consent, delivery, and
 stored-object equality path through a hermetic GUI process.
 
-`Inspector` is optional. It owns fixed left-rail geometry and vertical scroll
-behavior only. An application chooses whether it exists, what it contains,
-which sections are open, how state persists, and how scrolling agitates water.
-A canvas-only application uses no inspector API.
+`Inspector` is optional. It owns fixed left-rail geometry, vertical scrolling,
+session visibility, F9 and zero-layout hover-revealed boundary-actuator routing, translated slide motion,
+and the resulting button, scroll, and moving-wall water law. An application
+chooses whether it exists, what it contains, which sections are open, and how
+domain state persists. A fully concealed inspector does not evaluate its body;
+the body's `Default` result is the empty application action. A canvas-only
+application uses no inspector API.
 
 `Cabinet` is also optional. It owns a persistent collection's global entry
 identity, root and one-level shelf order, entry and shelf drag placement, shelf
@@ -131,9 +134,10 @@ defers to focused text entry. Closing the modal restores its prior focus target
 when that target remains available. While open, the guide owns wheel input as
 well as pointer and keyboard interaction: `take_shortcuts` quarantines wheel
 motion before application layout and `show` returns it only to the guide's
-scroll surface. Baseline keyboard guidance is automatic; panel, rail, and
-application-specific gesture sections are included only when those
-interactions exist.
+scroll surface. Universal keyboard and guide sections are automatic. Every
+target-specific gesture section is application-owned, written in product
+vocabulary, and supplied only where its target exists. Low-level physical
+control classes never export inheritable help sections.
 
 ## Panel Grammar
 
@@ -145,7 +149,8 @@ Control+Shift+Tab move to the next or previous panel header regardless of fold
 state; Control is deliberate because Command+Tab belongs to the macOS
 application switcher. Pointer engagement or header focus activates a panel.
 Dynamic insertion or removal is reconciled after each frame. Modal layers
-suspend panel traversal, leaving their keys to the topmost layer.
+suspend panel traversal and F9 inspector concealment, leaving their keys to the
+topmost layer.
 
 Traversal does not create a widget registry. The caller supplies stable panel
 IDs, presentation order, contents, fold defaults, and water handling through

@@ -37,6 +37,8 @@ struct Observation {
     selected: bool,
     filter: String,
     density: u16,
+    inspector_expanded: bool,
+    inspector_extent: f32,
 }
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
@@ -147,6 +149,7 @@ fn command_story(
     let _commands = probe.wait(app, WAIT, "Commands tab", |frame| {
         frame.state.page == "commands"
     })?;
+    inspector_story(session, app, probe)?;
 
     let _mnemonic = session.chord(Modifiers::ALT, Key::Character('o'))?;
     let _opened = probe.wait(app, WAIT, "Alt+O command", |frame| {
@@ -216,6 +219,53 @@ fn command_story(
 }
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn inspector_story(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+) -> Result<()> {
+    let boundary = probe.wait_anchor(app, "atelier.commands.inspector-boundary", WAIT)?;
+    let (boundary_x, boundary_y) = boundary.center();
+    let _hover = session.move_to(boundary_x, boundary_y)?;
+    let actuator = probe.wait_anchor(app, "atelier.commands.inspector-actuator", WAIT)?;
+    let deployed = session.capture()?;
+    let (actuator_x, actuator_y) = actuator.center();
+    let _hide = session.click(actuator_x, actuator_y, Button::Primary)?;
+    let _concealed = probe.wait(
+        app,
+        WAIT,
+        "border actuator conceals the inspector",
+        |frame| !frame.state.inspector_expanded && frame.state.inspector_extent <= 0.5,
+    )?;
+    let concealed = session.capture()?;
+    let inspector_region = PixelRegion::new(0, 82, 240, 780);
+    ensure!(
+        deployed.difference_region(&concealed, inspector_region, 4)? > 0.02,
+        "concealing the inspector did not materially reclaim its rendered region"
+    );
+
+    let _hidden_edge = session.move_to(2, boundary_y)?;
+    let hidden_actuator = probe.wait_anchor(app, "atelier.commands.inspector-actuator", WAIT)?;
+    let (hidden_x, hidden_y) = hidden_actuator.center();
+    let _show = session.click(hidden_x, hidden_y, Button::Primary)?;
+    let _deployed = probe.wait(app, WAIT, "edge actuator reveals the inspector", |frame| {
+        frame.state.inspector_expanded
+            && frame.state.inspector_extent >= eternalist_apps::inspector::WIDTH - 0.5
+    })?;
+
+    let _hide_with_key = session.key(Key::Function(9))?;
+    let _hidden_with_key = probe.wait(app, WAIT, "F9 conceals the inspector", |frame| {
+        !frame.state.inspector_expanded && frame.state.inspector_extent <= 0.5
+    })?;
+    let _show_with_key = session.key(Key::Function(9))?;
+    let _restored_with_key = probe.wait(app, WAIT, "F9 reveals the inspector", |frame| {
+        frame.state.inspector_expanded
+            && frame.state.inspector_extent >= eternalist_apps::inspector::WIDTH - 0.5
+    })?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
 fn clipboard_story(
     testbed: &Testbed,
     session: &egui_tester::X11Session<'_, '_>,
@@ -281,6 +331,12 @@ fn guide_story(
     ensure!(
         blocked.state.guide_open,
         "Alt+O escaped through the open command guide"
+    );
+    let _blocked_inspector = session.key(Key::Function(9))?;
+    let blocked = probe.wait_fresh(app, WAIT)?;
+    ensure!(
+        blocked.state.guide_open && blocked.state.inspector_expanded,
+        "F9 escaped through the open command guide"
     );
     let _escape = session.key(Key::Escape)?;
     let closed = probe.wait(app, WAIT, "Escape closes only the guide", |frame| {

@@ -20,7 +20,7 @@ use brass_poolrooms::{
 use eternalist_apps::cabinet::{
     Cabinet, CabinetAction, CabinetEntry, CabinetKey, EntryEdit, Shelf, ShelfEdit,
 };
-use eternalist_apps::command_guide::{CommandGuide, PANEL_IDIOMS, RAIL_IDIOMS};
+use eternalist_apps::command_guide::{CommandGuide, GuideGesture, GuideSection};
 use eternalist_apps::commands::{
     CommandCanon, CommandDispatch, CommandScope, CommandSpec, CommandStatus, Shortcut, ShortcutKey,
     ShortcutModifiers, TextFocusPolicy,
@@ -150,6 +150,8 @@ impl Exhibit for Atelier {
             selected: self.commands.selected,
             filter: self.commands.filter.clone(),
             density: self.commands.density,
+            inspector_expanded: self.commands.inspector_expanded,
+            inspector_extent: self.commands.inspector_extent,
         }
     }
 }
@@ -188,6 +190,8 @@ struct AtelierObservation {
     selected: bool,
     filter: String,
     density: u16,
+    inspector_expanded: bool,
+    inspector_extent: f32,
 }
 
 impl Atelier {
@@ -268,7 +272,7 @@ impl InspectorExhibit {
             .scroll_offset(self.scroll_offset)
             .show(ui, |ui| self.controls(ui, water));
         self.scroll_offset = inspector.scroll_offset;
-        water.heave(ui.ctx(), self.scroll_offset);
+        inspector.agitate(water);
 
         let _stage = egui::CentralPanel::default()
             .frame(
@@ -663,7 +667,7 @@ impl CabinetExhibit {
                 &mut self.entry_edit,
             )
         });
-        water.heave(ui.ctx(), inspector.scroll_offset);
+        inspector.agitate(water);
         self.apply(inspector.inner);
 
         let _stage = egui::CentralPanel::default()
@@ -791,6 +795,53 @@ const RENAME_KEYS: [Shortcut; 1] = [Shortcut::new(
     ShortcutKey::Function(2),
 )];
 const SEARCH_KEYS: [Shortcut; 1] = [Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Slash)];
+const TOGGLE_CONTROLS: [Shortcut; 1] = [Shortcut::new(
+    ShortcutModifiers::NONE,
+    ShortcutKey::Function(9),
+)];
+const NEXT_CONTROL_GROUP: [Shortcut; 1] =
+    [Shortcut::new(ShortcutModifiers::CONTROL, ShortcutKey::Tab)];
+const PREVIOUS_CONTROL_GROUP: [Shortcut; 1] = [Shortcut::new(
+    ShortcutModifiers::CONTROL.plus(ShortcutModifiers::SHIFT),
+    ShortcutKey::Tab,
+)];
+const ADJUST_DENSITY: [Shortcut; 2] = [
+    Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::ArrowLeft),
+    Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::ArrowRight),
+];
+const DENSITY_BOUNDS: [Shortcut; 2] = [
+    Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Home),
+    Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::End),
+];
+const WORKSPACE_GESTURES: [GuideGesture; 5] = [
+    GuideGesture::new(
+        "Show or hide controls",
+        "Conceals or reveals the complete control sidebar.",
+        &TOGGLE_CONTROLS,
+    ),
+    GuideGesture::new(
+        "Next control group",
+        "Moves focus to the next group in the sidebar.",
+        &NEXT_CONTROL_GROUP,
+    ),
+    GuideGesture::new(
+        "Previous control group",
+        "Moves focus to the previous group in the sidebar.",
+        &PREVIOUS_CONTROL_GROUP,
+    ),
+    GuideGesture::new(
+        "Adjust density",
+        "Changes the focused density value by one step; hovering it also admits the wheel.",
+        &ADJUST_DENSITY,
+    ),
+    GuideGesture::new(
+        "Density bounds",
+        "Moves the focused density value directly to its minimum or maximum.",
+        &DENSITY_BOUNDS,
+    ),
+];
+const WORKSPACE_GUIDANCE: GuideSection =
+    GuideSection::new("WORKSPACE CONTROLS", &WORKSPACE_GESTURES);
 const DEMO_COMMANDS: [CommandSpec<DemoCommand, DemoScope>; 4] = [
     CommandSpec::new(
         DemoCommand::Open,
@@ -841,6 +892,8 @@ struct CommandsExhibit {
     focus_search: bool,
     status: String,
     scroll_offset: f32,
+    inspector_expanded: bool,
+    inspector_extent: f32,
 }
 
 impl Default for CommandsExhibit {
@@ -854,6 +907,8 @@ impl Default for CommandsExhibit {
             focus_search: false,
             status: "No command dispatched.".to_owned(),
             scroll_offset: 0.0,
+            inspector_expanded: true,
+            inspector_extent: eternalist_apps::inspector::WIDTH,
         }
     }
 }
@@ -873,7 +928,17 @@ impl CommandsExhibit {
             .scroll_offset(self.scroll_offset)
             .show(ui, |ui| self.controls(ui, water));
         self.scroll_offset = inspector.scroll_offset;
-        water.heave(ui.ctx(), self.scroll_offset);
+        self.inspector_expanded = inspector.is_expanded();
+        self.inspector_extent = inspector.visible_extent();
+        record_response(
+            ui,
+            "atelier.commands.inspector-boundary",
+            inspector.boundary(),
+        );
+        if let Some(actuator) = inspector.actuator() {
+            record_response(ui, "atelier.commands.inspector-actuator", actuator);
+        }
+        inspector.agitate(water);
         if let Some(command) = inspector.inner {
             self.apply(CommandDispatch::Invoke(command));
         }
@@ -916,7 +981,7 @@ impl CommandsExhibit {
             &[DemoScope::Workspace],
             |_| "WORKSPACE",
             |command| demo_status(command, selected),
-            &[PANEL_IDIOMS, RAIL_IDIOMS],
+            &[WORKSPACE_GUIDANCE],
         );
         if let Some(rect) = self.guide.rect() {
             record_rect(ui.ctx(), "atelier.commands.guide", rect);

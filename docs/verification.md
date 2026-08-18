@@ -66,6 +66,9 @@ deferral or explicit command capture, disabled-command refusal, generated help,
 Escape closure, and focus restoration where those laws exist in the product.
 Modified activation keys must remain available to their exact owner, and
 application commands or panel traversal must not bleed through a modal layer.
+The hover-revealed boundary actuator must conceal without levying permanent
+layout space. F9 must restore the inspector and remain quarantined behind a
+modal layer.
 
 The release `atelier` plus `atelier_acceptance` examples are the library's own
 executable specimen. Their hermetic Linux story drives the public command,

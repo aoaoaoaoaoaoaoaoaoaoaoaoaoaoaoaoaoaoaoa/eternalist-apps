@@ -21,6 +21,10 @@ pub(crate) const PREVIOUS_PANEL: [Shortcut; 1] = [Shortcut::new(
     ShortcutModifiers::CONTROL.plus(ShortcutModifiers::SHIFT),
     ShortcutKey::Tab,
 )];
+pub(crate) const TOGGLE_INSPECTOR: [Shortcut; 1] = [Shortcut::new(
+    ShortcutModifiers::NONE,
+    ShortcutKey::Function(9),
+)];
 pub(crate) const ACTIVATE: [Shortcut; 2] = [
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Enter),
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Space),
@@ -39,13 +43,14 @@ pub(crate) const BOUNDS: [Shortcut; 2] = [
 ];
 pub(crate) const UNWIND: [Shortcut; 1] =
     [Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Escape)];
-const RESERVED: [Shortcut; 15] = [
+const RESERVED: [Shortcut; 16] = [
     HELP_SHORTCUTS[0],
     HELP_SHORTCUTS[1],
     NEXT_CONTROL[0],
     PREVIOUS_CONTROL[0],
     NEXT_PANEL[0],
     PREVIOUS_PANEL[0],
+    TOGGLE_INSPECTOR[0],
     ACTIVATE[0],
     ACTIVATE[1],
     ADJUST[0],

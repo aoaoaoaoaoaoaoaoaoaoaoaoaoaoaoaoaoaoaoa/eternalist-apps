@@ -42,6 +42,8 @@ corresponding navigation is absent:
   header they continue to the adjacent panel instead of cycling through absent
   contents.
 - Physical Control+Tab and Control+Shift+Tab cross panel boundaries.
+- F9 conceals or reveals the complete inspector when one exists. Pointer
+  proximity reveals its boundary actuator without moving inspector content.
 - Enter and Space actuate the focused control.
 - Left and Right move one item through a result surface's primary order.
 - Alt+Left and Alt+Right traverse a subordinate or grouped order when one
@@ -54,7 +56,9 @@ corresponding navigation is absent:
 
 A target-relative gesture belongs in help but is not a global command
 shortcut; do not advertise a shared gesture in an application that lacks its
-target. Commands and panel traversal remain dormant behind a modal layer.
+target. Target-specific help never descends from Eternalist or Poolrooms: the
+application declares each section in product language. Commands and panel
+traversal remain dormant behind a modal layer.
 Ordinary labels remain selectable. Native hosts export their copy, cut, and
 paste commands through the platform clipboard.
 Permanent collections ordinarily belong in an inspector; transient candidates

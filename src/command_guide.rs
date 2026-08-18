@@ -7,9 +7,8 @@ use std::fmt::Debug;
 use brass_poolrooms::chrome::{self, Keycap, MechanismSize, Monoglyph, MonoglyphResponse, Symbol};
 
 use crate::commands::{
-    ACTIVATE, ADJUST, BOUNDS, CommandCanon, CommandScope, CommandSpec, CommandStatus,
-    HELP_SHORTCUTS, NEXT_CONTROL, NEXT_PANEL, PREVIOUS_CONTROL, PREVIOUS_PANEL, Shortcut, Stroke,
-    UNWIND, take,
+    ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
+    PREVIOUS_CONTROL, Shortcut, Stroke, UNWIND, take,
 };
 
 const GUIDE_NAME_SIZE: f32 = 15.0;
@@ -59,30 +58,6 @@ const KEYBOARD_GESTURES: [GuideGesture; 4] = [
         &UNWIND,
     ),
 ];
-const PANEL_GESTURES: [GuideGesture; 2] = [
-    GuideGesture::new(
-        "Next panel",
-        "Moves focus to the next inspector panel.",
-        &NEXT_PANEL,
-    ),
-    GuideGesture::new(
-        "Previous panel",
-        "Moves focus to the previous inspector panel.",
-        &PREVIOUS_PANEL,
-    ),
-];
-const RAIL_GESTURES: [GuideGesture; 2] = [
-    GuideGesture::new(
-        "Adjust rail",
-        "Changes a focused rail by one station; hovered rails also accept the wheel.",
-        &ADJUST,
-    ),
-    GuideGesture::new(
-        "Rail bounds",
-        "Moves a focused rail directly to its first or last admissible station.",
-        &BOUNDS,
-    ),
-];
 const GUIDE_GESTURES: [GuideGesture; 1] = [GuideGesture::new(
     "Toggle this guide",
     "Opens from application chrome or the keyboard.",
@@ -90,15 +65,8 @@ const GUIDE_GESTURES: [GuideGesture; 1] = [GuideGesture::new(
 )];
 const GUIDE_SECTION: GuideSection = GuideSection::new("GUIDE", &GUIDE_GESTURES);
 
-/// Baseline keyboard grammar shared by Eternalist applications.
-pub const KEYBOARD_IDIOMS: GuideSection =
-    GuideSection::new("KEYBOARD NAVIGATION", &KEYBOARD_GESTURES);
-
-/// Inspector-panel traversal hints for applications using `PanelNavigator`.
-pub const PANEL_IDIOMS: GuideSection = GuideSection::new("INSPECTOR PANELS", &PANEL_GESTURES);
-
-/// Focused and hovered adjustment hints for applications using Poolrooms rails.
-pub const RAIL_IDIOMS: GuideSection = GuideSection::new("RAILS", &RAIL_GESTURES);
+/// Baseline keyboard grammar rendered by every command guide.
+const KEYBOARD_IDIOMS: GuideSection = GuideSection::new("KEYBOARD NAVIGATION", &KEYBOARD_GESTURES);
 
 /// One target-relative interaction hint shown in a command guide.
 ///
@@ -145,7 +113,11 @@ impl GuideGesture {
     }
 }
 
-/// Named group of target-relative interactions.
+/// Application-owned group of target-relative interactions.
+///
+/// Eternalist deliberately exports no ready-made target sections: the
+/// application names each target in product vocabulary and decides exactly
+/// which contexts admit it.
 #[derive(Clone, Copy, Debug)]
 pub struct GuideSection {
     title: &'static str,
@@ -321,7 +293,7 @@ impl CommandGuide {
         contexts: &[S],
         scope_name: impl Fn(S) -> &'static str,
         status: impl Fn(C) -> CommandStatus<'reason>,
-        extra_sections: &[GuideSection],
+        application_sections: &[GuideSection],
     ) where
         C: Copy + Debug + Eq + 'static,
         S: Copy + Debug + Eq + 'static,
@@ -386,10 +358,17 @@ impl CommandGuide {
                     .auto_shrink([false, false])
                     .show(ui, |ui| match *page {
                         GuidePage::Context => {
-                            show_context(ui, canon, contexts, &scope_name, &status, extra_sections);
+                            show_context(
+                                ui,
+                                canon,
+                                contexts,
+                                &scope_name,
+                                &status,
+                                application_sections,
+                            );
                         }
                         GuidePage::All => {
-                            show_all(ui, canon, &scope_name, &status, extra_sections);
+                            show_all(ui, canon, &scope_name, &status, application_sections);
                         }
                     });
                 ui.min_rect()
@@ -529,7 +508,7 @@ fn show_context<'reason, C, S>(
     contexts: &[S],
     scope_name: &impl Fn(S) -> &'static str,
     status: &impl Fn(C) -> CommandStatus<'reason>,
-    extra_sections: &[GuideSection],
+    application_sections: &[GuideSection],
 ) where
     C: Copy + Debug + Eq + 'static,
     S: Copy + Debug + Eq + 'static,
@@ -556,7 +535,7 @@ fn show_context<'reason, C, S>(
             .filter(|spec| spec.scope() == CommandScope::Global),
         status,
     );
-    show_guide_sections(ui, extra_sections);
+    show_guide_sections(ui, application_sections);
 }
 
 fn show_all<'reason, C, S>(
@@ -564,7 +543,7 @@ fn show_all<'reason, C, S>(
     canon: &CommandCanon<C, S>,
     scope_name: &impl Fn(S) -> &'static str,
     status: &impl Fn(C) -> CommandStatus<'reason>,
-    extra_sections: &[GuideSection],
+    application_sections: &[GuideSection],
 ) where
     C: Copy + Debug + Eq + 'static,
     S: Copy + Debug + Eq + 'static,
@@ -600,7 +579,7 @@ fn show_all<'reason, C, S>(
             status,
         );
     }
-    show_guide_sections(ui, extra_sections);
+    show_guide_sections(ui, application_sections);
 }
 
 fn show_command_group<'reason, 'spec, C, S>(
@@ -648,9 +627,9 @@ fn show_command_group<'reason, 'spec, C, S>(
     ui.add_space(GUIDE_SECTION_SPACING);
 }
 
-fn show_guide_sections(ui: &mut egui::Ui, extra_sections: &[GuideSection]) {
+fn show_guide_sections(ui: &mut egui::Ui, application_sections: &[GuideSection]) {
     show_gesture_group(ui, KEYBOARD_IDIOMS);
-    for section in extra_sections {
+    for section in application_sections {
         show_gesture_group(ui, *section);
     }
     show_gesture_group(ui, GUIDE_SECTION);
