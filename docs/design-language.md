@@ -32,6 +32,11 @@ description, and one effective shortcut projection. Default accelerators,
 permanent Alt mnemonics, routing, button legends, and help must derive from
 that declaration rather than drift as independent strings. Reserve mnemonics
 for common consequential actions; saturation destroys their value.
+Permanent Alt mnemonics underline their label glyph. A command button presents
+its first effective non-mnemonic accelerator at its trailing edge: an
+unmodified character uses a small void-finished monoglyph, while modified and
+multicharacter chords use a compact key well. The legend therefore follows any
+future keymap projection without rewriting the command label.
 
 ## Basic Controls
 

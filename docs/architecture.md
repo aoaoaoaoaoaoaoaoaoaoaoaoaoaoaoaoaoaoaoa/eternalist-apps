@@ -128,7 +128,11 @@ conflict UI, or keymap editor exists yet.
 
 Alt mnemonics are separate from replaceable accelerators: the declared glyph is
 permanently underlined by Poolrooms and its exact Alt chord is validated with
-the rest of the canon. `CommandGuide` renders the same metadata and dynamic
+the rest of the canon. Generated command buttons leave mnemonics underline-only
+and render the first effective non-mnemonic accelerator at their trailing edge.
+An unmodified character uses a small void-finished Poolrooms monoglyph; a
+modified or multicharacter chord uses a compact key well. `CommandGuide`
+renders the same metadata and dynamic
 availability used by routing. F1 always toggles the guide; question mark
 defers to focused text entry. Closing the modal restores its prior focus target
 when that target remains available. While open, the guide owns wheel input as

@@ -7,6 +7,8 @@
 
 use std::{fmt::Debug, ops::Deref};
 
+use brass_poolrooms::chrome::{Keycap, MechanismSize, Monoglyph, MonoglyphFinish};
+
 pub(crate) const HELP_SHORTCUTS: [Shortcut; 2] = [
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::QuestionMark),
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Function(1)),
@@ -359,6 +361,16 @@ impl Shortcut {
         })
     }
 
+    fn bare_character(self) -> Option<char> {
+        if self.modifiers != ShortcutModifiers::NONE {
+            return None;
+        }
+        let ShortcutKey::Character(glyph) = self.key else {
+            return None;
+        };
+        Some(glyph.to_ascii_uppercase())
+    }
+
     fn matches(self, key: egui::Key, mut held: egui::Modifiers) -> bool {
         if self.key.egui() != Some(key) {
             return false;
@@ -657,12 +669,32 @@ where
     /// This is an accelerator surface only: the returned click remains a typed
     /// application action, and keyboard dispatch still flows through [`Self::route`].
     pub fn button(&self, command: C, ui: &mut egui::Ui) -> CommandButtonResponse {
+        self.button_with(command, ui, std::convert::identity)
+    }
+
+    /// Render a configured button from the canon's declaration and bindings.
+    ///
+    /// The configurator may alter egui presentation such as selection state or
+    /// minimum size. Eternalist retains ownership of the command label,
+    /// accelerator legend, and exact activation semantics.
+    pub fn button_with(
+        &self,
+        command: C,
+        ui: &mut egui::Ui,
+        configure: impl FnOnce(egui::Button<'static>) -> egui::Button<'static>,
+    ) -> CommandButtonResponse {
         let spec = self.spec(command);
-        let mut button = egui::Button::new(spec.widget_text(ui));
-        if let Some(shortcut) = self.bindings(spec).next() {
-            button = button.shortcut_text(shortcut.label(ui.ctx()));
-        }
-        let response = ui.add(button);
+        let button = configure(egui::Button::new(spec.widget_text(ui)));
+        let response = match self.shortcuts(command).first().copied() {
+            Some(shortcut) => match shortcut.bare_character() {
+                Some(glyph) => Monoglyph::new(glyph)
+                    .size(MechanismSize::Small)
+                    .finish(MonoglyphFinish::Void)
+                    .show_in(ui, button),
+                None => Keycap::new(shortcut.label(ui.ctx())).show_in(ui, button),
+            },
+            None => ui.add(button),
+        };
         let activated = brass_poolrooms::chrome::exact_activation(ui, &response);
         if activated {
             response.request_focus();
