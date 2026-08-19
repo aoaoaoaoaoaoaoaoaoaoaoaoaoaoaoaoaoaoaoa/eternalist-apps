@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mode=${1:-full}
+case $mode in
+    full|source) ;;
+    *)
+        printf 'usage: scripts/check [full|source]\n' >&2
+        exit 2
+        ;;
+esac
+
 cargo fmt --all --check
 cargo clippy --all-targets --all-features --locked -- -D warnings
-cargo test --all-targets --all-features --locked
+if [[ $mode == full ]]; then
+    cargo test --all-targets --all-features --locked
+fi
 RUSTDOCFLAGS='-D warnings' cargo doc --all-features --locked --no-deps
 scripts/web-atelier check

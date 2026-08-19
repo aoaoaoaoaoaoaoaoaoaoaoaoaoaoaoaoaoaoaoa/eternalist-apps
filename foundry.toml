@@ -36,7 +36,6 @@ name = "host-linux"
 laws = ["host"]
 run = ["cargo", "test", "--locked", "--all-targets", "--all-features"]
 coordinates = ["linux-x86_64"]
-setup = "wayland"
 timeout-minutes = 45
 
 [[proofs]]
@@ -61,7 +60,6 @@ run = [
   "https://faults.eternalist.moe/v1/report",
 ]
 coordinates = ["linux-x86_64"]
-setup = "wayland"
 timeout-minutes = 15
 
 [[proofs]]
