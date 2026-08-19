@@ -17,7 +17,6 @@ release-tested = [
 name = "source"
 laws = ["source"]
 run = ["scripts/check-foundry"]
-setup = "wayland"
 timeout-minutes = 60
 
 [[proofs]]
@@ -30,7 +29,6 @@ timeout-minutes = 15
 name = "source-package"
 laws = ["source-package"]
 run = ["cargo", "package", "--locked"]
-setup = "wayland"
 timeout-minutes = 30
 
 [[proofs]]
