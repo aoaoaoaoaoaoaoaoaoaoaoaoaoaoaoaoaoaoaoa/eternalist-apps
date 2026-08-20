@@ -237,12 +237,10 @@ fn inspector_story(
         "border actuator conceals the inspector",
         |frame| !frame.state.inspector_expanded && frame.state.inspector_extent <= 0.5,
     )?;
-    let concealed = session.capture()?;
     let inspector_region = PixelRegion::new(0, 82, 240, 780);
-    ensure!(
-        deployed.difference_region(&concealed, inspector_region, 4)? > 0.02,
-        "concealing the inspector did not materially reclaim its rendered region"
-    );
+    let _concealed = session
+        .wait_changed_region(&deployed, inspector_region, 0.02, 4, WAIT)
+        .context("concealing the inspector did not materially reclaim its rendered region")?;
 
     let _hidden_edge = session.move_to(2, boundary_y)?;
     let hidden_actuator = probe.wait_anchor(app, "atelier.commands.inspector-actuator", WAIT)?;
