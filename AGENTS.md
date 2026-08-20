@@ -13,10 +13,10 @@ remain independently usable without Eternalist, including through WebGPU.
 
 The crate is published to crates.io for dependency distribution but remains
 internal substrate, not a standalone product or portfolio project. The Atelier
-is internal development and verification apparatus, not a product, release
-deliverable, or supported execution surface. Neither may be listed or
-advertised on the Eternalist portfolio; Atelier evidence cannot establish a
-public WebGPU claim.
+is development and verification apparatus, not a product or supported
+execution surface. Eternalist permanently hosts its browser bundle beneath
+`/demos/`, but neither the crate nor the Atelier belongs in the portfolio
+project ledger; Atelier evidence cannot establish a public WebGPU claim.
 
 Read [README.md](README.md) before changing the public surface. Its Present
 Surface table is exhaustive: architectural examples of future primitive

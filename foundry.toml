@@ -15,7 +15,7 @@ release-tested = [
 
 [[proofs]]
 name = "source"
-laws = ["source"]
+laws = ["source", "demonstration"]
 run = ["scripts/check-foundry"]
 timeout-minutes = 60
 

@@ -68,6 +68,9 @@ The tabbed atelier is the living visual contract for `Inspector`, `LivingWait`,
 thin `NativeApp` over the public `run` host.
 The browser build executes the same egui composition over Poolrooms' direct
 water render graph through an example-local host; no web host is exported.
+Eternalist permanently hosts this exact example bundle at
+`https://eternalist.moe/demos/eternalist-apps/`. That public witness does not
+make the library a portfolio project or establish a supported web surface.
 
 ```sh
 cargo run --example atelier

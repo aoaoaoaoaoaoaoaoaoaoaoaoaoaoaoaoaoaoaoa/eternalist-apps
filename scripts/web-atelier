@@ -33,11 +33,13 @@ verify_bundle() {
     bundle=$1
     test -s "$bundle/index.html"
     test -s "$bundle/atelier.svg"
+    test -s "$bundle/boot.js"
     test -s "$bundle/eternalist.js"
     test -s "$bundle/eternalist_bg.wasm"
     grep -Fq 'href="./atelier.svg"' "$bundle/index.html"
-    grep -Fq 'import init from "./eternalist.js"' "$bundle/index.html"
-    grep -Fq 'await navigator.gpu.requestAdapter({' "$bundle/index.html"
+    grep -Fq 'src="./boot.js"' "$bundle/index.html"
+    grep -Fq 'import init from "./eternalist.js"' "$bundle/boot.js"
+    grep -Fq 'await navigator.gpu.requestAdapter({' "$bundle/boot.js"
     grep -Fq 'data-eternalist="booting"' "$bundle/index.html"
     grep -Fq 'wasm.__wbindgen_start();' "$bundle/eternalist.js"
 }
@@ -73,6 +75,7 @@ if [ "$action" != serve-built ]; then
         "$wasm"
     install -Dm644 web/atelier.html "$stage/index.html"
     install -Dm644 web/atelier.svg "$stage/atelier.svg"
+    install -Dm644 web/atelier-boot.js "$stage/boot.js"
     verify_bundle "$stage"
 
     rm -rf "$previous"

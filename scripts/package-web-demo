@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+: "${FOUNDRY_ARTIFACT_DIR:?FOUNDRY_ARTIFACT_DIR is required}"
+
+scripts/web-atelier build
+target=$(cargo metadata --format-version 1 --no-deps | jq -r .target_directory)
+bundle="$target/web-atelier"
+archive="$FOUNDRY_ARTIFACT_DIR/eternalist-apps-demo.tar.gz"
+[ ! -e "$archive" ] || {
+    printf 'demonstration artifact already exists: %s\n' "$archive" >&2
+    exit 1
+}
+temporary=$(mktemp "$FOUNDRY_ARTIFACT_DIR/.eternalist-apps-demo.XXXXXXXX")
+trap 'rm -f "$temporary"' EXIT HUP INT TERM
+tar --sort=name --mtime='@0' --owner=0 --group=0 --numeric-owner \
+    -C "$bundle" -cf - . | gzip -n -9 >"$temporary"
+gzip -t "$temporary"
+mv "$temporary" "$archive"
+trap - EXIT HUP INT TERM
