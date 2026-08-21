@@ -15,7 +15,7 @@ use std::{
 use anyhow::{Context as _, Result, bail, ensure};
 use crossbeam_channel::{Receiver, TryRecvError, bounded};
 use serde::{Serialize, de::DeserializeOwned};
-use toml_edit::{Document, DocumentMut, Item, Table};
+use toml_edit::{Document, DocumentMut, Item, Table, TableLike};
 
 use crate::{NativeWake, ScribeOutcome, SettledScribe};
 
@@ -435,7 +435,12 @@ fn merge_and_write<T: Configuration>(path: &Path, expected: &T, desired: &T) -> 
     replace(path, merged.as_bytes())
 }
 
-fn diff_tables(prefix: &[String], left: &Table, right: &Table, patches: &mut Vec<Patch>) {
+fn diff_tables(
+    prefix: &[String],
+    left: &dyn TableLike,
+    right: &dyn TableLike,
+    patches: &mut Vec<Patch>,
+) {
     let keys = left
         .iter()
         .map(|(key, _)| key.to_owned())
@@ -447,8 +452,8 @@ fn diff_tables(prefix: &[String], left: &Table, right: &Table, patches: &mut Vec
         let mut path = prefix.to_vec();
         path.push(key);
         match (
-            left.and_then(Item::as_table),
-            right.and_then(Item::as_table),
+            left.and_then(Item::as_table_like),
+            right.and_then(Item::as_table_like),
         ) {
             (Some(left), Some(right)) => diff_tables(&path, left, right, patches),
             _ if same_item(left, right) => {}
@@ -485,7 +490,8 @@ fn apply_patch(source: &str, patch: &Patch) -> Result<String> {
         Document::parse(source.to_owned()).context("parse source-preserving TOML document")?;
     let existing = item_at_root(document.as_item(), &patch.path);
     if let (Some(existing), Some(desired)) = (existing, patch.desired.as_ref())
-        && let (Some(span), Some(value)) = (existing.span(), desired.as_value())
+        && let (Some(span), Some(_current), Some(value)) =
+            (existing.span(), existing.as_value(), desired.as_value())
     {
         let mut replaced = source.to_owned();
         replaced.replace_range(span, &value.to_string());
@@ -575,6 +581,21 @@ mod tests {
         }
     }
 
+    #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+    #[serde(default)]
+    struct NestedSpecimen {
+        filters: FilterSpecimen,
+    }
+
+    impl Configuration for NestedSpecimen {}
+
+    #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+    #[serde(default)]
+    struct FilterSpecimen {
+        enabled: bool,
+        names: Vec<String>,
+    }
+
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(128))]
 
@@ -605,5 +626,30 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn nested_table_merge_preserves_its_table_header_and_unrelated_source() -> Result<()> {
+        let source = "# crown\n[filters]\nenabled = false # switch\nnames = [\"kept\"]\n";
+        let expected = NestedSpecimen {
+            filters: FilterSpecimen {
+                enabled: false,
+                names: vec!["kept".to_owned()],
+            },
+        };
+        let desired = NestedSpecimen {
+            filters: FilterSpecimen {
+                enabled: true,
+                names: vec!["kept".to_owned()],
+            },
+        };
+        let path = tempfile::NamedTempFile::new()?.into_temp_path();
+        fs::write(&path, source)?;
+        merge_and_write(&path, &expected, &desired)?;
+        assert_eq!(
+            fs::read_to_string(&path)?,
+            "# crown\n[filters]\nenabled = true # switch\nnames = [\"kept\"]\n"
+        );
+        Ok(())
     }
 }
