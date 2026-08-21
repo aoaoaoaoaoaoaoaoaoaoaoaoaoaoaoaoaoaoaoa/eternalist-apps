@@ -28,6 +28,7 @@ library-shaped DSL, not a registry-shaped framework.
 | `Inspector`, `InspectorResponse`, and `inspector::WIDTH` | renderer-neutral | optional fixed left-rail geometry, F9 and a zero-layout hover-revealed boundary actuator, translated slide motion, vertical scrolling, application return value, and shared water forcing | sections, fold state, actions, and persistence |
 | `commands::{CommandCanon, CommandSpec, CommandScope, CommandStatus, CommandDispatch, CommandButtonResponse, Shortcut, ShortcutKey, ShortcutModifiers, TextFocusPolicy, RepeatPolicy}` | renderer-neutral | validated typed command metadata, stable IDs, portable exact accelerators, reserved-idiom interlocks, visible Alt mnemonics, context precedence, disabled refusal, text-focus and repeat ownership, generated buttons, and one effective binding projection | command enum and scope enum, dynamic availability, domain execution, feedback presentation, and keymap persistence |
 | `command_guide::{CommandGuide, GuideSection, GuideGesture}` | renderer-neutral | F1/question-mark discovery, focus-restoring modal help generated from the command canon, current/all pages, and universal keyboard and guide sections | every target-specific section in product language, scope names, command availability, and domain help beyond interaction guidance |
+| `settings::{SettingsSheet, SettingsFile, SettingsUi, SettingSpec, SettingsResponse}` | renderer-neutral | shared F2 and platform settings accelerators, focus-restoring and wheel-owning central sheet, persistent Poolrooms actuator, grouped preference layout, configuration-fault presentation, reload action, and semantic witnesses | setting declarations and values, storage, validation, reload execution, and which controls also appear in context |
 | `panel_navigation::{PanelNavigator, PanelFrame, PanelResponse}` | renderer-neutral | one active inspector panel, Poolrooms section composition, contained Tab/Shift+Tab traversal, Control+Tab panel traversal, pointer activation, and dynamic-panel reconciliation | panel identity, ordering, contents, fold defaults, persistence, and application actions |
 | `LivingWait` | renderer-neutral | one-frame largest-region arbitration and the standard central loading bouncer | task ownership, progress, cancellation, retry, error handling, and copy beyond the standard bouncer |
 | `Cabinet`, `CabinetEntry`, `CabinetKey`, `CabinetAction`, `CabinetBerth`, `CabinetShelfBerth`, `CabinetShelf`, `CabinetEntryEdit`, and `CabinetShelfEdit` | renderer-neutral | globally unique entry identity, root and one-level shelf ordering, entry and shelf drag berths, shelf folds and naming, optional inline entry renaming, shared Poolrooms body, and semantic targets | entry meaning, active-document policy, product commands, storage projection, and persistence timing |
@@ -35,11 +36,16 @@ library-shaped DSL, not a registry-shaped framework.
 | `responsiveness::{superseding_channel, SupersedingSender, SupersedingReceiver}` | native | a nonblocking one-slot, latest-demand-wins mailbox for single-producer work whose queued predecessors have become worthless | demand meaning, cancellation of work already claimed, result transport, and stale-result rejection |
 | `NativeWake` | native | reliable cross-thread control wakes plus unconditional and foreground-only frame requests that cannot be stranded behind egui's coalesced repaint state | the meaning of the signal, whether an unfocused frame is warranted, and the application state consumed after it wakes |
 | `SettledScribe` and `ScribeOutcome` | native | restartable settlement timing, immediate nonblocking submission, sequenced latest-snapshot coalescing, background writes, completion wakeups, and a blocking final retirement receipt | serialized projection, storage paths and format, atomic-write law, fault copy, and dirty-domain selection |
+| `configuration::{Configuration, ConfigurationLedger, ConfigurationFault}` | native | strict typed TOML admission, unknown-key rejection, semantic validation seam, settled worker writes, per-key optimistic merge, surgical scalar edits, symlink-respecting atomic replacement, explicit reload, and blocking fault state | product schema and defaults, platform-correct path, semantic invariants, setting copy, and deciding when external edits are reread |
 
-There is no generic menu model, storage backend, command bus, worker runtime,
+There is no generic menu registry, general storage backend, command bus, worker runtime,
 service locator, or keymap editor in the crate today. `SettledScribe` owns only
 the common timing and thread boundary of persistence; it neither knows nor
 chooses what, where, or how an application stores.
+`ConfigurationLedger` is the deliberate narrow exception: it owns the complete
+native TOML mechanics for application settings while the product owns the typed
+schema and path. Invalid syntax, types, semantics, and unknown keys block UI
+mutation and are never laundered into a rewritten file.
 The command canon describes and routes typed application commands; it never
 executes them. Its stable IDs and optionally serializable shortcut values leave
 one clean effective-binding seam for future persisted keymaps without adding
@@ -64,8 +70,8 @@ renderer-neutral surface or production endpoint.
 ## Visual Atelier
 
 The tabbed atelier is the living visual contract for `Inspector`, `LivingWait`,
-`Cabinet`, and the command/help/panel-navigation assembly. Its native path is a
-thin `NativeApp` over the public `run` host.
+`Cabinet`, `SettingsSheet`, and the command/help/panel-navigation assembly. Its
+native path is a thin `NativeApp` over the public `run` host.
 The browser build executes the same egui composition over Poolrooms' direct
 water render graph through an example-local host; no web host is exported.
 Eternalist permanently hosts this exact example bundle at

@@ -225,17 +225,20 @@ mod tests {
             "superseded snapshot was written"
         );
 
-        let outcome = (0..100).find_map(|_| {
-            let outcome = scribe.take_outcome();
-            if outcome.is_none() {
-                thread::sleep(Duration::from_millis(1));
+        let outcome_deadline = Instant::now() + Duration::from_secs(1);
+        loop {
+            if matches!(
+                scribe.take_outcome(),
+                Some(ScribeOutcome::Saved { sequence: 3 })
+            ) {
+                break;
             }
-            outcome
-        });
-        assert!(matches!(
-            outcome,
-            Some(ScribeOutcome::Saved { sequence: 3 })
-        ));
+            ensure!(
+                Instant::now() < outcome_deadline,
+                "latest persistence outcome was not published"
+            );
+            thread::sleep(Duration::from_millis(1));
+        }
 
         scribe.flush(10)?;
         assert_eq!(written.recv_timeout(Duration::from_secs(1))?, 10);

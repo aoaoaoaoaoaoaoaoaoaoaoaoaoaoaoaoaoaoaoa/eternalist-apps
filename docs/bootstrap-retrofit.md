@@ -41,6 +41,14 @@ help strings. Keep command execution and feedback in the application. Adopt
 `PanelNavigator` only where the existing inspector deliberately chooses its
 contained Tab and Control+Tab law.
 
+When preferences are duplicated between contextual controls, a central menu,
+and handwritten storage, declare each once as a `SettingSpec`, project them
+through `SettingsSheet`, and move native TOML mechanics to
+`ConfigurationLedger`. Preserve the product's defaults and meaning, choose its
+platform-correct config path, and delete the permissive or whole-file-rewrite
+rival. Treat every ignored key as invalid; surface the fault without modifying
+the user's file.
+
 If the application must circumvent the host to preserve behavior, stop. Either
 the product has uncovered a missing general law or the proposed sharing
 boundary is false; do not add a product-named option.

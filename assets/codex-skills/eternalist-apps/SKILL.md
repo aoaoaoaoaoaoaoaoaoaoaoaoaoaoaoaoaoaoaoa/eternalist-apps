@@ -75,6 +75,12 @@ branch is a failed extraction.
   result drains item and wall ceilings; use the shared superseding mailbox for
   latest-demand-wins work, and use `SettledScribe` for settled background
   persistence when the product needs it.
+- For native user preferences, declare one typed `Configuration`, use
+  `ConfigurationLedger` for strict TOML validation and format-preserving atomic
+  settlement, and project shared `SettingSpec` declarations through contextual
+  controls plus `SettingsSheet`. Unknown keys are faults; never rewrite them
+  away. Wire settlement through `NativeApp` service deadlines and use explicit
+  reload after manual edits.
 - Workers and platform callbacks use `NativeWake` for domain-result repaint,
   reveal, and exit signals. Streams of progress, tiles, thumbnails, or other
   results whose consumption can create more demand use the foreground-only

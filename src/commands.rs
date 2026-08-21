@@ -13,6 +13,12 @@ pub(crate) const HELP_SHORTCUTS: [Shortcut; 2] = [
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::QuestionMark),
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Function(1)),
 ];
+/// Shared settings accelerators: F2 everywhere, with Command+Comma on macOS
+/// and Control+Comma elsewhere as the platform-familiar alias.
+pub const SETTINGS_SHORTCUTS: [Shortcut; 2] = [
+    Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Function(2)),
+    Shortcut::new(ShortcutModifiers::PRIMARY, ShortcutKey::Comma),
+];
 pub(crate) const NEXT_CONTROL: [Shortcut; 1] =
     [Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Tab)];
 pub(crate) const PREVIOUS_CONTROL: [Shortcut; 1] =
@@ -45,9 +51,11 @@ pub(crate) const BOUNDS: [Shortcut; 2] = [
 ];
 pub(crate) const UNWIND: [Shortcut; 1] =
     [Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Escape)];
-const RESERVED: [Shortcut; 16] = [
+const RESERVED: [Shortcut; 18] = [
     HELP_SHORTCUTS[0],
     HELP_SHORTCUTS[1],
+    SETTINGS_SHORTCUTS[0],
+    SETTINGS_SHORTCUTS[1],
     NEXT_CONTROL[0],
     PREVIOUS_CONTROL[0],
     NEXT_PANEL[0],
@@ -225,6 +233,8 @@ pub enum ShortcutKey {
     ArrowDown,
     /// Slash.
     Slash,
+    /// Comma.
+    Comma,
     /// Question mark.
     QuestionMark,
 }
@@ -256,6 +266,7 @@ impl ShortcutKey {
             Self::ArrowUp => Some(egui::Key::ArrowUp),
             Self::ArrowDown => Some(egui::Key::ArrowDown),
             Self::Slash => Some(egui::Key::Slash),
+            Self::Comma => Some(egui::Key::Comma),
             Self::QuestionMark => Some(egui::Key::Questionmark),
         }
     }
@@ -279,6 +290,7 @@ impl ShortcutKey {
         match self {
             Self::Character(expected) => character.eq_ignore_ascii_case(&expected),
             Self::Slash => character == '/',
+            Self::Comma => character == ',',
             Self::QuestionMark => character == '?',
             _ => false,
         }
@@ -974,7 +986,7 @@ mod tests {
     const SAVE: [Shortcut; 1] = [Shortcut::primary('S')];
     const RENAME: [Shortcut; 1] = [Shortcut::new(
         ShortcutModifiers::NONE,
-        ShortcutKey::Function(2),
+        ShortcutKey::Function(3),
     )];
     const SEARCH: [Shortcut; 1] = [Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Slash)];
     const NEXT: [Shortcut; 1] = [Shortcut::new(
@@ -1060,7 +1072,7 @@ mod tests {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
         let mut dispatch = None;
-        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, false), |ui| {
+        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F3, false), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |command| {
                 if command == Command::Rename {
                     CommandStatus::Disabled("select an item first")
@@ -1078,12 +1090,12 @@ mod tests {
             })
         );
 
-        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F2, true), |ui| {
+        ctx.run_ui(key(egui::Modifiers::NONE, egui::Key::F3, true), |ui| {
             dispatch = canon.route(ui.ctx(), &[Scope::Library], |_| CommandStatus::Enabled);
         })
         .drop_without_applying_deltas();
         assert_eq!(dispatch, None);
-        assert!(!ctx.input(|input| input.key_pressed(egui::Key::F2)));
+        assert!(!ctx.input(|input| input.key_pressed(egui::Key::F3)));
 
         ctx.run_ui(
             key(egui::Modifiers::ALT, egui::Key::ArrowRight, true),

@@ -4,12 +4,15 @@
 
 use std::fmt::Debug;
 
-use brass_poolrooms::chrome::{self, Keycap, MechanismSize, Monoglyph, MonoglyphResponse, Symbol};
+use brass_poolrooms::chrome::{
+    self, Keycap, MechanismSize, Monoglyph, MonoglyphResponse, ScrewScroll, Symbol,
+};
 
 use crate::commands::{
     ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
     PREVIOUS_CONTROL, Shortcut, Stroke, UNWIND, take,
 };
+use crate::modal::ModalShell;
 
 const GUIDE_NAME_SIZE: f32 = 15.0;
 const GUIDE_DETAIL_SIZE: f32 = 14.0;
@@ -154,34 +157,15 @@ enum GuidePage {
 /// Stateful modal help surface for one application command canon.
 #[derive(Debug, Default)]
 pub struct CommandGuide {
-    open: bool,
-    deferred_close_frame: Option<u64>,
-    rect: Option<egui::Rect>,
+    shell: ModalShell,
     page: GuidePage,
-    restore_focus: Option<egui::Id>,
-    pending_focus: Option<FocusReturn>,
-    focus_close: bool,
-    wheel: Option<QuarantinedWheel>,
-}
-
-#[derive(Debug)]
-struct FocusReturn {
-    target: Option<egui::Id>,
-    closed_frame: u64,
-}
-
-#[derive(Debug)]
-struct QuarantinedWheel {
-    frame: u64,
-    events: Vec<egui::Event>,
-    smooth_delta: egui::Vec2,
 }
 
 impl CommandGuide {
     /// Whether the modal guide is currently open.
     #[must_use]
     pub const fn is_open(&self) -> bool {
-        self.open
+        self.shell.is_open()
     }
 
     /// Geometry occupied by the guide card in its most recent open pass.
@@ -190,43 +174,17 @@ impl CommandGuide {
     /// target. It is absent while the guide is closed.
     #[must_use]
     pub const fn rect(&self) -> Option<egui::Rect> {
-        self.rect
+        self.shell.rect()
     }
 
     /// Open the guide and remember the current focus restoration target.
     pub fn open(&mut self, ctx: &egui::Context) {
-        self.settle_deferred_close(ctx);
-        self.settle_focus(ctx);
-        if self.open {
-            return;
-        }
-        self.restore_focus = self.pending_focus.take().map_or_else(
-            || ctx.memory(egui::Memory::focused),
-            |pending| pending.target,
-        );
-        self.open = true;
-        self.focus_close = true;
-        ctx.request_repaint();
+        self.shell.open(ctx);
     }
 
     /// Close the guide and restore the control that opened it when possible.
     pub fn close(&mut self, ctx: &egui::Context) {
-        self.deferred_close_frame = None;
-        self.close_now(ctx);
-    }
-
-    fn close_now(&mut self, ctx: &egui::Context) {
-        if !self.open {
-            return;
-        }
-        self.open = false;
-        self.rect = None;
-        self.focus_close = false;
-        self.pending_focus = Some(FocusReturn {
-            target: self.restore_focus.take(),
-            closed_frame: ctx.cumulative_frame_nr(),
-        });
-        ctx.request_repaint();
+        self.shell.close(ctx);
     }
 
     /// Consume F1 or question mark and toggle the guide.
@@ -236,8 +194,7 @@ impl CommandGuide {
     /// while the guide is open it quarantines wheel input from underlying
     /// controls and returns that input only to [`Self::show`].
     pub fn take_shortcuts(&mut self, ctx: &egui::Context) -> bool {
-        self.settle_deferred_close(ctx);
-        self.settle_focus(ctx);
+        self.shell.prepare(ctx);
         let question = if ctx.text_edit_focused() {
             Stroke::None
         } else {
@@ -246,26 +203,17 @@ impl CommandGuide {
         let function = take(ctx, HELP_SHORTCUTS[1]);
         let invoked = question == Stroke::Fresh || function == Stroke::Fresh;
         if invoked {
-            if self.open {
-                self.close(ctx);
-            } else {
-                self.open(ctx);
-            }
+            self.shell.toggle(ctx);
         }
-        if self.open {
-            self.quarantine_wheel(ctx);
-        } else {
-            self.wheel = None;
-        }
+        self.shell.quarantine_wheel(ctx);
         invoked
     }
 
     /// Show the persistent small help plunger and toggle the guide when used.
     pub fn activator(&mut self, ui: &mut egui::Ui) -> MonoglyphResponse {
-        self.settle_deferred_close(ui.ctx());
-        self.settle_focus(ui.ctx());
+        self.shell.prepare(ui.ctx());
         let response = Monoglyph::symbol(Symbol::Help)
-            .size(MechanismSize::Small)
+            .size(MechanismSize::Medium)
             .show(ui)
             .on_hover_text(format!(
                 "Help · {} or {}",
@@ -273,11 +221,7 @@ impl CommandGuide {
                 HELP_SHORTCUTS[1].label(ui.ctx())
             ));
         if response.clicked() {
-            if self.open {
-                self.close(ui.ctx());
-            } else {
-                self.open(ui.ctx());
-            }
+            self.shell.toggle(ui.ctx());
         }
         response
     }
@@ -298,18 +242,13 @@ impl CommandGuide {
         C: Copy + Debug + Eq + 'static,
         S: Copy + Debug + Eq + 'static,
     {
-        self.settle_deferred_close(ctx);
-        self.settle_focus(ctx);
-        if !self.open {
-            self.rect = None;
-            self.wheel = None;
+        if !self.shell.begin_present(ctx) {
             return;
         }
-        self.restore_wheel(ctx);
         let width = (ctx.content_rect().width() - 48.0).clamp(340.0, 760.0);
         let body_height = (ctx.content_rect().height() - 230.0).clamp(220.0, 560.0);
         let mut close = false;
-        let focus_close = self.focus_close;
+        let focus_close = self.shell.focus_close();
         let page = &mut self.page;
         let modal = egui::Modal::new(egui::Id::new("eternalist-command-guide"))
             .frame(
@@ -351,7 +290,7 @@ impl CommandGuide {
                     }
                 });
                 ui.add_space(8.0);
-                let _body = egui::ScrollArea::vertical()
+                let _body = ScrewScroll::vertical()
                     .id_salt("eternalist-command-guide-body")
                     .min_scrolled_height(body_height)
                     .max_height(body_height)
@@ -373,121 +312,16 @@ impl CommandGuide {
                     });
                 ui.min_rect()
             });
-        consume_wheel(ctx);
-        self.rect = Some(modal.inner);
-        self.focus_close = false;
-        if close || modal.should_close() {
-            // The modal belongs to this completed presentation. Delay the
-            // state transition until the next pass so `is_open` and the
-            // witnessed surface cannot describe different realities.
-            self.deferred_close_frame = Some(ctx.cumulative_frame_nr());
-            ctx.request_repaint();
-        }
+        // Modal retirement follows the presented surface by one pass, so the
+        // public state and witness geometry cannot diverge.
+        self.shell
+            .finish_present(ctx, modal.inner, close || modal.should_close());
     }
-
-    fn settle_deferred_close(&mut self, ctx: &egui::Context) {
-        let due = self
-            .deferred_close_frame
-            .is_some_and(|frame| frame < ctx.cumulative_frame_nr());
-        if due {
-            self.deferred_close_frame = None;
-            self.close_now(ctx);
-        }
-    }
-
-    fn quarantine_wheel(&mut self, ctx: &egui::Context) {
-        let frame = ctx.cumulative_frame_nr();
-        if self
-            .wheel
-            .as_ref()
-            .is_some_and(|wheel| wheel.frame == frame)
-        {
-            return;
-        }
-        self.wheel = Some(ctx.input_mut(|input| {
-            let mut events = Vec::new();
-            input.events.retain(|event| {
-                if matches!(event, egui::Event::MouseWheel { .. }) {
-                    events.push(event.clone());
-                    false
-                } else {
-                    true
-                }
-            });
-            QuarantinedWheel {
-                frame,
-                events,
-                smooth_delta: std::mem::take(&mut input.smooth_scroll_delta),
-            }
-        }));
-    }
-
-    fn restore_wheel(&mut self, ctx: &egui::Context) {
-        let Some(wheel) = self.wheel.take() else {
-            return;
-        };
-        if wheel.frame != ctx.cumulative_frame_nr() {
-            return;
-        }
-        ctx.input_mut(|input| {
-            input.events.extend(wheel.events);
-            input.smooth_scroll_delta += wheel.smooth_delta;
-        });
-    }
-
-    fn settle_focus(&mut self, ctx: &egui::Context) {
-        if self.pending_focus.is_some() && ctx.input(focus_return_interdicted) {
-            self.pending_focus = None;
-            return;
-        }
-        // egui admits interaction against the preceding pass's modal layer.
-        // One complete nonmodal pass must retire it before the underlying
-        // target can re-enter the focus census.
-        let due = self.pending_focus.as_ref().is_some_and(|pending| {
-            pending.closed_frame.saturating_add(1) < ctx.cumulative_frame_nr()
-        });
-        if !due {
-            if self.pending_focus.is_some() {
-                ctx.request_repaint();
-            }
-            return;
-        }
-        let pending = self.pending_focus.take();
-        if let Some(target) = pending.and_then(|pending| pending.target) {
-            ctx.memory_mut(|memory| memory.request_focus(target));
-        } else if let Some(focused) = ctx.memory(egui::Memory::focused) {
-            ctx.memory_mut(|memory| memory.surrender_focus(focused));
-        }
-        ctx.request_repaint();
-    }
-}
-
-fn consume_wheel(ctx: &egui::Context) {
-    ctx.input_mut(|input| {
-        input
-            .events
-            .retain(|event| !matches!(event, egui::Event::MouseWheel { .. }));
-        input.smooth_scroll_delta = egui::Vec2::ZERO;
-    });
-}
-
-fn focus_return_interdicted(input: &egui::InputState) -> bool {
-    input.pointer.any_pressed()
-        || input.events.iter().any(|event| {
-            matches!(
-                event,
-                egui::Event::Copy
-                    | egui::Event::Cut
-                    | egui::Event::Paste(_)
-                    | egui::Event::Text(_)
-                    | egui::Event::Key { pressed: true, .. }
-                    | egui::Event::AccessKitActionRequest(_)
-            )
-        })
 }
 
 fn page_button(ui: &mut egui::Ui, label: &'static str, selected: bool) -> bool {
     let button = egui::Button::new(chrome::section_title(label))
+        .selected(selected)
         .fill(if selected {
             chrome::RAISED
         } else {
@@ -499,6 +333,14 @@ fn page_button(ui: &mut egui::Ui, label: &'static str, selected: bool) -> bool {
         ));
     let response = ui.add(button);
     chrome::shallow_tension(ui, &response);
+    if response.has_focus() {
+        ui.painter().rect_stroke(
+            response.rect.expand(1.0),
+            2,
+            egui::Stroke::new(1.0_f32, chrome::HOT),
+            egui::StrokeKind::Outside,
+        );
+    }
     chrome::exact_activation(ui, &response)
 }
 
@@ -851,7 +693,7 @@ mod tests {
                 egui::RawInput::default()
             };
             ctx.run_ui(input, |ui| {
-                guide.settle_focus(ui.ctx());
+                guide.shell.prepare(ui.ctx());
                 let _target = ui.button("target");
                 let other = ui.button("other");
                 if navigate {
@@ -861,7 +703,7 @@ mod tests {
             .drop_without_applying_deltas();
             let mut focused = (false, false);
             ctx.run_ui(egui::RawInput::default(), |ui| {
-                guide.settle_focus(ui.ctx());
+                guide.shell.prepare(ui.ctx());
                 focused.0 = ui.button("target").has_focus();
                 focused.1 = ui.button("other").has_focus();
             })

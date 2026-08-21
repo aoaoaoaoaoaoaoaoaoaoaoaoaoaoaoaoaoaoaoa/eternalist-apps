@@ -22,19 +22,22 @@ egui-test = [
 serde = ["dep:serde"]
 
 [dependencies]
-brass_poolrooms = "0.13.14"
+brass_poolrooms = { version = "0.13.18", path = "../brass_poolrooms" }
 egui = "=0.36.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.104"
+atomic-write-file = { version = "0.3.0", features = ["unnamed-tmpfile"] }
 crossbeam-channel = "0.5.16"
 egui-wgpu = { version = "=0.36.1", default-features = false }
 egui-winit = { version = "=0.36.1", default-features = false, features = ["clipboard"] }
 pollster = "1.0.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.149"
+serde_ignored = "0.1.14"
 sha2 = { version = "0.10.9", default-features = false }
+toml_edit = { version = "0.25.13", features = ["serde"] }
 tracing = "0.1.44"
 tracing-chrome = "0.7.2"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"] }
@@ -43,6 +46,7 @@ winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dev-dependencies]
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
+tempfile = "3.27.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 egui-winit = { version = "=0.36.1", default-features = false, features = ["wayland", "x11"] }

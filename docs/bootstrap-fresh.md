@@ -88,6 +88,16 @@ fn run(app: App) -> anyhow::Result<()> {
 The application owns construction and publication. The host never discovers
 product paths, starts domain workers, or chooses first-run behavior.
 
+For native user preferences, define one typed `Configuration`, select the
+platform-correct config path, and let `ConfigurationLedger` own strict TOML
+admission, settlement, merge, and atomic replacement. Project the same
+`SettingSpec` values through contextual controls and `SettingsSheet`. Wire the
+ledger deadline through `NativeApp::service_deadline`; absorb completions before
+layout; request an explicit reload when the sheet opens or the window regains
+focus. A fault must open the sheet and block mutation until a valid reload.
+Do not add an independent settings serializer, permissive unknown-key mode, or
+filesystem work to `draw`.
+
 ## 4. Compose Proved Application Primitives
 
 Begin with the Eternalist primitives that match the product's actual logical

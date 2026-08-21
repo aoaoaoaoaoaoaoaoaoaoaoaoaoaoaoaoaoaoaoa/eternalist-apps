@@ -11,7 +11,8 @@ primitives are the persistent [`Inspector`](../src/inspector.rs),
 [`LivingWait`](../src/living_wait.rs), shelved [`Cabinet`](../src/cabinet.rs),
 typed [`commands`](../src/commands.rs), generated
 [`command guide`](../src/command_guide.rs), and active
-[`panel navigation`](../src/panel_navigation.rs). A future manager, menu,
+[`panel navigation`](../src/panel_navigation.rs), and central
+[`settings sheet`](../src/settings.rs). A future manager, menu,
 storage interaction, layout, or application-scale state machine belongs here
 only after its common law is proved. Such primitives accept explicit state and
 return typed actions; the product supplies domain meaning.
@@ -49,6 +50,8 @@ corresponding navigation is absent:
 - Physical Control+Tab and Control+Shift+Tab cross panel boundaries.
 - F9 conceals or reveals the complete inspector when one exists. Pointer
   proximity reveals its boundary actuator without moving inspector content.
+- F1 opens Help. F2 opens Settings; primary-modifier comma is its
+  platform-familiar alias.
 - Enter and Space actuate the focused control.
 - Left and Right move one item through a result surface's primary order.
 - Alt+Left and Alt+Right traverse a subordinate or grouped order when one
@@ -64,6 +67,14 @@ shortcut; do not advertise a shared gesture in an application that lacks its
 target. Target-specific help never descends from Eternalist or Poolrooms: the
 application declares each section in product language. Commands and panel
 traversal remain dormant behind a modal layer.
+Application settings use one `SettingSpec` wherever they appear. Put a setting
+beside the work it governs when that placement is useful, and repeat it in the
+central `SettingsSheet`; both projections mutate the same typed value. Use the
+shared boolean or bounded-number row rather than inventing a product-local
+layout. Use the shared settings actuator, F2 key, and primary-modifier comma
+alias. Configuration faults summon the sheet, disable mutation, name the exact
+invalid condition, expose the file path, and offer explicit reload after
+repair. Never silently discard, rename, or overwrite an unknown key.
 Ordinary labels remain selectable. Native hosts export their copy, cut, and
 paste commands through the platform clipboard.
 Permanent collections ordinarily belong in an inspector; transient candidates

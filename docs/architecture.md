@@ -76,6 +76,40 @@ edge and requires the closed refusal response. The probe stores no report.
 Linux separately proves the complete crash, restart, consent, delivery, and
 stored-object equality path through a hermetic GUI process.
 
+## Configuration
+
+`SettingsSheet` is the renderer-neutral central configuration surface. It owns
+the platform settings chord, persistent actuator, modal focus restoration,
+wheel quarantine, grouped boolean layout, fault card, explicit reload action,
+and stable witness names. The application declares each `SettingSpec`, supplies
+its current value, applies returned changes, and may repeat the same declaration
+beside a contextual control. The sheet is a projection, not a registry: it does
+not discover settings or execute callbacks.
+
+On native targets, `ConfigurationLedger<T>` owns the configuration-file law.
+`T` supplies defaults, Serde structure, and optional semantic validation. Every
+read rejects malformed TOML, wrong types, failed semantic laws, and every key
+ignored by Serde, even when the product forgot `deny_unknown_fields`. A failed
+read leaves the source untouched, applies defaults only as a safe runtime
+fallback, blocks UI mutation, and exposes a fault for the settings preflight.
+
+Writes settle off the event-loop thread. Each write rereads and revalidates the
+file, merges only application-changed keys against the last durable value,
+rejects a concurrent edit to the same key, replaces an existing scalar at its
+source span so surrounding comments and layout survive byte-for-byte, follows
+an existing symlink, and commits atomically. Insertion or removal uses
+`toml_edit`'s document model; its documented dotted/scattered-table formatting
+limitations therefore remain. Reload is explicit rather than watched, cannot
+discard unsettled changes without a blocking fault, and is the repair path after
+the user edits an invalid file. The application still owns the schema, path,
+copy, and the decision to reload on sheet opening or window refocus.
+
+This ledger is specific to small, human-edited application configuration. It is
+not a document store, database, migration framework, or license for routing
+arbitrary domain persistence through TOML.
+
+## Inspector And Cabinet
+
 `Inspector` is optional. It owns fixed left-rail geometry, vertical scrolling,
 session visibility, F9 and zero-layout hover-revealed boundary-actuator routing, translated slide motion,
 and the resulting button, scroll, and moving-wall water law. An application
@@ -134,7 +168,9 @@ An unmodified character uses a small void-finished Poolrooms monoglyph; a
 modified or multicharacter chord uses a compact key well. `CommandGuide`
 renders the same metadata and dynamic
 availability used by routing. F1 always toggles the guide; question mark
-defers to focused text entry. Closing the modal restores its prior focus target
+defers to focused text entry. F2 always toggles the settings sheet, with
+primary-modifier comma retained as its platform-familiar alias. Closing either
+modal restores its prior focus target
 when that target remains available. While open, the guide owns wheel input as
 well as pointer and keyboard interaction: `take_shortcuts` quarantines wheel
 motion before application layout and `show` returns it only to the guide's

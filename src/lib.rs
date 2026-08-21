@@ -2,14 +2,15 @@
 //! Eternalist-style egui products.
 //!
 //! [`Inspector`], [`LivingWait`], [`cabinet`], [`commands`],
-//! [`command_guide`], and [`panel_navigation`] are renderer-neutral logical
-//! primitives. Native targets additionally expose the one-window `NativeApp`
+//! [`command_guide`], [`panel_navigation`], and [`settings`] are renderer-neutral
+//! logical primitives. Native targets additionally expose the one-window `NativeApp`
 //! lifecycle, Poolrooms-water composition, responsiveness tracing, and
 //! optional post-present acceptance witnessing. The native support layer also
 //! owns generic bounded drains, latest-wins worker mailboxes, and settled
 //! background-write scheduling. Domain state, typed command consequences,
-//! storage paths and formats, fixtures, oracles, and acceptance stories remain
-//! application concerns.
+//! product schemas and storage paths, fixtures, oracles, and acceptance stories
+//! remain application concerns. [`configuration`] owns the strict TOML mechanics
+//! for native application settings.
 
 #[cfg(all(test, target_os = "linux"))]
 use arboard as _;
@@ -20,10 +21,14 @@ pub mod cabinet;
 pub mod command_guide;
 pub mod commands;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod configuration;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod crash_reports;
 pub mod inspector;
 pub mod living_wait;
+mod modal;
 pub mod panel_navigation;
+pub mod settings;
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod native;

@@ -39,6 +39,14 @@ struct Observation {
     density: u16,
     inspector_expanded: bool,
     inspector_extent: f32,
+    settings: SettingsObservation,
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+#[derive(Debug, Deserialize)]
+struct SettingsObservation {
+    open: bool,
+    fault: bool,
 }
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
@@ -84,12 +92,53 @@ fn main() -> Result<()> {
     let mut probe: Probe<Observation> = app.witness()?.typed();
     let _presented = probe.wait_surface_presented(&app, STARTUP_WAIT)?;
     command_story(&testbed, &session, &app, &mut probe, artifacts.as_deref())?;
+    settings_story(&session, &app, &mut probe, artifacts.as_deref())?;
     visible_background_water_story(&testbed, &binary, &session, &app, &mut probe)?;
 
     let _close = session.close()?;
     let exit = app.wait(WAIT).context("Atelier to honor native close")?;
     ensure!(exit.success(), "Atelier close failed: {exit:#?}");
     app.terminate().context("collect Atelier cgroup")?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn settings_story(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+    artifacts: Option<&Path>,
+) -> Result<()> {
+    click_target(session, app, probe, "atelier.tab.settings")?;
+    let _opened = probe.wait(app, WAIT, "Settings tab to present its sheet", |frame| {
+        frame.state.page == "settings" && frame.state.settings.open
+    })?;
+    if let Some(directory) = artifacts {
+        thread::sleep(Duration::from_millis(250));
+        let _settled = probe.wait_fresh(app, WAIT)?;
+        std::fs::create_dir_all(directory).context("create acceptance artifact directory")?;
+        session
+            .capture()?
+            .save_png(directory.join("settings-ready.png"))?;
+    }
+    let _escape = session.key(Key::Escape)?;
+    let _closed = probe.wait(app, WAIT, "Escape to close settings", |frame| {
+        !frame.state.settings.open
+    })?;
+    click_target(session, app, probe, "atelier.settings.fault")?;
+    let _fault = probe.wait(
+        app,
+        WAIT,
+        "configuration fault to summon settings",
+        |frame| frame.state.settings.fault && frame.state.settings.open,
+    )?;
+    if let Some(directory) = artifacts {
+        thread::sleep(Duration::from_millis(250));
+        let _settled = probe.wait_fresh(app, WAIT)?;
+        session
+            .capture()?
+            .save_png(directory.join("settings-fault.png"))?;
+    }
     Ok(())
 }
 

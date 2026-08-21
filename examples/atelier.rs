@@ -26,9 +26,11 @@ use eternalist_apps::commands::{
     ShortcutModifiers, TextFocusPolicy,
 };
 use eternalist_apps::panel_navigation::PanelNavigator;
+use eternalist_apps::settings::{SettingSpec, SettingsFile, SettingsSheet};
 use eternalist_apps::{Inspector, LivingWait};
 use std::{
     fmt::{Display, Formatter},
+    path::Path,
     sync::OnceLock,
 };
 
@@ -42,14 +44,16 @@ enum Page {
     LivingWait,
     Cabinet,
     Commands,
+    Settings,
 }
 
 impl Page {
-    const ALL: [Self; 4] = [
+    const ALL: [Self; 5] = [
         Self::Inspector,
         Self::LivingWait,
         Self::Cabinet,
         Self::Commands,
+        Self::Settings,
     ];
 
     const fn label(self) -> &'static str {
@@ -58,6 +62,7 @@ impl Page {
             Self::LivingWait => "LIVING WAIT",
             Self::Cabinet => "CABINET",
             Self::Commands => "COMMANDS",
+            Self::Settings => "SETTINGS",
         }
     }
 
@@ -67,6 +72,7 @@ impl Page {
             Self::LivingWait => "02",
             Self::Cabinet => "03",
             Self::Commands => "04",
+            Self::Settings => "05",
         }
     }
 
@@ -80,6 +86,7 @@ impl Page {
             Self::LivingWait => "living_wait",
             Self::Cabinet => "cabinet",
             Self::Commands => "commands",
+            Self::Settings => "settings",
         }
     }
 
@@ -89,6 +96,7 @@ impl Page {
             Self::LivingWait => "atelier.tab.living_wait",
             Self::Cabinet => "atelier.tab.cabinet",
             Self::Commands => "atelier.tab.commands",
+            Self::Settings => "atelier.tab.settings",
         }
     }
 }
@@ -99,6 +107,7 @@ struct Atelier {
     waiting: WaitingExhibit,
     cabinet: CabinetExhibit,
     commands: CommandsExhibit,
+    settings: SettingsExhibit,
 }
 
 impl Default for Atelier {
@@ -109,6 +118,7 @@ impl Default for Atelier {
             waiting: WaitingExhibit::default(),
             cabinet: CabinetExhibit::default(),
             commands: CommandsExhibit::default(),
+            settings: SettingsExhibit::default(),
         }
     }
 }
@@ -135,6 +145,7 @@ impl Exhibit for Atelier {
             Page::LivingWait => self.waiting.show(ui, water),
             Page::Cabinet => self.cabinet.show(ui, water),
             Page::Commands => self.commands.show(ui, water),
+            Page::Settings => self.settings.show(ui, water),
         }
     }
 
@@ -152,6 +163,10 @@ impl Exhibit for Atelier {
             density: self.commands.density,
             inspector_expanded: self.commands.inspector_expanded,
             inspector_extent: self.commands.inspector_extent,
+            settings: AtelierSettingsObservation {
+                open: self.settings.sheet.is_open(),
+                fault: self.settings.faulted(),
+            },
         }
     }
 }
@@ -192,6 +207,17 @@ struct AtelierObservation {
     density: u16,
     inspector_expanded: bool,
     inspector_extent: f32,
+    settings: AtelierSettingsObservation,
+}
+
+#[cfg(all(
+    feature = "egui-test",
+    any(target_os = "linux", target_os = "macos", target_os = "windows")
+))]
+#[derive(serde::Serialize)]
+struct AtelierSettingsObservation {
+    open: bool,
+    fault: bool,
 }
 
 impl Atelier {
@@ -228,7 +254,7 @@ impl Atelier {
 fn tab(ui: &mut egui::Ui, page: Page, selected: bool) -> egui::Response {
     let label = format!("{}  {}", page.number(), page.label());
     let button = egui::Button::new(chrome::section_title(label))
-        .min_size(egui::vec2(176.0, 30.0))
+        .min_size(egui::vec2(166.0, 30.0))
         .fill(if selected {
             chrome::RAISED
         } else {
@@ -775,6 +801,138 @@ impl CabinetExhibit {
     }
 }
 
+const RESTORE_WORKSPACE: SettingSpec = SettingSpec::new(
+    "restore_workspace",
+    "RESTORE WORKSPACE",
+    "Reopen the last active document and working context at launch.",
+);
+const CONFIRM_DISCARD: SettingSpec = SettingSpec::new(
+    "confirm_discard",
+    "CONFIRM DISCARD",
+    "Ask before abandoning edits that have not reached durable storage.",
+);
+const SETTLEMENT_DELAY: SettingSpec = SettingSpec::new(
+    "settlement_delay",
+    "SETTLEMENT DELAY",
+    "Wait this many seconds after the last change before committing it.",
+);
+
+struct SettingsExhibit {
+    sheet: SettingsSheet,
+    restore_workspace: bool,
+    confirm_discard: bool,
+    settlement_delay: f64,
+    condition: SettingsCondition,
+    visit: SettingsVisit,
+}
+
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
+enum SettingsCondition {
+    #[default]
+    Ready,
+    Fault,
+}
+
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
+enum SettingsVisit {
+    #[default]
+    Unseen,
+    Seen,
+}
+
+impl Default for SettingsExhibit {
+    fn default() -> Self {
+        Self {
+            sheet: SettingsSheet::default(),
+            restore_workspace: true,
+            confirm_discard: true,
+            settlement_delay: 0.4,
+            condition: SettingsCondition::Ready,
+            visit: SettingsVisit::Unseen,
+        }
+    }
+}
+
+impl SettingsExhibit {
+    fn show(&mut self, ui: &mut egui::Ui, water: &mut Surface) {
+        let _invoked = self.sheet.take_shortcut(ui.ctx());
+        if self.visit == SettingsVisit::Unseen {
+            self.visit = SettingsVisit::Seen;
+            self.sheet.open(ui.ctx());
+        }
+        let _stage = egui::CentralPanel::default()
+            .frame(
+                egui::Frame::new()
+                    .fill(chrome::PAGE)
+                    .inner_margin(egui::Margin::same(28)),
+            )
+            .show(ui, |ui| {
+                let _eyebrow = ui.label(chrome::eyebrow("CENTRAL APPLICATION CONFIGURATION"));
+                let _heading = ui.horizontal(|ui| {
+                    let _title = ui.label(chrome::title("SETTINGS SHEET"));
+                    let activator = self.sheet.activator(ui, self.faulted());
+                    water.monoglyph(&activator);
+                });
+                let _law = ui.label(chrome::muted(
+                    "contextual controls and one complete surface share the same setting declarations",
+                ));
+                ui.add_space(22.0);
+                let _specimen = egui::Frame::new()
+                    .fill(chrome::SURFACE)
+                    .stroke(egui::Stroke::new(1.0_f32, chrome::EDGE_STRONG))
+                    .inner_margin(egui::Margin::same(18))
+                    .show(ui, |ui| {
+                        let _title = ui.label(chrome::section_title("PREFLIGHT SPECIMEN"));
+                        ui.add_space(8.0);
+                        let mut faulted = self.faulted();
+                        let fault = Checkbox::new(&mut faulted, "SIMULATE INVALID FILE")
+                            .size(chrome::MechanismSize::Small)
+                            .show(ui);
+                        record_response(ui, "atelier.settings.fault", &fault);
+                        water.checkbox(&fault);
+                        if fault.changed() {
+                            self.condition = if faulted {
+                                self.sheet.require_attention(ui.ctx());
+                                SettingsCondition::Fault
+                            } else {
+                                SettingsCondition::Ready
+                            };
+                        }
+                        ui.add_space(8.0);
+                        let state = if self.faulted() {
+                            "unknown keys block mutation and summon this sheet without rewriting the file"
+                        } else {
+                            "configuration admitted; application controls remain writable"
+                        };
+                        let _state = ui.label(chrome::muted(state));
+                    });
+            });
+
+        let path = Path::new("config/atelier.toml");
+        let file = if self.faulted() {
+            SettingsFile::fault(path, "Unknown configuration key: restore_workpace")
+        } else {
+            SettingsFile::ready(path)
+        };
+        let _response = self.sheet.show(ui.ctx(), water, file, |ui| {
+            ui.section("WORKSPACE");
+            let _restored = ui.boolean(RESTORE_WORKSPACE, &mut self.restore_workspace);
+            let _confirmed = ui.boolean(CONFIRM_DISCARD, &mut self.confirm_discard);
+            let _delay = ui.number(
+                SETTLEMENT_DELAY,
+                &mut self.settlement_delay,
+                0.1..=2.0,
+                0.1,
+                1,
+            );
+        });
+    }
+
+    const fn faulted(&self) -> bool {
+        matches!(self.condition, SettingsCondition::Fault)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum DemoCommand {
     Open,
@@ -792,7 +950,7 @@ const OPEN_KEYS: [Shortcut; 1] = [Shortcut::primary('O')];
 const SAVE_KEYS: [Shortcut; 1] = [Shortcut::primary('S')];
 const RENAME_KEYS: [Shortcut; 1] = [Shortcut::new(
     ShortcutModifiers::NONE,
-    ShortcutKey::Function(2),
+    ShortcutKey::Function(3),
 )];
 const SEARCH_KEYS: [Shortcut; 1] = [Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Slash)];
 const TOGGLE_CONTROLS: [Shortcut; 1] = [Shortcut::new(

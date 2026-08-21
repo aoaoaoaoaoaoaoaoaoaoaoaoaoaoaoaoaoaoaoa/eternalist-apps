@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use brass_poolrooms::chrome;
+use brass_poolrooms::chrome::{self, ScrewScroll};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
@@ -310,7 +310,7 @@ impl CrashReports {
                 if exact_open {
                     let exact = serde_json::to_string_pretty(report)
                         .unwrap_or_else(|_| "Report could not be displayed.".to_owned());
-                    egui::ScrollArea::vertical()
+                    ScrewScroll::vertical()
                         .id_salt("eternalist-crash-report-exact")
                         .max_height(220.0)
                         .show(ui, |ui| {
