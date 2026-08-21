@@ -545,12 +545,16 @@ fn replace(path: &Path, bytes: &[u8]) -> Result<()> {
             return Err(error).with_context(|| format!("inspect `{}`", path.display()));
         }
     };
-    let mut options = atomic_write_file::OpenOptions::new();
     #[cfg(unix)]
-    {
+    let options = {
         use std::os::unix::fs::OpenOptionsExt as _;
+
+        let mut options = atomic_write_file::OpenOptions::new();
         options.mode(0o600);
-    }
+        options
+    };
+    #[cfg(not(unix))]
+    let options = atomic_write_file::OpenOptions::new();
     let mut file = options
         .open(&target)
         .with_context(|| format!("stage `{}`", target.display()))?;
