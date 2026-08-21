@@ -31,6 +31,9 @@ git tag -v "v$version" >/dev/null 2>&1 || die "v$version is not a valid signed t
 
 scripts/check
 scripts/audit
+command -v cargo-semver-checks >/dev/null 2>&1 ||
+    die 'cargo-semver-checks is required: cargo install cargo-semver-checks --version 0.50.0 --locked'
+cargo semver-checks
 cargo package --locked
 
 if [ "$mode" = publish ]; then

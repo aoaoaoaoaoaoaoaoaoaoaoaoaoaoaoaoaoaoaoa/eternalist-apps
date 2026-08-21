@@ -12,6 +12,7 @@ locally.
 | Foundry `host` proof | ordinary host compilation and tests on Linux, macOS, and Windows | portability regressions are caught; runtime support is not implied |
 | Foundry `crash-path-native` proof | a nonexistent state directory followed by capsule persistence, reload, and an invalid HTTPS delivery through the production edge on Linux, macOS, and Windows | native filesystem semantics, TLS linkage, platform trust roots, and the reporting route compose without storing a report |
 | `scripts/audit` | the locked dependency graph against the checked policy | known dependency advisories are adjudicated |
+| `cargo semver-checks` | the candidate public API against the latest crates.io release | a compatible version cannot remove or narrow an API already admitted by downstream Cargo requirements |
 | `cargo package --locked` | the exact publishable archive and its dependency resolution | crates.io receives the intended source, examples, and documentation |
 
 The WebGPU gate proves that the renderer-neutral primitives, atelier host, and
@@ -47,9 +48,10 @@ networkless.
 ## Library Releases
 
 A release identifies one exact source commit. Publish only from a clean,
-tagged checkout after `scripts/check`, `scripts/audit`, and `cargo package
---locked` pass. The manifest version, tag, packaged metadata, and Git commit
-must identify the same source. `--allow-dirty` is forbidden.
+tagged checkout after `scripts/check`, `scripts/audit`, `cargo semver-checks`,
+and `cargo package --locked` pass. The manifest version, tag, packaged
+metadata, and Git commit must identify the same source. `--allow-dirty` is
+forbidden.
 
 Publication claims only that this package satisfies its documented contract.
 Applications adopt a release deliberately and prove the resulting product
