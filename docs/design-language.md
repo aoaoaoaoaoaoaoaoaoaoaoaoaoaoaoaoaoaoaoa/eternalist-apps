@@ -44,6 +44,11 @@ casing, and the crown's depth within that casing communicate actuation and a
 latched state. Do not wrap a solitary monoglyph in another button, tile,
 border, or frame merely to advertise interactivity.
 
+Action monoglyphs precede the content they govern. A destructive deletion is
+the leftmost danger-finished trash can; auxiliary actions follow; Edit or
+Rename sits immediately left of the text. Do not exile deletion to a trailing
+edge or substitute a labelled rectangle when the canonical symbol exists.
+
 ## Basic Controls
 
 Apply every idiom whose target exists; omission is correct only when the
@@ -57,6 +62,8 @@ corresponding navigation is absent:
   proximity reveals its boundary actuator without moving inspector content.
 - F1 opens Help. F2 opens Settings; primary-modifier comma is its
   platform-familiar alias.
+- Persistent Help and Settings actuators share the top-right application lane,
+  with Help immediately left of Settings.
 - Enter and Space actuate the focused control.
 - Left and Right move one item through a result surface's primary order.
 - Alt+Left and Alt+Right traverse a subordinate or grouped order when one
