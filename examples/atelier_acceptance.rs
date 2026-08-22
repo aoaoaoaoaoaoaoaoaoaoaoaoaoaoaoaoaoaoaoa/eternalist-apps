@@ -175,9 +175,16 @@ fn short_modal_story(testbed: &Testbed, binary: &Path, artifacts: Option<&Path>)
         "eternalist.command-guide.body",
     )?;
     let body = probe.wait_anchor(&app, "eternalist.command-guide.body", WAIT)?;
+    let before_scroll = session.capture()?;
     let (x, y) = body.center();
     let _scroll = session.wheel(x, y, 8, Wheel::default())?;
     let _scrolled = probe.wait_fresh(&app, WAIT)?;
+    let after_scroll = session.capture()?;
+    let changed = before_scroll.difference_region(&after_scroll, PixelRegion::anchor(&body), 2)?;
+    ensure!(
+        changed > 0.04,
+        "mouse wheel changed only {changed:.4} of the command-guide body pixels"
+    );
     assert_modal_containment(
         &session,
         &app,
@@ -299,6 +306,14 @@ fn settings_story(
     let _escape = session.key(Key::Escape)?;
     let _closed = probe.wait(app, WAIT, "Escape to close settings", |frame| {
         !frame.state.settings.open
+    })?;
+    click_target(session, app, probe, "eternalist.application.help")?;
+    let _guide = probe.wait(app, WAIT, "application header to open Help", |frame| {
+        frame.state.guide_open
+    })?;
+    let _escape = session.key(Key::Escape)?;
+    let _closed = probe.wait(app, WAIT, "Escape to close Help", |frame| {
+        !frame.state.guide_open
     })?;
     click_target(session, app, probe, "atelier.settings.fault")?;
     let _fault = probe.wait(

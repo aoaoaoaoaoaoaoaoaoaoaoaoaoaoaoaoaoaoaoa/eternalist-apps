@@ -27,7 +27,7 @@ use eternalist_apps::commands::{
 };
 use eternalist_apps::panel_navigation::PanelNavigator;
 use eternalist_apps::settings::{SettingSpec, SettingsFile, SettingsSheet};
-use eternalist_apps::{Inspector, LivingWait};
+use eternalist_apps::{ApplicationHeader, Inspector, LivingWait};
 use std::{
     fmt::{Display, Formatter},
     path::Path,
@@ -158,7 +158,7 @@ impl Exhibit for Atelier {
     fn observe(&self, _text_edit_focused: bool) -> Self::Observation {
         AtelierObservation {
             page: self.page.wire(),
-            guide_open: self.commands.guide.is_open(),
+            guide_open: self.commands.guide.is_open() || self.settings.guide.is_open(),
             status: self.commands.status.clone(),
             selected: self.commands.selected,
             filter: self.commands.filter.clone(),
@@ -839,6 +839,7 @@ const SETTLEMENT_DELAY: SettingSpec = SettingSpec::new(
 
 struct SettingsExhibit {
     sheet: SettingsSheet,
+    guide: CommandGuide,
     restore_workspace: bool,
     confirm_discard: bool,
     settlement_delay: f64,
@@ -864,6 +865,7 @@ impl Default for SettingsExhibit {
     fn default() -> Self {
         Self {
             sheet: SettingsSheet::default(),
+            guide: CommandGuide::default(),
             restore_workspace: true,
             confirm_discard: true,
             settlement_delay: 0.4,
@@ -875,7 +877,10 @@ impl Default for SettingsExhibit {
 
 impl SettingsExhibit {
     fn show(&mut self, ui: &mut egui::Ui, water: &mut Surface) {
-        let _invoked = self.sheet.take_shortcut(ui.ctx());
+        let settings_invoked = self.sheet.take_shortcut(ui.ctx());
+        if !settings_invoked {
+            let _help_invoked = self.guide.take_shortcuts(ui.ctx());
+        }
         if self.visit == SettingsVisit::Unseen {
             self.visit = SettingsVisit::Seen;
             self.sheet.open(ui.ctx());
@@ -888,11 +893,9 @@ impl SettingsExhibit {
             )
             .show(ui, |ui| {
                 let _eyebrow = ui.label(chrome::eyebrow("CENTRAL APPLICATION CONFIGURATION"));
-                let _heading = ui.horizontal(|ui| {
-                    let _title = ui.label(chrome::title("SETTINGS SHEET"));
-                    let activator = self.sheet.activator(ui, self.faulted());
-                    water.monoglyph(&activator);
-                });
+                let _header = ApplicationHeader::new("ETERNALIST ATELIER")
+                    .settings_attention(self.faulted())
+                    .show(ui, &mut self.guide, &mut self.sheet, water);
                 let _law = ui.label(chrome::muted(
                     "contextual controls and one complete surface share the same setting declarations",
                 ));
@@ -927,6 +930,15 @@ impl SettingsExhibit {
                         let _state = ui.label(chrome::muted(state));
                     });
             });
+
+        self.guide.show(
+            ui.ctx(),
+            demo_canon(),
+            &[DemoScope::Workspace],
+            |_| "ATELIER",
+            |_| CommandStatus::Enabled,
+            &[],
+        );
 
         let path = Path::new("config/atelier.toml");
         let file = if self.faulted() {

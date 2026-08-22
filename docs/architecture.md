@@ -199,6 +199,11 @@ focus behavior and are never pulled into an active panel's Tab loop.
 
 ## Application Primitives
 
+`ApplicationHeader` composes the persistent application name, Help, and
+Settings above the application's control surface. It owns their order and
+shared physical response, but not a top bar, inspector, application name,
+settings condition, or product witness vocabulary.
+
 A high-level primitive owns one reusable logical interaction law. It accepts
 explicit state and dependencies, composes Poolrooms mechanisms, emits standard
 witness anchors, and returns typed responses or actions for the product to

@@ -12,7 +12,8 @@ primitives are the persistent [`Inspector`](../src/inspector.rs),
 typed [`commands`](../src/commands.rs), generated
 [`command guide`](../src/command_guide.rs), and active
 [`panel navigation`](../src/panel_navigation.rs), and central
-[`settings sheet`](../src/settings.rs). A future manager, menu,
+[`settings sheet`](../src/settings.rs), with the persistent
+[`application header`](../src/application_header.rs). A future manager, menu,
 storage interaction, layout, or application-scale state machine belongs here
 only after its common law is proved. Such primitives accept explicit state and
 return typed actions; the product supplies domain meaning.
@@ -62,8 +63,11 @@ corresponding navigation is absent:
   proximity reveals its boundary actuator without moving inspector content.
 - F1 opens Help. F2 opens Settings; primary-modifier comma is its
   platform-familiar alias.
-- Persistent Help and Settings actuators share the top-right application lane,
-  with Help immediately left of Settings.
+- Persistent controls begin with the application header: application name,
+  Help, then Settings, at the top left above the control panels. Do not create
+  an application-wide top display to host them. A product without a left
+  control rail places the same header in its nearest persistent control
+  surface rather than manufacturing an inspector.
 - Enter and Space actuate the focused control.
 - Left and Right move one item through a result surface's primary order.
 - Alt+Left and Alt+Right traverse a subordinate or grouped order when one

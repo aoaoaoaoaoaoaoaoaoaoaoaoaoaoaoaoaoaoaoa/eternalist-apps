@@ -1,7 +1,7 @@
 //! Reusable high-level application primitives and a native lifecycle for
 //! Eternalist-style egui products.
 //!
-//! [`Inspector`], [`LivingWait`], [`cabinet`], [`commands`],
+//! [`ApplicationHeader`], [`Inspector`], [`LivingWait`], [`cabinet`], [`commands`],
 //! [`command_guide`], [`panel_navigation`], and [`settings`] are renderer-neutral
 //! logical primitives. Native targets additionally expose the one-window `NativeApp`
 //! lifecycle, Poolrooms-water composition, responsiveness tracing, and
@@ -17,6 +17,7 @@ use arboard as _;
 #[cfg(all(test, target_os = "linux"))]
 use egui_tester as _;
 
+pub mod application_header;
 pub mod cabinet;
 pub mod command_guide;
 pub mod commands;
@@ -39,6 +40,7 @@ pub mod persistence;
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 pub mod responsiveness;
 
+pub use application_header::{ApplicationHeader, ApplicationHeaderResponse};
 pub use cabinet::{
     Berth as CabinetBerth, Cabinet, CabinetAction, CabinetEntry, CabinetKey,
     EntryEdit as CabinetEntryEdit, Shelf as CabinetShelf, ShelfBerth as CabinetShelfBerth,
