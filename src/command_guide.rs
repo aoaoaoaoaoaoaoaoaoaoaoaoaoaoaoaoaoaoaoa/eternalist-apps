@@ -12,7 +12,7 @@ use crate::commands::{
     ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
     PREVIOUS_CONTROL, Shortcut, Stroke, UNWIND, take,
 };
-use crate::modal::ModalShell;
+use crate::modal::{ModalShell, card_frame, scroll_aperture};
 
 const GUIDE_NAME_SIZE: f32 = 15.0;
 const GUIDE_DETAIL_SIZE: f32 = 14.0;
@@ -246,32 +246,23 @@ impl CommandGuide {
             return;
         }
         let width = (ctx.content_rect().width() - 48.0).clamp(340.0, 760.0);
-        let body_height = (ctx.content_rect().height() - 230.0).clamp(220.0, 560.0);
         let mut close = false;
-        let focus_close = self.shell.focus_close();
         let page = &mut self.page;
         let modal = egui::Modal::new(egui::Id::new("eternalist-command-guide"))
-            .frame(
-                egui::Frame::new()
-                    .fill(chrome::SURFACE)
-                    .stroke(egui::Stroke::new(1.5_f32, chrome::EDGE_STRONG))
-                    .corner_radius(2)
-                    .inner_margin(egui::Margin::same(14)),
-            )
+            .frame(card_frame())
             .backdrop_color(egui::Color32::from_black_alpha(176))
             .show(ctx, |ui| {
                 ui.set_width(width);
+                let chrome_top = ui.cursor().top();
                 let _header = ui.horizontal(|ui| {
                     let _title = ui.label(chrome::title("HELP & COMMANDS"));
                     let _close =
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             let response = Monoglyph::symbol(Symbol::Remove)
                                 .size(MechanismSize::Small)
+                                .focusable(false)
                                 .show(ui)
                                 .on_hover_text("Close help · Escape");
-                            if focus_close {
-                                response.request_focus();
-                            }
                             close |= response.clicked();
                         });
                 });
@@ -290,10 +281,11 @@ impl CommandGuide {
                     }
                 });
                 ui.add_space(8.0);
-                let _body = ScrewScroll::vertical()
+                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 560.0, 560.0);
+                let body = ScrewScroll::vertical()
                     .id_salt("eternalist-command-guide-body")
-                    .min_scrolled_height(body_height)
-                    .max_height(body_height)
+                    .min_scrolled_height(aperture.height)
+                    .max_height(aperture.height)
                     .auto_shrink([false, false])
                     .show(ui, |ui| match *page {
                         GuidePage::Context => {
@@ -310,13 +302,27 @@ impl CommandGuide {
                             show_all(ui, canon, &scope_name, &status, application_sections);
                         }
                     });
-                ui.min_rect()
+                record_rect(ui.ctx(), "eternalist.command-guide.body", body.inner_rect);
             });
         // Modal retirement follows the presented surface by one pass, so the
         // public state and witness geometry cannot diverge.
         self.shell
-            .finish_present(ctx, modal.inner, close || modal.should_close());
+            .finish_present(ctx, modal.response.rect, close || modal.should_close());
     }
+}
+
+#[inline]
+fn record_rect(ctx: &egui::Context, name: &'static str, rect: egui::Rect) {
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
+    egui_tester_witness::egui::record_rect(ctx, name, rect);
+    #[cfg(not(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    )))]
+    let _ = (ctx, name, rect);
 }
 
 fn page_button(ui: &mut egui::Ui, label: &'static str, selected: bool) -> bool {

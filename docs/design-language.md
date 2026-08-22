@@ -39,6 +39,11 @@ unmodified character uses a small void-finished monoglyph, while modified and
 multicharacter chords use a compact key well. The legend therefore follows any
 future keymap projection without rewriting the command label.
 
+A monoglyph is already a complete physical control: crown, forged socket
+casing, and the crown's depth within that casing communicate actuation and a
+latched state. Do not wrap a solitary monoglyph in another button, tile,
+border, or frame merely to advertise interactivity.
+
 ## Basic Controls
 
 Apply every idiom whose target exists; omission is correct only when the
@@ -61,6 +66,11 @@ corresponding navigation is absent:
   surface.
 - Home returns an ordered result surface to its first item.
 - Escape closes only the topmost transient layer.
+
+Help and Settings close plungers remain outside keyboard focus traversal:
+Escape and the modal shortcut already own closure. Opening either modal
+relinquishes underlay focus, then closing restores it. Do not autofocus these
+Poolrooms boundary controls; focus is a continuous water-tension state.
 
 A target-relative gesture belongs in help but is not a global command
 shortcut; do not advertise a shared gesture in an application that lacks its

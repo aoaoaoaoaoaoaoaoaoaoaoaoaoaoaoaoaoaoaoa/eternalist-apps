@@ -36,6 +36,8 @@ use std::{
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 const FOCUS_SENTINEL: &str = "--focus-sentinel";
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+const SHORT_WINDOW: &str = "--short-window";
 use support::Exhibit;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -168,6 +170,24 @@ impl Exhibit for Atelier {
                 fault: self.settings.faulted(),
             },
         }
+    }
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+struct ShortAtelier(Atelier);
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+impl Exhibit for ShortAtelier {
+    const TITLE: &'static str = Atelier::TITLE;
+    const SIZE: [f64; 2] = [763.0, 311.0];
+    type Observation = AtelierObservation;
+
+    fn ui(&mut self, ui: &mut egui::Ui, water: &mut Surface) {
+        self.0.ui(ui, water);
+    }
+
+    fn observe(&self, text_edit_focused: bool) -> Self::Observation {
+        self.0.observe(text_edit_focused)
     }
 }
 
@@ -926,6 +946,9 @@ impl SettingsExhibit {
                 1,
             );
         });
+        if let Some(rect) = self.sheet.rect() {
+            record_rect(ui.ctx(), "atelier.settings.sheet", rect);
+        }
     }
 
     const fn faulted(&self) -> bool {
@@ -1310,6 +1333,13 @@ fn main() -> Result<()> {
     #[cfg(all(target_os = "linux", feature = "egui-test"))]
     if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(FOCUS_SENTINEL)) {
         return support::run(FocusSentinel);
+    }
+    #[cfg(all(target_os = "linux", feature = "egui-test"))]
+    if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(SHORT_WINDOW)) {
+        return support::run(ShortAtelier(Atelier {
+            page: Page::Settings,
+            ..Atelier::default()
+        }));
     }
     support::run(Atelier::default())
 }

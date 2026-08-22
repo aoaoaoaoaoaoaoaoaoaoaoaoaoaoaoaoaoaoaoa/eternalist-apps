@@ -14,7 +14,7 @@ use brass_poolrooms::{
 
 use crate::{
     commands::{SETTINGS_SHORTCUTS, Stroke, take},
-    modal::ModalShell,
+    modal::{ModalShell, card_frame, scroll_aperture},
 };
 
 const NAME_SIZE: f32 = 15.0;
@@ -212,32 +212,23 @@ impl SettingsSheet {
             return SettingsResponse::default();
         }
         let width = (ctx.content_rect().width() - 48.0).clamp(380.0, 680.0);
-        let body_height = (ctx.content_rect().height() - 220.0).clamp(220.0, 520.0);
         let mut close = false;
         let mut reload_requested = false;
-        let focus_close = self.shell.focus_close();
         let modal = egui::Modal::new(egui::Id::new("eternalist-settings"))
-            .frame(
-                egui::Frame::new()
-                    .fill(chrome::SURFACE)
-                    .stroke(egui::Stroke::new(1.5_f32, chrome::EDGE_STRONG))
-                    .corner_radius(2)
-                    .inner_margin(egui::Margin::same(14)),
-            )
+            .frame(card_frame())
             .backdrop_color(egui::Color32::from_black_alpha(176))
             .show(ctx, |ui| {
                 ui.set_width(width);
+                let chrome_top = ui.cursor().top();
                 let _header = ui.horizontal(|ui| {
                     let _title = ui.label(chrome::title("SETTINGS"));
                     let _close =
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             let response = Monoglyph::symbol(Symbol::Remove)
                                 .size(MechanismSize::Small)
+                                .focusable(false)
                                 .show(ui)
                                 .on_hover_text("Close settings · Escape");
-                            if focus_close {
-                                response.request_focus();
-                            }
                             record(ui, "eternalist.settings.close", response.rect);
                             close |= response.clicked();
                         });
@@ -248,11 +239,11 @@ impl SettingsSheet {
                     SETTINGS_SHORTCUTS[1].label(ui.ctx())
                 )));
                 ui.add_space(10.0);
-                reload_requested |= settings_body(ui, water, file, body_height, add_settings);
-                ui.min_rect()
+                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 190.0, 520.0);
+                reload_requested |= settings_body(ui, water, file, aperture, add_settings);
             });
         self.shell
-            .finish_present(ctx, modal.inner, close || modal.should_close());
+            .finish_present(ctx, modal.response.rect, close || modal.should_close());
         SettingsResponse { reload_requested }
     }
 }
@@ -261,27 +252,27 @@ fn settings_body(
     ui: &mut egui::Ui,
     water: &mut Surface,
     file: SettingsFile<'_>,
-    max_height: f32,
+    aperture: crate::modal::ScrollAperture,
     add_settings: impl FnOnce(&mut SettingsUi<'_>),
 ) -> bool {
     let mut reload_requested = false;
-    if let Some(fault) = file.fault {
-        fault_card(
-            ui,
-            water,
-            fault,
-            file.reload_pending,
-            file.reloadable,
-            &mut reload_requested,
-        );
-        ui.add_space(10.0);
-    }
-    let _body = ScrewScroll::vertical()
+    let body = ScrewScroll::vertical()
         .id_salt("eternalist-settings-body")
-        .min_scrolled_height(190.0)
-        .max_height(max_height)
+        .min_scrolled_height(aperture.floor)
+        .max_height(aperture.height)
         .auto_shrink([false, true])
         .show(ui, |ui| {
+            if let Some(fault) = file.fault {
+                fault_card(
+                    ui,
+                    water,
+                    fault,
+                    file.reload_pending,
+                    file.reloadable,
+                    &mut reload_requested,
+                );
+                ui.add_space(10.0);
+            }
             let mut settings = SettingsUi {
                 ui,
                 water,
@@ -305,7 +296,7 @@ fn settings_body(
                 }
             });
             settings.ui.add_space(3.0);
-            let _path = settings.ui.add(
+            let path = settings.ui.add(
                 egui::Label::new(
                     egui::RichText::new(file.path.display().to_string())
                         .monospace()
@@ -315,8 +306,10 @@ fn settings_body(
                 .selectable(true)
                 .wrap(),
             );
+            record(settings.ui, "eternalist.settings.path", path.rect);
             settings.ui.add_space(8.0);
         });
+    record(ui, "eternalist.settings.body", body.inner_rect);
     reload_requested
 }
 
@@ -406,7 +399,7 @@ fn fault_card(
     reloadable: bool,
     reload_requested: &mut bool,
 ) {
-    let _card = egui::Frame::new()
+    let card = egui::Frame::new()
         .fill(egui::Color32::from_rgba_unmultiplied(80, 27, 12, 176))
         .stroke(egui::Stroke::new(1.5_f32, FAULT))
         .inner_margin(egui::Margin::same(10))
@@ -429,6 +422,7 @@ fn fault_card(
                     });
             });
         });
+    record(ui, "eternalist.settings.fault", card.response.rect);
 }
 
 fn reload_actuator(

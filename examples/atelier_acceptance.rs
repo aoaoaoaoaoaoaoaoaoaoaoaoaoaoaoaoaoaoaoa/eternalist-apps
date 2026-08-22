@@ -99,6 +99,181 @@ fn main() -> Result<()> {
     let exit = app.wait(WAIT).context("Atelier to honor native close")?;
     ensure!(exit.success(), "Atelier close failed: {exit:#?}");
     app.terminate().context("collect Atelier cgroup")?;
+    short_modal_story(&testbed, &binary, artifacts.as_deref())?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn short_modal_story(testbed: &Testbed, binary: &Path, artifacts: Option<&Path>) -> Result<()> {
+    let app = testbed.launch(
+        AppCommand::new(binary)
+            .arg("--short-window")
+            .witness("probes/atelier-short.observations")
+            .runtime(Duration::from_mins(1)),
+    )?;
+    let session = testbed.x11_session(
+        &app,
+        WindowQuery::title_exact("Eternalist · application primitive atelier"),
+        Duration::from_secs(15),
+    )?;
+    session.focus()?;
+    let mut probe: Probe<Observation> = app.witness()?.typed();
+    let _presented = probe.wait_surface_presented(&app, STARTUP_WAIT)?;
+
+    let _ready = probe.wait(&app, WAIT, "short Settings sheet", |frame| {
+        frame.state.page == "settings" && frame.state.settings.open
+    })?;
+    let _painted = probe.wait_fresh(&app, WAIT)?;
+    capture_optional(&session, artifacts, "settings-ready-short.png")?;
+    assert_modal_containment(
+        &session,
+        &app,
+        &mut probe,
+        "atelier.settings.sheet",
+        "eternalist.settings.body",
+    )?;
+    reveal_settings_target(&session, &app, &mut probe, "eternalist.settings.path", 6)?;
+
+    let _escape = session.key(Key::Escape)?;
+    let _closed = probe.wait(&app, WAIT, "close short Settings", |frame| {
+        !frame.state.settings.open
+    })?;
+    click_target(&session, &app, &mut probe, "atelier.settings.fault")?;
+    let _faulted = probe.wait(&app, WAIT, "faulted short Settings", |frame| {
+        frame.state.settings.fault && frame.state.settings.open
+    })?;
+    assert_modal_containment(
+        &session,
+        &app,
+        &mut probe,
+        "atelier.settings.sheet",
+        "eternalist.settings.body",
+    )?;
+    reveal_settings_target(&session, &app, &mut probe, "eternalist.settings.fault", 8)?;
+    reveal_settings_target(&session, &app, &mut probe, "eternalist.settings.path", 10)?;
+    capture_optional(&session, artifacts, "settings-fault-short.png")?;
+
+    let _escape = session.key(Key::Escape)?;
+    let _closed = probe.wait(&app, WAIT, "close faulted short Settings", |frame| {
+        !frame.state.settings.open
+    })?;
+    click_target(&session, &app, &mut probe, "atelier.tab.commands")?;
+    let _commands = probe.wait(&app, WAIT, "short Commands tab", |frame| {
+        frame.state.page == "commands"
+    })?;
+    let _help = session.key(Key::Function(1))?;
+    let _guide = probe.wait(&app, WAIT, "short Help guide", |frame| {
+        frame.state.guide_open
+    })?;
+    let _painted = probe.wait_fresh(&app, WAIT)?;
+    capture_optional(&session, artifacts, "help-short.png")?;
+    assert_modal_containment(
+        &session,
+        &app,
+        &mut probe,
+        "atelier.commands.guide",
+        "eternalist.command-guide.body",
+    )?;
+    let body = probe.wait_anchor(&app, "eternalist.command-guide.body", WAIT)?;
+    let (x, y) = body.center();
+    let _scroll = session.wheel(x, y, 8, Wheel::default())?;
+    let _scrolled = probe.wait_fresh(&app, WAIT)?;
+    assert_modal_containment(
+        &session,
+        &app,
+        &mut probe,
+        "atelier.commands.guide",
+        "eternalist.command-guide.body",
+    )?;
+
+    let _close = session.close()?;
+    let exit = app
+        .wait(WAIT)
+        .context("short Atelier to honor native close")?;
+    ensure!(exit.success(), "short Atelier close failed: {exit:#?}");
+    app.terminate().context("collect short Atelier cgroup")?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn reveal_settings_target(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+    target: &str,
+    magnitude: i32,
+) -> Result<()> {
+    ensure!(magnitude > 0, "settings reveal magnitude must be positive");
+    for _attempt in 0..3 {
+        let body = probe.wait_anchor(app, "eternalist.settings.body", WAIT)?;
+        let target = probe.wait_anchor(app, target, WAIT)?;
+        if ensure_anchor_contained(&body, &target).is_ok() {
+            return Ok(());
+        }
+        let (x, y) = body.center();
+        let direction = if target.rect[3] > body.rect[3] { 1 } else { -1 };
+        let _scroll = session.wheel(x, y, direction * magnitude, Wheel::default())?;
+        let _scrolled = probe.wait_fresh(app, WAIT)?;
+    }
+    let body = probe.wait_anchor(app, "eternalist.settings.body", WAIT)?;
+    let target = probe.wait_anchor(app, target, WAIT)?;
+    ensure_anchor_contained(&body, &target)
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn assert_modal_containment(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+    card: &str,
+    body: &str,
+) -> Result<()> {
+    let card = probe.wait_anchor(app, card, WAIT)?;
+    let body = probe.wait_anchor(app, body, WAIT)?;
+    ensure_anchor_contained(&card, &body)?;
+    let frame = session.capture()?;
+    let [left, top, right, bottom] = card.rect;
+    ensure!(
+        left >= -0.5
+            && top >= -0.5
+            && f64::from(right) <= f64::from(frame.width()) + 0.5
+            && f64::from(bottom) <= f64::from(frame.height()) + 0.5,
+        "modal card {:?} escaped {}×{} client pixels",
+        card.rect,
+        frame.width(),
+        frame.height(),
+    );
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn ensure_anchor_contained(outer: &egui_tester::Anchor, inner: &egui_tester::Anchor) -> Result<()> {
+    let [left, top, right, bottom] = outer.rect;
+    let [inner_left, inner_top, inner_right, inner_bottom] = inner.rect;
+    ensure!(
+        inner_left >= left - 0.5
+            && inner_top >= top - 0.5
+            && inner_right <= right + 0.5
+            && inner_bottom <= bottom + 0.5,
+        "witness `{}` {:?} escaped `{}` {:?}",
+        inner.name,
+        inner.rect,
+        outer.name,
+        outer.rect,
+    );
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn capture_optional(
+    session: &egui_tester::X11Session<'_, '_>,
+    artifacts: Option<&Path>,
+    name: &str,
+) -> Result<()> {
+    if let Some(directory) = artifacts {
+        std::fs::create_dir_all(directory).context("create acceptance artifact directory")?;
+        session.capture()?.save_png(directory.join(name))?;
+    }
     Ok(())
 }
 
