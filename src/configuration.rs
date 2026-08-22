@@ -407,10 +407,9 @@ fn merge_and_write<T: Configuration>(path: &Path, expected: &T, desired: &T) -> 
         Err(error) => return Err(error).with_context(|| format!("read `{}`", path.display())),
     };
     let current = strict_decode::<T>(&source)?;
-    let expected =
-        toml_edit::ser::to_document(expected).context("project expected configuration")?;
-    let desired = toml_edit::ser::to_document(desired).context("project desired configuration")?;
-    let current = toml_edit::ser::to_document(&current).context("project current configuration")?;
+    let expected = project(expected).context("project expected configuration")?;
+    let desired = project(desired).context("project desired configuration")?;
+    let current = project(&current).context("project current configuration")?;
     let mut patches = Vec::new();
     diff_tables(&[], expected.as_table(), desired.as_table(), &mut patches);
     let mut merged = source.clone();
@@ -433,6 +432,13 @@ fn merge_and_write<T: Configuration>(path: &Path, expected: &T, desired: &T) -> 
         return Ok(());
     }
     replace(path, merged.as_bytes())
+}
+
+fn project(value: &impl Serialize) -> Result<DocumentMut> {
+    toml::to_string_pretty(value)
+        .context("serialize typed configuration")?
+        .parse()
+        .context("parse typed configuration projection")
 }
 
 fn diff_tables(
@@ -493,6 +499,8 @@ fn apply_patch(source: &str, patch: &Patch) -> Result<String> {
         && let (Some(span), Some(_current), Some(value)) =
             (existing.span(), existing.as_value(), desired.as_value())
     {
+        let mut value = value.clone();
+        value.decor_mut().clear();
         let mut replaced = source.to_owned();
         replaced.replace_range(span, &value.to_string());
         return Ok(replaced);
@@ -600,6 +608,20 @@ mod tests {
         names: Vec<String>,
     }
 
+    #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+    #[serde(default)]
+    struct ArrayTableSpecimen {
+        filter: Vec<ArrayTableEntry>,
+    }
+
+    impl Configuration for ArrayTableSpecimen {}
+
+    #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+    struct ArrayTableEntry {
+        name: String,
+        query: String,
+    }
+
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(128))]
 
@@ -654,6 +676,32 @@ mod tests {
             fs::read_to_string(&path)?,
             "# crown\n[filters]\nenabled = true # switch\nnames = [\"kept\"]\n"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn collection_merge_preserves_array_of_tables_notation() -> Result<()> {
+        let source = "# crown\n[[filter]]\nname = \"old\"\nquery = \"a\"\n";
+        let expected = ArrayTableSpecimen {
+            filter: vec![ArrayTableEntry {
+                name: "old".to_owned(),
+                query: "a".to_owned(),
+            }],
+        };
+        let desired = ArrayTableSpecimen {
+            filter: vec![ArrayTableEntry {
+                name: "new".to_owned(),
+                query: "a AND b".to_owned(),
+            }],
+        };
+        let path = tempfile::NamedTempFile::new()?.into_temp_path();
+        fs::write(&path, source)?;
+        merge_and_write(&path, &expected, &desired)?;
+        let actual = fs::read_to_string(&path)?;
+        assert!(actual.contains("[[filter]]"), "{actual}");
+        assert!(!actual.contains("filter = ["), "{actual}");
+        assert!(actual.contains("name = \"new\""), "{actual}");
+        assert!(actual.contains("query = \"a AND b\""), "{actual}");
         Ok(())
     }
 }
