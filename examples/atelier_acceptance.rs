@@ -254,6 +254,32 @@ fn assert_modal_containment(
 }
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn assert_application_header(
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+) -> Result<()> {
+    let header = probe.wait_anchor(app, "eternalist.application.header", WAIT)?;
+    let name = probe.wait_anchor(app, "eternalist.application.name", WAIT)?;
+    let help = probe.wait_anchor(app, "eternalist.application.help", WAIT)?;
+    let settings = probe.wait_anchor(app, "eternalist.settings.open", WAIT)?;
+    ensure_anchor_contained(&header, &name)?;
+    ensure_anchor_contained(&header, &help)?;
+    ensure_anchor_contained(&header, &settings)?;
+    ensure!(
+        name.rect[0] <= header.rect[0] + 0.5
+            && name.rect[2] < help.rect[0]
+            && help.rect[2] <= settings.rect[0]
+            && settings.rect[2] >= header.rect[2] - 0.5,
+        "application header did not oppose its name and right-justified actions: header={:?}, name={:?}, help={:?}, settings={:?}",
+        header.rect,
+        name.rect,
+        help.rect,
+        settings.rect,
+    );
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
 fn ensure_anchor_contained(outer: &egui_tester::Anchor, inner: &egui_tester::Anchor) -> Result<()> {
     let [left, top, right, bottom] = outer.rect;
     let [inner_left, inner_top, inner_right, inner_bottom] = inner.rect;
@@ -295,6 +321,7 @@ fn settings_story(
     let _opened = probe.wait(app, WAIT, "Settings tab to present its sheet", |frame| {
         frame.state.page == "settings" && frame.state.settings.open
     })?;
+    assert_application_header(app, probe)?;
     if let Some(directory) = artifacts {
         thread::sleep(Duration::from_millis(250));
         let _settled = probe.wait_fresh(app, WAIT)?;
