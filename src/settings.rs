@@ -257,11 +257,18 @@ fn settings_body(
     add_settings: impl FnOnce(&mut SettingsUi<'_>),
 ) -> bool {
     let mut reload_requested = false;
-    let body = ScrewScroll::vertical()
+    let frame = egui::Frame::new()
+        .fill(chrome::CONTROL)
+        .stroke(egui::Stroke::new(1.0_f32, chrome::EDGE))
+        .corner_radius(1)
+        .inner_margin(egui::Margin::symmetric(6, 5));
+    let scroll_height = (aperture.height - frame.total_margin().sum().y).max(0.0);
+    let mut body = frame.begin(ui);
+    let _scroll = ScrewScroll::vertical()
         .id_salt("eternalist-settings-body")
-        .max_height(aperture.height)
+        .max_height(scroll_height)
         .auto_shrink([false, true])
-        .show(ui, |ui| {
+        .show(&mut body.content_ui, |ui| {
             if let Some(fault) = file.fault {
                 fault_card(
                     ui,
@@ -309,7 +316,8 @@ fn settings_body(
             witness::response(settings.ui, ApplicationTarget::SettingsPath, &path);
             settings.ui.add_space(8.0);
         });
-    witness::rect(ui.ctx(), ApplicationTarget::SettingsBody, body.inner_rect);
+    let body = body.end(ui);
+    witness::rect(ui.ctx(), ApplicationTarget::SettingsBody, body.rect);
     reload_requested
 }
 
