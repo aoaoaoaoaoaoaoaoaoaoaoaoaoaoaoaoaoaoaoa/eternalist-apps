@@ -30,6 +30,7 @@ pub mod living_wait;
 mod modal;
 pub mod panel_navigation;
 pub mod settings;
+pub mod witness;
 
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 mod native;

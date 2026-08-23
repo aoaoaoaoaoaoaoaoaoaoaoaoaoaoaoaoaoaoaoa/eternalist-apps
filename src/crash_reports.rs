@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 
-use crate::NativeWake;
+use crate::{NativeWake, witness};
 
 const SCHEMA: u8 = 1;
 const CAPSULE_NAME: &str = "crash-report-v1.json";
@@ -329,7 +329,7 @@ impl CrashReports {
                 ui.horizontal(|ui| {
                     let discard_response =
                         ui.add_enabled(!sending, egui::Button::new("DON'T SEND"));
-                    witness_response(ui, "eternalist.crash-report.discard", &discard_response);
+                    witness::response(ui, "eternalist.crash-report.discard", &discard_response);
                     if discard_response.clicked() {
                         discard = true;
                     }
@@ -337,10 +337,10 @@ impl CrashReports {
                     let send_response =
                         ui.add_enabled(!sending && delivery_armed, egui::Button::new(label));
                     if send_response.enabled() {
-                        witness_response(ui, "eternalist.crash-report.send", &send_response);
+                        witness::response(ui, "eternalist.crash-report.send", &send_response);
                     }
                     if send_response.clicked() {
-                        witness_response(ui, "eternalist.crash-report.send-clicked", &send_response);
+                        witness::response(ui, "eternalist.crash-report.send-clicked", &send_response);
                         send = true;
                     }
                 });
@@ -524,14 +524,6 @@ fn load_pending(path: &Path, product: CrashProduct) -> Option<CrashReport> {
     }
     loaded
 }
-
-#[cfg(feature = "egui-test")]
-fn witness_response(ui: &egui::Ui, name: &'static str, response: &egui::Response) {
-    egui_tester_witness::egui::record_response(ui, name, response);
-}
-
-#[cfg(not(feature = "egui-test"))]
-fn witness_response(_ui: &egui::Ui, _name: &'static str, _response: &egui::Response) {}
 
 fn persist_once(path: &Path, report: &CrashReport) -> std::io::Result<()> {
     if path.exists() {

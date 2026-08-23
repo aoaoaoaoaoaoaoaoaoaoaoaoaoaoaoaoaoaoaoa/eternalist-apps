@@ -4,7 +4,11 @@
 
 use brass_poolrooms::{chrome::MonoglyphResponse, water::Surface};
 
-use crate::{command_guide::CommandGuide, settings::SettingsSheet};
+use crate::{
+    command_guide::CommandGuide,
+    settings::SettingsSheet,
+    witness::{self, ApplicationTarget},
+};
 
 /// Application identity and universal controls placed above a persistent
 /// control surface.
@@ -53,9 +57,9 @@ impl<'a> ApplicationHeader<'a> {
             (title, help, settings)
         });
         let (title, help, settings) = row.inner;
-        record(ui, "eternalist.application.header", row.response.rect);
-        record(ui, "eternalist.application.name", title.rect);
-        record(ui, "eternalist.application.help", help.rect);
+        witness::rect(ui.ctx(), ApplicationTarget::Header, row.response.rect);
+        witness::response(ui, ApplicationTarget::Name, &title);
+        witness::response(ui, ApplicationTarget::Help, &help);
         ApplicationHeaderResponse {
             title,
             help,
@@ -76,11 +80,3 @@ pub struct ApplicationHeaderResponse {
     /// Complete header geometry.
     pub rect: egui::Rect,
 }
-
-#[cfg(feature = "egui-test")]
-fn record(ui: &egui::Ui, name: impl Into<String>, rect: egui::Rect) {
-    egui_tester_witness::egui::record(ui, name, rect);
-}
-
-#[cfg(not(feature = "egui-test"))]
-fn record(_ui: &egui::Ui, _name: impl Into<String>, _rect: egui::Rect) {}

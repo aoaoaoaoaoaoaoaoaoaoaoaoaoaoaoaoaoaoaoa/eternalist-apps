@@ -20,14 +20,14 @@ use brass_poolrooms::{
 use eternalist_apps::cabinet::{
     Cabinet, CabinetAction, CabinetEntry, CabinetKey, EntryEdit, Shelf, ShelfEdit,
 };
-use eternalist_apps::command_guide::{CommandGuide, GuideGesture, GuideSection};
+use eternalist_apps::command_guide::{CommandGuide, GuideGesture, GuideGroup};
 use eternalist_apps::commands::{
     CommandCanon, CommandDispatch, CommandScope, CommandSpec, CommandStatus, Shortcut, ShortcutKey,
     ShortcutModifiers, TextFocusPolicy,
 };
 use eternalist_apps::panel_navigation::PanelNavigator;
 use eternalist_apps::settings::{SettingSpec, SettingsFile, SettingsSheet};
-use eternalist_apps::{ApplicationHeader, Inspector, LivingWait};
+use eternalist_apps::{ApplicationHeader, Inspector, LivingWait, witness};
 use std::{
     fmt::{Display, Formatter},
     path::Path,
@@ -286,7 +286,7 @@ fn tab(ui: &mut egui::Ui, page: Page, selected: bool) -> egui::Response {
         ));
     let response = ui.add(button);
     chrome::shallow_tension(ui, &response);
-    record_response(ui, page.target(), &response);
+    witness::response(ui, page.target(), &response);
     response
 }
 
@@ -911,7 +911,7 @@ impl SettingsExhibit {
                         let fault = Checkbox::new(&mut faulted, "SIMULATE INVALID FILE")
                             .size(chrome::MechanismSize::Small)
                             .show(ui);
-                        record_response(ui, "atelier.settings.fault", &fault);
+                        witness::response(ui, "atelier.settings.fault", &fault);
                         water.checkbox(&fault);
                         if fault.changed() {
                             self.condition = if faulted {
@@ -947,7 +947,7 @@ impl SettingsExhibit {
             SettingsFile::ready(path)
         };
         let _response = self.sheet.show(ui.ctx(), water, file, |ui| {
-            ui.section("WORKSPACE");
+            ui.group("WORKSPACE");
             let _restored = ui.boolean(RESTORE_WORKSPACE, &mut self.restore_workspace);
             let _confirmed = ui.boolean(CONFIRM_DISCARD, &mut self.confirm_discard);
             let _delay = ui.number(
@@ -959,7 +959,7 @@ impl SettingsExhibit {
             );
         });
         if let Some(rect) = self.sheet.rect() {
-            record_rect(ui.ctx(), "atelier.settings.sheet", rect);
+            witness::rect(ui.ctx(), "atelier.settings.sheet", rect);
         }
     }
 
@@ -1009,17 +1009,17 @@ const DENSITY_BOUNDS: [Shortcut; 2] = [
 const WORKSPACE_GESTURES: [GuideGesture; 5] = [
     GuideGesture::new(
         "Show or hide controls",
-        "Conceals or reveals the complete control sidebar.",
+        "Conceals or reveals the complete Inspector Panel.",
         &TOGGLE_CONTROLS,
     ),
     GuideGesture::new(
         "Next control group",
-        "Moves focus to the next group in the sidebar.",
+        "Moves focus to the next group in the Inspector Panel.",
         &NEXT_CONTROL_GROUP,
     ),
     GuideGesture::new(
         "Previous control group",
-        "Moves focus to the previous group in the sidebar.",
+        "Moves focus to the previous group in the Inspector Panel.",
         &PREVIOUS_CONTROL_GROUP,
     ),
     GuideGesture::new(
@@ -1033,8 +1033,7 @@ const WORKSPACE_GESTURES: [GuideGesture; 5] = [
         &DENSITY_BOUNDS,
     ),
 ];
-const WORKSPACE_GUIDANCE: GuideSection =
-    GuideSection::new("WORKSPACE CONTROLS", &WORKSPACE_GESTURES);
+const WORKSPACE_GUIDANCE: GuideGroup = GuideGroup::new("WORKSPACE CONTROLS", &WORKSPACE_GESTURES);
 const DEMO_COMMANDS: [CommandSpec<DemoCommand, DemoScope>; 4] = [
     CommandSpec::new(
         DemoCommand::Open,
@@ -1123,13 +1122,13 @@ impl CommandsExhibit {
         self.scroll_offset = inspector.scroll_offset;
         self.inspector_expanded = inspector.is_expanded();
         self.inspector_extent = inspector.visible_extent();
-        record_response(
+        witness::response(
             ui,
             "atelier.commands.inspector-boundary",
             inspector.boundary(),
         );
         if let Some(actuator) = inspector.actuator() {
-            record_response(ui, "atelier.commands.inspector-actuator", actuator);
+            witness::response(ui, "atelier.commands.inspector-actuator", actuator);
         }
         inspector.agitate(water);
         if let Some(command) = inspector.inner {
@@ -1164,7 +1163,7 @@ impl CommandsExhibit {
                 );
                 ui.add_space(18.0);
                 let copy = ui.label(chrome::muted("COPY CAPABILITY SENTINEL"));
-                record_response(ui, "atelier.commands.copy", &copy);
+                witness::response(ui, "atelier.commands.copy", &copy);
             });
 
         let selected = self.selected;
@@ -1177,7 +1176,7 @@ impl CommandsExhibit {
             &[WORKSPACE_GUIDANCE],
         );
         if let Some(rect) = self.guide.rect() {
-            record_rect(ui.ctx(), "atelier.commands.guide", rect);
+            witness::rect(ui.ctx(), "atelier.commands.guide", rect);
         }
     }
 
@@ -1186,7 +1185,7 @@ impl CommandsExhibit {
         let _heading = ui.horizontal(|ui| {
             let _title = ui.label(chrome::title("COMMANDS"));
             let help = self.guide.activator(ui);
-            record_response(ui, "atelier.commands.help", &help);
+            witness::response(ui, "atelier.commands.help", &help);
             water.monoglyph(&help);
         });
         let _law = ui.label(chrome::muted(
@@ -1196,22 +1195,22 @@ impl CommandsExhibit {
 
         let mut invoked = None;
         let mut panels = self.panels.frame(ui.ctx());
-        let file = panels.section(ui, "command-file", "FILE", true, |ui| {
+        let file = panels.panel(ui, "command-file", "FILE", true, |ui| {
             for command in [DemoCommand::Open, DemoCommand::Save] {
                 let response = demo_canon().button(command, ui);
-                record_response(ui, demo_target(command), &response);
+                witness::response(ui, demo_target(command), &response);
                 if response.clicked() {
                     invoked = Some(command);
                 }
             }
         });
-        record_response(ui, "atelier.commands.panel.file", &file.header);
+        witness::response(ui, "atelier.commands.panel.file", &file.header);
         water.fold(file.wake);
         ui.add_space(10.0);
 
-        let selection = panels.section(ui, "command-selection", "SELECTION", true, |ui| {
+        let selection = panels.panel(ui, "command-selection", "SELECTION", true, |ui| {
             let selected = Checkbox::new(&mut self.selected, "ITEM SELECTED").show(ui);
-            record_response(ui, "atelier.commands.selected", &selected);
+            witness::response(ui, "atelier.commands.selected", &selected);
             water.checkbox(&selected);
             ui.add_space(8.0);
             let rename = ui
@@ -1219,7 +1218,7 @@ impl CommandsExhibit {
                     demo_canon().button(DemoCommand::Rename, ui)
                 })
                 .inner;
-            record_response(ui, "atelier.commands.rename", &rename);
+            witness::response(ui, "atelier.commands.rename", &rename);
             if rename.clicked() {
                 invoked = Some(DemoCommand::Rename);
             }
@@ -1234,25 +1233,25 @@ impl CommandsExhibit {
                 search.request_focus();
                 self.focus_search = false;
             }
-            record_response(ui, "atelier.commands.search", &search);
+            witness::response(ui, "atelier.commands.search", &search);
             if let Some(wake) = chrome::text_wake(ui, &search, &before, &self.filter) {
                 water.text(wake);
             }
         });
-        record_response(ui, "atelier.commands.panel.selection", &selection.header);
+        witness::response(ui, "atelier.commands.panel.selection", &selection.header);
         water.fold(selection.wake);
         ui.add_space(10.0);
 
-        let density = panels.section(ui, "command-density", "DENSITY", true, |ui| {
+        let density = panels.panel(ui, "command-density", "DENSITY", true, |ui| {
             let _value = ui.label(chrome::muted(format!("{} columns", self.density)));
             let rail = Rail::new(&mut self.density, 1..=8)
                 .detents(8)
                 .width(ui.available_width())
                 .show(ui);
-            record_response(ui, "atelier.commands.density", &rail);
+            witness::response(ui, "atelier.commands.density", &rail);
             water.rail(&rail);
         });
-        record_response(ui, "atelier.commands.panel.density", &density.header);
+        witness::response(ui, "atelier.commands.panel.density", &density.header);
         water.fold(density.wake);
         drop(panels);
         ui.add_space(14.0);
@@ -1297,34 +1296,6 @@ const fn demo_target(command: DemoCommand) -> &'static str {
         DemoCommand::Rename => "atelier.commands.rename",
         DemoCommand::FocusSearch => "atelier.commands.search",
     }
-}
-
-#[inline]
-fn record_response(ui: &egui::Ui, name: &'static str, response: &egui::Response) {
-    #[cfg(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    ))]
-    egui_tester_witness::egui::record_response(ui, name, response);
-    #[cfg(not(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    )))]
-    let _ = (ui, name, response);
-}
-
-#[inline]
-fn record_rect(ctx: &egui::Context, name: &'static str, rect: egui::Rect) {
-    #[cfg(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    ))]
-    egui_tester_witness::egui::record_rect(ctx, name, rect);
-    #[cfg(not(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    )))]
-    let _ = (ctx, name, rect);
 }
 
 fn demo_status(command: DemoCommand, selected: bool) -> CommandStatus<'static> {

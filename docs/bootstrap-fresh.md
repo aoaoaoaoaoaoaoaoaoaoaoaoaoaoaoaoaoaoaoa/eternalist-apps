@@ -88,7 +88,7 @@ fn run(app: App) -> anyhow::Result<()> {
 The application owns construction and publication. The host never discovers
 product paths, starts domain workers, or chooses first-run behavior.
 
-For native user preferences, define one typed `Configuration`, select the
+For native user settings, define one typed `Configuration`, select the
 platform-correct config path, and let `ConfigurationLedger` own strict TOML
 admission, settlement, merge, and atomic replacement. Project the same
 `SettingSpec` values through contextual controls and `SettingsSheet`. Wire the
@@ -105,7 +105,7 @@ structure. Use raw egui and Poolrooms directly where no shared law exists; do
 not invent a generic primitive from a single product merely to make its entry
 point shorter.
 
-Add an inspector only when the product has persistent-left-rail semantics:
+Add an Inspector only when the product has a persistent left-side control surface:
 
 ```rust
 let inspector = eternalist_apps::Inspector::new("product-inspector")
@@ -115,9 +115,9 @@ self.inspector_scroll = inspector.scroll_offset;
 inspector.agitate(&mut self.water);
 ```
 
-Use `PanelNavigator` when two or more inspector sections share the active-panel
+Use `PanelNavigator` when two or more Inspector panels share the active-panel
 keyboard grammar. Use Poolrooms `Section` directly when disclosure alone is
-needed. The application owns section identity, order, contents, fold defaults,
+needed. The application owns panel identity, order, contents, fold defaults,
 actions, and persistence. Do not create an empty or ceremonial inspector.
 
 Declare recurring application actions as typed `CommandSpec` values and forge
@@ -126,7 +126,7 @@ one `CommandCanon`. Route input, generate button labels, and render
 the domain. Add Alt mnemonics conservatively. Apply the design language's
 [basic-controls checklist](design-language.md#basic-controls) to every
 navigable surface. `CommandGuide` supplies only universal keyboard and guide
-sections. Author every target-specific `GuideSection` in the product, name it
+groups. Author every target-specific `GuideGroup` in the product, name it
 in user vocabulary, and include it only where its target exists. Physical
 control classes never propagate help into applications. The canon owns no
 callback bus, availability state, feedback channel, or keymap persistence.

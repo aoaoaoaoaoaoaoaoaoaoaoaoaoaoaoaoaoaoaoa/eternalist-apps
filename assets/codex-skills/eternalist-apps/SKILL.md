@@ -75,7 +75,7 @@ branch is a failed extraction.
   result drains item and wall ceilings; use the shared superseding mailbox for
   latest-demand-wins work, and use `SettledScribe` for settled background
   persistence when the product needs it.
-- For native user preferences, declare one typed `Configuration`, use
+- For native user settings, declare one typed `Configuration`, use
   `ConfigurationLedger` for strict TOML validation and format-preserving atomic
   settlement, and project shared `SettingSpec` declarations through contextual
   controls plus `SettingsSheet`. Unknown keys are faults; never rewrite them

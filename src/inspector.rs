@@ -1,7 +1,7 @@
 //! Opt-in geometry and visibility for a persistent left inspector.
 //!
-//! This module owns panel placement, scrolling, animated concealment, its F9
-//! idiom, and the resulting water forcing. Section structure, commands,
+//! This module owns surface placement, scrolling, animated concealment, its F9
+//! idiom, and the resulting water forcing. Panel structure, commands,
 //! persistence, and domain actions remain with the caller.
 
 use brass_poolrooms::{
@@ -12,24 +12,24 @@ use egui::{Id, InnerResponse, Rect, Response, ScrollArea, Ui};
 
 use crate::commands::{Stroke, TOGGLE_INSPECTOR, take};
 
-/// Default width for a dense inspector rail.
+/// Default width for a dense Inspector.
 pub const WIDTH: f32 = brass_poolrooms::chrome::INSPECTOR_WIDTH;
 
 const ACTUATOR_INSET: f32 = 4.0;
 const BOUNDARY_HALF_WIDTH: f32 = 5.0;
 const ACTUATOR_LINGER_SECONDS: f64 = 0.24;
-const PANEL_SWEEP_IMPULSE: f32 = 1.10;
+const INSPECTOR_SWEEP_IMPULSE: f32 = 1.10;
 const MOTION_EPSILON: f32 = 0.01;
 
-/// An optional, animated left rail containing application-owned controls.
+/// An optional, animated left control surface containing application-owned controls.
 ///
-/// F9 and the small boundary actuator conceal or reveal the complete rail.
+/// F9 and the small boundary actuator conceal or reveal the complete Inspector.
 /// Visibility is session state keyed by the inspector identity. The caller may
 /// restore scroll position, but need not own visibility, animation, shortcut
 /// routing, or water coupling.
 #[derive(Clone, Copy, Debug)]
 pub struct Inspector {
-    panel: Id,
+    surface: Id,
     scroll: Id,
     width: f32,
     offset: Option<f32>,
@@ -38,10 +38,10 @@ pub struct Inspector {
 impl Inspector {
     /// Name one inspector and its session visibility and scroll state.
     pub fn new(id: impl egui::AsId) -> Self {
-        let panel = Id::new(id);
+        let surface = Id::new(id);
         Self {
-            panel,
-            scroll: panel.with("scroll"),
+            surface,
+            scroll: surface.with("scroll"),
             width: WIDTH,
             offset: None,
         }
@@ -68,19 +68,19 @@ impl Inspector {
         self
     }
 
-    /// Show the rail inside an application's root UI.
+    /// Show the Inspector inside an application's root UI.
     ///
     /// A fully concealed inspector does not evaluate `add`; its return is
     /// `R::default()`, the application's empty action. Call
     /// [`InspectorResponse::agitate`] after layout to apply the shared scroll,
-    /// actuator, and panel-sweep water law.
+    /// actuator, and moving-wall water law.
     pub fn show<R: Default>(
         self,
         ui: &mut Ui,
         add: impl FnOnce(&mut Ui) -> R,
     ) -> InspectorResponse<R> {
         let ctx = ui.ctx().clone();
-        let visibility_id = self.panel.with("visibility");
+        let visibility_id = self.surface.with("visibility");
         let mut expanded = ctx
             .data(|data| data.get_temp::<bool>(visibility_id))
             .unwrap_or(true);
@@ -93,7 +93,7 @@ impl Inspector {
 
         let available = ui.available_rect_before_wrap();
         let mut scroll_before = None;
-        let panel = egui::Panel::left(self.panel)
+        let surface = egui::Panel::left(self.surface)
             .resizable(false)
             .exact_size(self.width)
             .show_collapsible(ui, &mut expanded, |ui| {
@@ -119,12 +119,12 @@ impl Inspector {
             (ui.available_rect_before_wrap().left() - available.left()).clamp(0.0, self.width);
 
         let (inner, response, mut scroll_offset) =
-            if let Some(InnerResponse { inner, response }) = panel {
+            if let Some(InnerResponse { inner, response }) = surface {
                 (inner.inner, Some(response), inner.state.offset.y.max(0.0))
             } else {
                 let offset = self.offset.unwrap_or_else(|| {
                     ctx.data(|data| {
-                        data.get_temp::<f32>(self.panel.with("scroll-offset"))
+                        data.get_temp::<f32>(self.surface.with("scroll-offset"))
                             .unwrap_or(0.0)
                     })
                 });
@@ -137,10 +137,10 @@ impl Inspector {
             ctx.request_repaint();
         }
         ctx.data_mut(|data| {
-            let _old = data.insert_temp(self.panel.with("scroll-offset"), scroll_offset);
+            let _old = data.insert_temp(self.surface.with("scroll-offset"), scroll_offset);
         });
 
-        let actuator = visibility_actuator(&ctx, self.panel, available, extent, expanded);
+        let actuator = visibility_actuator(&ctx, self.surface, available, extent, expanded);
         if actuator.clicked() {
             expanded = !expanded;
             ctx.request_repaint();
@@ -149,7 +149,7 @@ impl Inspector {
             let _old = data.insert_temp(visibility_id, expanded);
         });
 
-        let sweep = panel_sweep(&ctx, self.panel, available, extent, self.width);
+        let sweep = inspector_sweep(&ctx, self.surface, available, extent, self.width);
 
         InspectorResponse {
             inner,
@@ -165,7 +165,7 @@ impl Inspector {
 
 fn visibility_actuator(
     ctx: &egui::Context,
-    panel: Id,
+    surface: Id,
     available: Rect,
     extent: f32,
     expanded: bool,
@@ -179,7 +179,7 @@ fn visibility_actuator(
         egui::pos2(boundary_center, available.center().y),
         egui::vec2(2.0 * BOUNDARY_HALF_WIDTH, available.height()),
     );
-    let boundary = egui::Area::new(panel.with("visibility-boundary"))
+    let boundary = egui::Area::new(surface.with("visibility-boundary"))
         .order(egui::Order::Foreground)
         .fixed_pos(boundary_rect.min)
         .show(ctx, |ui| {
@@ -190,7 +190,7 @@ fn visibility_actuator(
 
     let now = ctx.input(|input| input.time);
     let pointer = ctx.input(|input| input.pointer.hover_pos());
-    let state_id = panel.with("visibility-actuator-state");
+    let state_id = surface.with("visibility-actuator-state");
     let mut state = ctx
         .data(|data| data.get_temp::<ActuatorState>(state_id))
         .unwrap_or_default();
@@ -221,7 +221,7 @@ fn visibility_actuator(
     }
 
     let mut button = (state.armed && now <= state.visible_until).then(|| {
-        egui::Area::new(panel.with("visibility-actuator"))
+        egui::Area::new(surface.with("visibility-actuator"))
             .order(egui::Order::Foreground)
             .fixed_pos(actuator_rect.min)
             .show(ctx, |ui| {
@@ -273,14 +273,14 @@ impl VisibilityActuator {
     }
 }
 
-fn panel_sweep(
+fn inspector_sweep(
     ctx: &egui::Context,
-    panel: Id,
+    surface: Id,
     available: Rect,
     extent: f32,
     width: f32,
 ) -> Option<PanelSweep> {
-    let motion_id = panel.with("water-extent");
+    let motion_id = surface.with("water-extent");
     let prior_extent = ctx
         .data(|data| data.get_temp::<f32>(motion_id))
         .unwrap_or(extent);
@@ -295,7 +295,7 @@ fn panel_sweep(
                 egui::pos2(edge - 1.0, available.top()),
                 egui::pos2(edge + 1.0, available.bottom()),
             ),
-            impulse: PANEL_SWEEP_IMPULSE * travel.abs() / width,
+            impulse: INSPECTOR_SWEEP_IMPULSE * travel.abs() / width,
             travel,
         }
     })
@@ -308,13 +308,13 @@ struct PanelSweep {
     travel: f32,
 }
 
-/// Application result, panel geometry, visibility, and water forcing from one
+/// Application result, Inspector geometry, visibility, and water forcing from one
 /// [`Inspector`] frame.
 pub struct InspectorResponse<R> {
     /// Value returned by the application-owned body, or its empty default while
     /// the inspector is fully concealed.
     pub inner: R,
-    /// Egui response covering the complete inspector panel while any portion is
+    /// Egui response covering the complete Inspector while any portion is
     /// visible.
     pub response: Option<Response>,
     /// Resulting nonnegative vertical offset in logical points.

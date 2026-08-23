@@ -30,12 +30,12 @@ These are design vocabulary, not a promise that every role has a library type
 or a universal panel sequence.
 
 Commands have one stable identity, one visible label, one consequence
-description, and one effective shortcut projection. Default accelerators,
+description, and one effective shortcut projection. Default shortcuts,
 permanent Alt mnemonics, routing, button legends, and help must derive from
 that declaration rather than drift as independent strings. Reserve mnemonics
 for common consequential actions; saturation destroys their value.
 Permanent Alt mnemonics underline their label glyph. A command button presents
-its first effective non-mnemonic accelerator at its trailing edge: an
+its first effective non-mnemonic shortcut at its trailing edge: an
 unmodified character uses a small void-finished monoglyph, while modified and
 multicharacter chords use a compact key well. The legend therefore follows any
 future keymap projection without rewriting the command label.
@@ -66,7 +66,7 @@ corresponding navigation is absent:
 - Persistent controls begin with the application header: application name,
   Help, then Settings, at the top left above the control panels. Do not create
   an application-wide top display to host them. A product without a left
-  control rail places the same header in its nearest persistent control
+  Inspector places the same header in its nearest persistent control
   surface rather than manufacturing an inspector.
 - Enter and Space actuate the focused control.
 - Left and Right move one item through a result surface's primary order.
@@ -86,7 +86,7 @@ Poolrooms boundary controls; focus is a continuous water-tension state.
 A target-relative gesture belongs in help but is not a global command
 shortcut; do not advertise a shared gesture in an application that lacks its
 target. Target-specific help never descends from Eternalist or Poolrooms: the
-application declares each section in product language. Commands and panel
+application declares each group in product language. Commands and panel
 traversal remain dormant behind a modal layer.
 Application settings use one `SettingSpec` wherever they appear. Put a setting
 beside the work it governs when that placement is useful, and repeat it in the

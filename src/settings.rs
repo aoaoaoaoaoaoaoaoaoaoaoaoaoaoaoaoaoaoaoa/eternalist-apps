@@ -15,13 +15,14 @@ use brass_poolrooms::{
 use crate::{
     commands::{SETTINGS_SHORTCUTS, Stroke, take},
     modal::{ModalShell, card_frame, scroll_aperture},
+    witness::{self, ApplicationTarget},
 };
 
 const NAME_SIZE: f32 = 15.0;
 const DETAIL_SIZE: f32 = 14.0;
 const FAULT: egui::Color32 = egui::Color32::from_rgb(214, 92, 46);
 
-/// Stable application-owned metadata for one configurable preference.
+/// Stable application-owned metadata for one configurable setting.
 #[derive(Clone, Copy, Debug)]
 pub struct SettingSpec {
     id: &'static str,
@@ -154,7 +155,7 @@ impl SettingsSheet {
         self.shell.close(ctx);
     }
 
-    /// Consume the shared F2 or platform-familiar settings accelerator and
+    /// Consume the shared F2 or platform-familiar settings shortcut and
     /// toggle the sheet.
     ///
     /// Call this before ordinary application layout. While open, the sheet
@@ -193,7 +194,7 @@ impl SettingsSheet {
             )
         };
         let response = actuator.show(ui).on_hover_text(hint);
-        record(ui, "eternalist.settings.open", response.rect);
+        witness::response(ui, ApplicationTarget::SettingsOpen, &response);
         if response.clicked() {
             self.shell.toggle(ui.ctx());
         }
@@ -229,7 +230,7 @@ impl SettingsSheet {
                                 .focusable(false)
                                 .show(ui)
                                 .on_hover_text("Close settings · Escape");
-                            record(ui, "eternalist.settings.close", response.rect);
+                            witness::response(ui, ApplicationTarget::SettingsClose, &response);
                             close |= response.clicked();
                         });
                 });
@@ -306,10 +307,10 @@ fn settings_body(
                 .selectable(true)
                 .wrap(),
             );
-            record(settings.ui, "eternalist.settings.path", path.rect);
+            witness::response(settings.ui, ApplicationTarget::SettingsPath, &path);
             settings.ui.add_space(8.0);
         });
-    record(ui, "eternalist.settings.body", body.inner_rect);
+    witness::rect(ui.ctx(), ApplicationTarget::SettingsBody, body.inner_rect);
     reload_requested
 }
 
@@ -322,12 +323,18 @@ pub struct SettingsUi<'a> {
 
 impl SettingsUi<'_> {
     /// Begin a named settings group.
-    pub fn section(&mut self, title: impl Into<String>) {
+    pub fn group(&mut self, title: impl Into<String>) {
         let _title = self.ui.label(chrome::eyebrow(title));
         self.ui.add_space(4.0);
     }
 
-    /// Render one boolean preference and return whether it changed.
+    /// Former name for [`Self::group`].
+    #[deprecated(since = "0.9.4", note = "use SettingsUi::group")]
+    pub fn section(&mut self, title: impl Into<String>) {
+        self.group(title);
+    }
+
+    /// Render one boolean setting and return whether it changed.
     pub fn boolean(&mut self, spec: SettingSpec, value: &mut bool) -> bool {
         setting_row(self.ui, self.water, self.enabled, spec, |ui, water| {
             let control = Checkbox::without_text(value)
@@ -338,7 +345,7 @@ impl SettingsUi<'_> {
         })
     }
 
-    /// Render one bounded floating-point preference and return whether it changed.
+    /// Render one bounded floating-point setting and return whether it changed.
     pub fn number(
         &mut self,
         spec: SettingSpec,
@@ -369,7 +376,7 @@ fn setting_row(
             egui::Layout::right_to_left(egui::Align::Center),
             |ui| {
                 let (rect, control_changed) = control(ui, water);
-                record(ui, format!("eternalist.settings.{}", spec.id()), rect);
+                witness::rect(ui.ctx(), ApplicationTarget::Setting(spec.id()), rect);
                 changed = control_changed;
                 ui.add_space(12.0);
                 let _copy =
@@ -422,7 +429,7 @@ fn fault_card(
                     });
             });
         });
-    record(ui, "eternalist.settings.fault", card.response.rect);
+    witness::response(ui, ApplicationTarget::SettingsFault, &card.response);
 }
 
 fn reload_actuator(
@@ -447,7 +454,7 @@ fn reload_actuator(
             "Wait for application changes to finish saving"
         });
     water.monoglyph(&response);
-    record(ui, "eternalist.settings.reload", response.rect);
+    witness::response(ui, ApplicationTarget::SettingsReload, &response);
     if labeled {
         let _label = ui.label(chrome::section_title(if pending {
             "READING"
@@ -456,18 +463,4 @@ fn reload_actuator(
         }));
     }
     response.clicked()
-}
-
-#[inline]
-fn record(ui: &egui::Ui, name: impl Into<String>, rect: egui::Rect) {
-    #[cfg(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    ))]
-    egui_tester_witness::egui::record(ui, name, rect);
-    #[cfg(not(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    )))]
-    let _ = (ui, name, rect);
 }

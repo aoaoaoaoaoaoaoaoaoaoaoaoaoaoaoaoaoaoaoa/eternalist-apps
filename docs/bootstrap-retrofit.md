@@ -41,7 +41,7 @@ help strings. Keep command execution and feedback in the application. Adopt
 `PanelNavigator` only where the existing inspector deliberately chooses its
 contained Tab and Control+Tab law.
 
-When preferences are duplicated between contextual controls, a central menu,
+When settings are duplicated between contextual controls, a central sheet,
 and handwritten storage, declare each once as a `SettingSpec`, project them
 through `SettingsSheet`, and move native TOML mechanics to
 `ConfigurationLedger`. Preserve the product's defaults and meaning, choose its

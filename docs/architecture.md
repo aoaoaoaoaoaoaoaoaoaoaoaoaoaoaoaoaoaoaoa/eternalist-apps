@@ -110,10 +110,10 @@ arbitrary domain persistence through TOML.
 
 ## Inspector And Cabinet
 
-`Inspector` is optional. It owns fixed left-rail geometry, vertical scrolling,
+`Inspector` is optional. It owns fixed left-side control-surface geometry, vertical scrolling,
 session visibility, F9 and zero-layout hover-revealed boundary-actuator routing, translated slide motion,
 and the resulting button, scroll, and moving-wall water law. An application
-chooses whether it exists, what it contains, which sections are open, and how
+chooses whether it exists, what it contains, which panels are open, and how
 domain state persists. A fully concealed inspector does not evaluate its body;
 the body's `Default` result is the empty application action. A canvas-only
 application uses no inspector API.
@@ -160,10 +160,10 @@ optionally serializable `Shortcut` values make that projection the sole future
 insertion point for persisted keymaps. No override storage, merge law,
 conflict UI, or keymap editor exists yet.
 
-Alt mnemonics are separate from replaceable accelerators: the declared glyph is
+Alt mnemonics are separate from replaceable shortcuts: the declared glyph is
 permanently underlined by Poolrooms and its exact Alt chord is validated with
 the rest of the canon. Generated command buttons leave mnemonics underline-only
-and render the first effective non-mnemonic accelerator at their trailing edge.
+and render the first effective non-mnemonic shortcut at their trailing edge.
 An unmodified character uses a small void-finished Poolrooms monoglyph; a
 modified or multicharacter chord uses a compact key well. `CommandGuide`
 renders the same metadata and dynamic
@@ -174,10 +174,10 @@ modal restores its prior focus target
 when that target remains available. While open, the guide owns wheel input as
 well as pointer and keyboard interaction: `take_shortcuts` quarantines wheel
 motion before application layout and `show` returns it only to the guide's
-scroll surface. Universal keyboard and guide sections are automatic. Every
-target-specific gesture section is application-owned, written in product
+scroll surface. Universal keyboard and guide groups are automatic. Every
+target-specific gesture group is application-owned, written in product
 vocabulary, and supplied only where its target exists. Low-level physical
-control classes never export inheritable help sections.
+control classes never export inheritable help groups.
 
 ## Panel Grammar
 

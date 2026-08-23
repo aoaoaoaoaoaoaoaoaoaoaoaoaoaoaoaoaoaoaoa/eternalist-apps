@@ -1,4 +1,4 @@
-//! Focus containment and active-panel traversal for inspector sections.
+//! Focus containment and active-panel traversal for Inspector panels.
 
 #![deny(missing_docs)]
 
@@ -137,7 +137,7 @@ struct PanelRecord {
 }
 
 /// One-pass guard used to show every navigable inspector panel.
-#[must_use = "a panel frame must remain alive while its sections are shown"]
+#[must_use = "a panel frame must remain alive while its panels are shown"]
 pub struct PanelFrame<'navigator> {
     navigator: &'navigator mut PanelNavigator,
     ctx: egui::Context,
@@ -147,7 +147,7 @@ impl PanelFrame<'_> {
     /// Make a panel active before transferring focus into one of its controls.
     ///
     /// Call this in the same UI scope and with the same identity salt used by
-    /// [`Self::section`]. A panel omitted from the pass is discarded during
+    /// [`Self::panel`]. A panel omitted from the pass is discarded during
     /// finalization, just like an active panel removed by ordinary layout.
     pub fn activate(&mut self, ui: &egui::Ui, id_salt: impl egui::AsIdSalt) {
         let id = ui.make_persistent_id(id_salt);
@@ -158,7 +158,7 @@ impl PanelFrame<'_> {
     }
 
     /// Show one Poolrooms disclosure as a keyboard-contained logical panel.
-    pub fn section(
+    pub fn panel(
         &mut self,
         ui: &mut egui::Ui,
         id_salt: impl egui::AsIdSalt + Clone,
@@ -267,6 +267,19 @@ impl PanelFrame<'_> {
             activated: section.activated,
         }
     }
+
+    /// Former name for [`Self::panel`].
+    #[deprecated(since = "0.9.4", note = "use PanelFrame::panel")]
+    pub fn section(
+        &mut self,
+        ui: &mut egui::Ui,
+        id_salt: impl egui::AsIdSalt + Clone,
+        title: &'static str,
+        default_open: bool,
+        add: impl FnOnce(&mut egui::Ui),
+    ) -> PanelResponse {
+        self.panel(ui, id_salt, title, default_open, add)
+    }
 }
 
 impl Drop for PanelFrame<'_> {
@@ -353,7 +366,7 @@ mod tests {
         ctx.run_ui(input, |ui| {
             let mut panels = navigator.frame(ui.ctx());
             for (index, default_open) in open.into_iter().enumerate() {
-                let panel = panels.section(
+                let panel = panels.panel(
                     ui,
                     ("panel", index),
                     if index == 0 { "FIRST" } else { "SECOND" },
@@ -410,7 +423,7 @@ mod tests {
         ctx.run_ui(egui::RawInput::default(), |ui| {
             survivor = ui.make_persistent_id(("panel", 0));
             let mut panels = navigator.frame(ui.ctx());
-            let _first = panels.section(ui, ("panel", 0), "FIRST", true, |ui| {
+            let _first = panels.panel(ui, ("panel", 0), "FIRST", true, |ui| {
                 let _option = ui.button("one");
             });
         })
@@ -455,8 +468,8 @@ mod tests {
         let control = egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND);
         ctx.run_ui(key(control, true), |ui| {
             let mut panels = navigator.frame(ui.ctx());
-            let _first = panels.section(ui, ("panel", 0), "FIRST", true, |_| {});
-            let _second = panels.section(ui, ("panel", 1), "SECOND", true, |_| {});
+            let _first = panels.panel(ui, ("panel", 0), "FIRST", true, |_| {});
+            let _second = panels.panel(ui, ("panel", 1), "SECOND", true, |_| {});
             let _modal = modal().show(ui.ctx(), |ui| ui.label("modal"));
         })
         .drop_without_applying_deltas();

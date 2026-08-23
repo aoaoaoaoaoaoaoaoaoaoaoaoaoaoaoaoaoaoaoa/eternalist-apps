@@ -17,7 +17,10 @@ use crossbeam_channel::{Receiver, TryRecvError, bounded};
 use serde::{Serialize, de::DeserializeOwned};
 use toml_edit::{Document, DocumentMut, Item, Table, TableLike};
 
-use crate::{NativeWake, ScribeOutcome, SettledScribe};
+use crate::{
+    NativeWake, ScribeOutcome, SettledScribe,
+    settings::{SettingsFile, SettingsResponse},
+};
 
 /// Typed application configuration admitted by [`ConfigurationLedger`].
 ///
@@ -77,7 +80,7 @@ struct Reload<T> {
     thread: JoinHandle<()>,
 }
 
-/// A strict, settled, round-trip-safe TOML preference ledger.
+/// A strict, settled, round-trip-safe TOML configuration ledger.
 ///
 /// Startup and reload validate on a worker boundary. Mutations settle through
 /// [`SettledScribe`]. Each write rereads the file, rejects invalid or unknown
@@ -110,7 +113,7 @@ impl<T: Configuration> ConfigurationLedger<T> {
     /// Restore a configuration file with a product-supplied value used only
     /// when the file does not yet exist.
     ///
-    /// This is the migration seam for a prior lawful preference store. A
+    /// This is the migration seam for a prior lawful configuration store. A
     /// nondefault fallback is marked dirty and reaches the new TOML file
     /// through the ordinary settlement and atomic-write law.
     pub fn raise_with_fallback(
@@ -196,6 +199,34 @@ impl<T: Configuration> ConfigurationLedger<T> {
             && self.submitted.is_none()
             && self.scribe.deadline().is_none()
             && self.reload.is_none()
+    }
+
+    /// Project the complete configuration-file condition into a Settings Sheet.
+    ///
+    /// This is the sole bridge between native configuration ownership and the
+    /// renderer-neutral settings surface. Product code supplies setting rows;
+    /// it must not reconstruct fault, reload, or settlement law.
+    #[must_use]
+    pub fn settings_file(&self) -> SettingsFile<'_> {
+        self.fault
+            .as_ref()
+            .map_or_else(
+                || SettingsFile::ready(&self.path),
+                |fault| SettingsFile::fault(&self.path, fault.message()),
+            )
+            .reloading(self.reload_pending())
+            .reloadable(self.fault.is_some() || self.settled())
+    }
+
+    /// Apply the native consequence emitted by one Settings Sheet pass.
+    ///
+    /// Returns whether a new background reload began.
+    pub fn respond_to_settings(&mut self, response: SettingsResponse) -> Result<bool> {
+        if response.reload_requested() {
+            self.request_reload()
+        } else {
+            Ok(false)
+        }
     }
 
     /// Apply one typed mutation and restart the settlement clock.

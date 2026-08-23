@@ -1,4 +1,4 @@
-//! Semantic commands, portable accelerators, and exact input dispatch.
+//! Semantic commands, portable shortcuts, and exact input dispatch.
 //!
 //! A command is an application-owned typed value. This module supplies the
 //! stable metadata and routing law around it; it never performs domain work.
@@ -13,7 +13,7 @@ pub(crate) const HELP_SHORTCUTS: [Shortcut; 2] = [
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::QuestionMark),
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Function(1)),
 ];
-/// Shared settings accelerators: F2 everywhere, with Command+Comma on macOS
+/// Shared settings shortcuts: F2 everywhere, with Command+Comma on macOS
 /// and Control+Comma elsewhere as the platform-familiar alias.
 pub const SETTINGS_SHORTCUTS: [Shortcut; 2] = [
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::Function(2)),
@@ -297,7 +297,7 @@ impl ShortcutKey {
     }
 }
 
-/// One platform-neutral keyboard accelerator.
+/// One platform-neutral keyboard shortcut.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Shortcut {
@@ -306,13 +306,13 @@ pub struct Shortcut {
 }
 
 impl Shortcut {
-    /// Construct an accelerator from its portable modifiers and logical key.
+    /// Construct an shortcut from its portable modifiers and logical key.
     #[must_use]
     pub const fn new(modifiers: ShortcutModifiers, key: ShortcutKey) -> Self {
         Self { modifiers, key }
     }
 
-    /// Construct a primary-modifier letter or digit accelerator.
+    /// Construct a primary-modifier letter or digit shortcut.
     #[must_use]
     pub const fn primary(character: char) -> Self {
         Self::new(
@@ -321,7 +321,7 @@ impl Shortcut {
         )
     }
 
-    /// Construct a mnemonic Alt+letter or Alt+digit accelerator.
+    /// Construct a mnemonic Alt+letter or Alt+digit shortcut.
     #[must_use]
     pub const fn mnemonic(character: char) -> Self {
         Self::new(ShortcutModifiers::ALT, ShortcutKey::Character(character))
@@ -465,7 +465,7 @@ impl<C, S> CommandSpec<C, S> {
         self
     }
 
-    /// Install default accelerators in presentation order.
+    /// Install default shortcuts in presentation order.
     #[must_use]
     pub const fn with_default_shortcuts(mut self, shortcuts: &'static [Shortcut]) -> Self {
         self.default_shortcuts = shortcuts;
@@ -524,7 +524,7 @@ impl<C, S> CommandSpec<C, S> {
         self.scope
     }
 
-    /// Default accelerators.
+    /// Default shortcuts.
     pub const fn default_shortcuts(&self) -> &'static [Shortcut] {
         self.default_shortcuts
     }
@@ -616,7 +616,7 @@ pub enum CommandStatus<'reason> {
     Hidden,
 }
 
-/// Result of consuming one command accelerator.
+/// Result of consuming one command shortcut.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CommandDispatch<'reason, C> {
     /// Invoke this application-owned command exactly once.
@@ -665,7 +665,7 @@ where
             .unwrap_or_else(|| panic!("undeclared command {command:?}"))
     }
 
-    /// Effective non-mnemonic accelerators for one command.
+    /// Effective non-mnemonic shortcuts for one command.
     ///
     /// This is the future custom-keymap seam. It returns declaration defaults
     /// today through a slice borrowed from the canon; routing, button legends,
@@ -678,7 +678,7 @@ where
 
     /// Render a standard button from the canon's declaration and bindings.
     ///
-    /// This is an accelerator surface only: the returned click remains a typed
+    /// This is an shortcut surface only: the returned click remains a typed
     /// application action, and keyboard dispatch still flows through [`Self::route`].
     pub fn button(&self, command: C, ui: &mut egui::Ui) -> CommandButtonResponse {
         self.button_with(command, ui, std::convert::identity)
@@ -688,7 +688,7 @@ where
     ///
     /// The configurator may alter egui presentation such as selection state or
     /// minimum size. Eternalist retains ownership of the command label,
-    /// accelerator legend, and exact activation semantics.
+    /// shortcut legend, and exact activation semantics.
     pub fn button_with(
         &self,
         command: C,
@@ -717,7 +717,7 @@ where
         }
     }
 
-    /// Consume at most one exact accelerator and return its typed consequence.
+    /// Consume at most one exact shortcut and return its typed consequence.
     ///
     /// Contexts are ordered from most specific to least specific. Contextual
     /// bindings beat global bindings; a hidden command relinquishes its chord.
@@ -734,7 +734,7 @@ where
         self.route_unchecked(ctx, contexts, status)
     }
 
-    /// Consume at most one accelerator while an application-owned modal layer
+    /// Consume at most one shortcut while an application-owned modal layer
     /// is topmost.
     ///
     /// This admits the modal's own command context without letting it pierce a

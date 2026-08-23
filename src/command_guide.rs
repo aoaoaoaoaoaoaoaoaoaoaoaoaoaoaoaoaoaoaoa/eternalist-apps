@@ -10,15 +10,16 @@ use brass_poolrooms::chrome::{
 
 use crate::commands::{
     ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
-    PREVIOUS_CONTROL, Shortcut, Stroke, UNWIND, take,
+    PREVIOUS_CONTROL, SETTINGS_SHORTCUTS, Shortcut, Stroke, UNWIND, take,
 };
 use crate::modal::{ModalShell, card_frame, scroll_aperture};
+use crate::witness::{self, ApplicationTarget};
 
 const GUIDE_NAME_SIZE: f32 = 15.0;
 const GUIDE_DETAIL_SIZE: f32 = 14.0;
 const GUIDE_COLUMN_SPACING: f32 = 10.0;
 const GUIDE_ROW_SPACING: f32 = 4.0;
-const GUIDE_SECTION_SPACING: f32 = 9.0;
+const GUIDE_GROUP_SPACING: f32 = 9.0;
 
 #[derive(Clone, Copy, Debug)]
 struct GuideColumns {
@@ -61,15 +62,22 @@ const KEYBOARD_GESTURES: [GuideGesture; 4] = [
         &UNWIND,
     ),
 ];
-const GUIDE_GESTURES: [GuideGesture; 1] = [GuideGesture::new(
-    "Toggle this guide",
-    "Opens from application chrome or the keyboard.",
-    &HELP_SHORTCUTS,
-)];
-const GUIDE_SECTION: GuideSection = GuideSection::new("GUIDE", &GUIDE_GESTURES);
+const APPLICATION_GESTURES: [GuideGesture; 2] = [
+    GuideGesture::new(
+        "Toggle this guide",
+        "Opens from application chrome or the keyboard.",
+        &HELP_SHORTCUTS,
+    ),
+    GuideGesture::new(
+        "Open settings",
+        "Opens the central application configuration.",
+        &SETTINGS_SHORTCUTS,
+    ),
+];
+const APPLICATION_GROUP: GuideGroup = GuideGroup::new("APPLICATION", &APPLICATION_GESTURES);
 
 /// Baseline keyboard grammar rendered by every command guide.
-const KEYBOARD_IDIOMS: GuideSection = GuideSection::new("KEYBOARD NAVIGATION", &KEYBOARD_GESTURES);
+const KEYBOARD_GROUP: GuideGroup = GuideGroup::new("KEYBOARD NAVIGATION", &KEYBOARD_GESTURES);
 
 /// One target-relative interaction hint shown in a command guide.
 ///
@@ -118,23 +126,23 @@ impl GuideGesture {
 
 /// Application-owned group of target-relative interactions.
 ///
-/// Eternalist deliberately exports no ready-made target sections: the
+/// Eternalist deliberately exports no ready-made target groups: the
 /// application names each target in product vocabulary and decides exactly
 /// which contexts admit it.
 #[derive(Clone, Copy, Debug)]
-pub struct GuideSection {
+pub struct GuideGroup {
     title: &'static str,
     gestures: &'static [GuideGesture],
 }
 
-impl GuideSection {
-    /// Declare one help section.
+impl GuideGroup {
+    /// Declare one help group.
     #[must_use]
     pub const fn new(title: &'static str, gestures: &'static [GuideGesture]) -> Self {
         Self { title, gestures }
     }
 
-    /// Section heading.
+    /// Group heading.
     #[must_use]
     pub const fn title(self) -> &'static str {
         self.title
@@ -146,6 +154,14 @@ impl GuideSection {
         self.gestures
     }
 }
+
+/// Former name for [`GuideGroup`].
+///
+/// New applications should say “group”; `Section` is a Brass physical
+/// disclosure. This alias remains for one release boundary so already
+/// published applications continue to resolve.
+#[deprecated(since = "0.9.4", note = "use GuideGroup")]
+pub type GuideSection = GuideGroup;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 enum GuidePage {
@@ -237,7 +253,7 @@ impl CommandGuide {
         contexts: &[S],
         scope_name: impl Fn(S) -> &'static str,
         status: impl Fn(C) -> CommandStatus<'reason>,
-        application_sections: &[GuideSection],
+        application_groups: &[GuideGroup],
     ) where
         C: Copy + Debug + Eq + 'static,
         S: Copy + Debug + Eq + 'static,
@@ -295,34 +311,24 @@ impl CommandGuide {
                                 contexts,
                                 &scope_name,
                                 &status,
-                                application_sections,
+                                application_groups,
                             );
                         }
                         GuidePage::All => {
-                            show_all(ui, canon, &scope_name, &status, application_sections);
+                            show_all(ui, canon, &scope_name, &status, application_groups);
                         }
                     });
-                record_rect(ui.ctx(), "eternalist.command-guide.body", body.inner_rect);
+                witness::rect(
+                    ui.ctx(),
+                    ApplicationTarget::CommandGuideBody,
+                    body.inner_rect,
+                );
             });
         // Modal retirement follows the presented surface by one pass, so the
         // public state and witness geometry cannot diverge.
         self.shell
             .finish_present(ctx, modal.response.rect, close || modal.should_close());
     }
-}
-
-#[inline]
-fn record_rect(ctx: &egui::Context, name: &'static str, rect: egui::Rect) {
-    #[cfg(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    ))]
-    egui_tester_witness::egui::record_rect(ctx, name, rect);
-    #[cfg(not(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    )))]
-    let _ = (ctx, name, rect);
 }
 
 fn page_button(ui: &mut egui::Ui, label: &'static str, selected: bool) -> bool {
@@ -356,7 +362,7 @@ fn show_context<'reason, C, S>(
     contexts: &[S],
     scope_name: &impl Fn(S) -> &'static str,
     status: &impl Fn(C) -> CommandStatus<'reason>,
-    application_sections: &[GuideSection],
+    application_groups: &[GuideGroup],
 ) where
     C: Copy + Debug + Eq + 'static,
     S: Copy + Debug + Eq + 'static,
@@ -383,7 +389,7 @@ fn show_context<'reason, C, S>(
             .filter(|spec| spec.scope() == CommandScope::Global),
         status,
     );
-    show_guide_sections(ui, application_sections);
+    show_guide_groups(ui, application_groups);
 }
 
 fn show_all<'reason, C, S>(
@@ -391,7 +397,7 @@ fn show_all<'reason, C, S>(
     canon: &CommandCanon<C, S>,
     scope_name: &impl Fn(S) -> &'static str,
     status: &impl Fn(C) -> CommandStatus<'reason>,
-    application_sections: &[GuideSection],
+    application_groups: &[GuideGroup],
 ) where
     C: Copy + Debug + Eq + 'static,
     S: Copy + Debug + Eq + 'static,
@@ -427,7 +433,7 @@ fn show_all<'reason, C, S>(
             status,
         );
     }
-    show_guide_sections(ui, application_sections);
+    show_guide_groups(ui, application_groups);
 }
 
 fn show_command_group<'reason, 'spec, C, S>(
@@ -472,29 +478,29 @@ fn show_command_group<'reason, 'spec, C, S>(
                 show_guide_row(ui, columns, enabled, bindings, name, detail);
             }
         });
-    ui.add_space(GUIDE_SECTION_SPACING);
+    ui.add_space(GUIDE_GROUP_SPACING);
 }
 
-fn show_guide_sections(ui: &mut egui::Ui, application_sections: &[GuideSection]) {
-    show_gesture_group(ui, KEYBOARD_IDIOMS);
-    for section in application_sections {
-        show_gesture_group(ui, *section);
+fn show_guide_groups(ui: &mut egui::Ui, application_groups: &[GuideGroup]) {
+    show_gesture_group(ui, KEYBOARD_GROUP);
+    for group in application_groups {
+        show_gesture_group(ui, *group);
     }
-    show_gesture_group(ui, GUIDE_SECTION);
+    show_gesture_group(ui, APPLICATION_GROUP);
 }
 
-fn show_gesture_group(ui: &mut egui::Ui, section: GuideSection) {
-    let _title = ui.label(chrome::eyebrow(section.title()));
+fn show_gesture_group(ui: &mut egui::Ui, group: GuideGroup) {
+    let _title = ui.label(chrome::eyebrow(group.title()));
     ui.add_space(4.0);
     let columns = GuideColumns::for_width(ui.available_width());
-    let _grid = egui::Grid::new(("eternalist-command-guide-gestures", section.title()))
+    let _grid = egui::Grid::new(("eternalist-command-guide-gestures", group.title()))
         .num_columns(3)
         .min_col_width(0.0)
         .min_row_height(0.0)
         .spacing(egui::vec2(GUIDE_COLUMN_SPACING, GUIDE_ROW_SPACING))
         .striped(false)
         .show(ui, |ui| {
-            for gesture in section.gestures() {
+            for gesture in group.gestures() {
                 show_guide_row(
                     ui,
                     columns,
@@ -507,7 +513,7 @@ fn show_gesture_group(ui: &mut egui::Ui, section: GuideSection) {
                 );
             }
         });
-    ui.add_space(GUIDE_SECTION_SPACING);
+    ui.add_space(GUIDE_GROUP_SPACING);
 }
 
 fn show_guide_row(

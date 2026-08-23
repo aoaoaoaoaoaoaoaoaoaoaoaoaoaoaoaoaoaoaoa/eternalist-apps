@@ -207,15 +207,15 @@ dependencies = [
 
 [[package]]
 name = "brass_foundry"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1df00c9ab30334ab31d375ffb073f718d52998c94837e658b72809c094a8b8b9"
+checksum = "9827891155160d0d42f077f193924dfb3e1a39129dbb443e8cebacbd7da4bed4"
 
 [[package]]
 name = "brass_poolrooms"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4ed7f6c5b09ba28cb67c1a39bdca97c523ed26d74e643c219913449553f0b3b"
+checksum = "0b2ccb78e9150c6f65ec37ea2dfb9cfee81629df82e887c1c73167f2fdba69c4"
 dependencies = [
  "anyhow",
  "brass_foundry",
@@ -619,9 +619,9 @@ dependencies = [
 
 [[package]]
 name = "egui-tester"
-version = "0.9.6"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c611c4f9f7da0c596688d85ab92ec91bd00601f7f04fe11d5ac8af6149d3aef6"
+checksum = "5b274f03990d187570b3c1172dd504296ee88d28cafa60968013d1fd69d0ba23"
 dependencies = [
  "bitflags 2.13.1",
  "egui-tester-witness",
@@ -637,9 +637,9 @@ dependencies = [
 
 [[package]]
 name = "egui-tester-witness"
-version = "0.9.6"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2177c0efe0f2d2c362bfcc9fb6a833e799730c27697248578cce86ff12d4cad7"
+checksum = "09759d7c75eb3d380c0307d0347f0b024eafaf783f337abeed11e130ae115728"
 dependencies = [
  "egui",
  "rustix 1.1.4",
@@ -772,7 +772,7 @@ checksum = "0b5343afd4a8365a643ac588dab4cf234a190c7f6c88c9f6dd6ffe00837661b7"
 
 [[package]]
 name = "eternalist-apps"
-version = "0.9.3"
+version = "0.9.4"
 dependencies = [
  "anyhow",
  "arboard",
