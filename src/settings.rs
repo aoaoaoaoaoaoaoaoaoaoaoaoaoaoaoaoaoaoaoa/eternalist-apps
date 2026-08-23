@@ -240,7 +240,7 @@ impl SettingsSheet {
                     SETTINGS_SHORTCUTS[1].label(ui.ctx())
                 )));
                 ui.add_space(10.0);
-                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 190.0, 520.0);
+                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 520.0);
                 reload_requested |= settings_body(ui, water, file, aperture, add_settings);
             });
         self.shell
@@ -259,7 +259,6 @@ fn settings_body(
     let mut reload_requested = false;
     let body = ScrewScroll::vertical()
         .id_salt("eternalist-settings-body")
-        .min_scrolled_height(aperture.floor)
         .max_height(aperture.height)
         .auto_shrink([false, true])
         .show(ui, |ui| {

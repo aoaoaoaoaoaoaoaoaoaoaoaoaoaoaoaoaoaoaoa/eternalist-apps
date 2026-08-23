@@ -297,7 +297,7 @@ impl CommandGuide {
                     }
                 });
                 ui.add_space(8.0);
-                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 560.0, 560.0);
+                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 560.0);
                 let body = ScrewScroll::vertical()
                     .id_salt("eternalist-command-guide-body")
                     .min_scrolled_height(aperture.height)
