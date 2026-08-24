@@ -213,7 +213,9 @@ impl Forge {
 }
 
 fn argb_bytes(rgba: &[u8], little_endian: bool) -> Vec<u8> {
-    rgba.chunks_exact(4)
+    rgba.as_chunks::<4>()
+        .0
+        .iter()
         .flat_map(|pixel| {
             let argb = u32::from(pixel[3]) << 24
                 | u32::from(pixel[0]) << 16
