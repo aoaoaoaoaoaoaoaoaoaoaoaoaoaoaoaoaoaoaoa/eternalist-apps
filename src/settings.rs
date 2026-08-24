@@ -367,6 +367,24 @@ impl SettingsUi<'_> {
             (control.rect, control.changed())
         })
     }
+
+    /// Render one application-owned control inside the shared setting row.
+    ///
+    /// This is the escape hatch for a control whose reuse law has not earned
+    /// promotion. The application retains its interaction and rendering law;
+    /// the sheet owns only row geometry, enablement, copy, and witnessing. The
+    /// returned response must cover the complete control and be marked changed
+    /// when its bound value changes.
+    pub fn control(
+        &mut self,
+        spec: SettingSpec,
+        control: impl FnOnce(&mut egui::Ui, &mut Surface) -> egui::Response,
+    ) -> bool {
+        setting_row(self.ui, self.water, self.enabled, spec, |ui, water| {
+            let response = control(ui, water);
+            (response.rect, response.changed())
+        })
+    }
 }
 
 fn setting_row(

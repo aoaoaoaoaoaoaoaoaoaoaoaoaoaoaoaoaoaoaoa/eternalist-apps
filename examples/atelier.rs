@@ -836,6 +836,11 @@ const SETTLEMENT_DELAY: SettingSpec = SettingSpec::new(
     "SETTLEMENT DELAY",
     "Wait this many seconds after the last change before committing it.",
 );
+const INFORMATION_DENSITY: SettingSpec = SettingSpec::new(
+    "information_density",
+    "INFORMATION DENSITY",
+    "Choose the amount of secondary application detail.",
+);
 
 struct SettingsExhibit {
     sheet: SettingsSheet,
@@ -843,6 +848,7 @@ struct SettingsExhibit {
     restore_workspace: bool,
     confirm_discard: bool,
     settlement_delay: f64,
+    information_density: InformationDensity,
     condition: SettingsCondition,
     visit: SettingsVisit,
 }
@@ -861,6 +867,13 @@ enum SettingsVisit {
     Seen,
 }
 
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
+enum InformationDensity {
+    #[default]
+    Quiet,
+    Full,
+}
+
 impl Default for SettingsExhibit {
     fn default() -> Self {
         Self {
@@ -869,6 +882,7 @@ impl Default for SettingsExhibit {
             restore_workspace: true,
             confirm_discard: true,
             settlement_delay: 0.4,
+            information_density: InformationDensity::Quiet,
             condition: SettingsCondition::Ready,
             visit: SettingsVisit::Unseen,
         }
@@ -957,6 +971,9 @@ impl SettingsExhibit {
                 0.1,
                 1,
             );
+            let _density = ui.control(INFORMATION_DENSITY, |ui, _water| {
+                Self::show_information_density(ui, &mut self.information_density)
+            });
         });
         if let Some(rect) = self.sheet.rect() {
             witness::rect(ui.ctx(), "atelier.settings.sheet", rect);
@@ -965,6 +982,41 @@ impl SettingsExhibit {
 
     const fn faulted(&self) -> bool {
         matches!(self.condition, SettingsCondition::Fault)
+    }
+
+    fn show_information_density(
+        ui: &mut egui::Ui,
+        information_density: &mut InformationDensity,
+    ) -> egui::Response {
+        let mut changed = false;
+        let mut response = ui
+            .horizontal(|ui| {
+                for (value, label) in [
+                    (InformationDensity::Quiet, "QUIET"),
+                    (InformationDensity::Full, "FULL"),
+                ] {
+                    let selected = *information_density == value;
+                    let button = egui::Button::new(chrome::section_title(label))
+                        .fill(if selected {
+                            chrome::RAISED
+                        } else {
+                            chrome::CONTROL
+                        })
+                        .stroke(egui::Stroke::new(
+                            1.0,
+                            if selected { chrome::HOT } else { chrome::EDGE },
+                        ));
+                    if ui.add(button).clicked() && !selected {
+                        *information_density = value;
+                        changed = true;
+                    }
+                }
+            })
+            .response;
+        if changed {
+            response.mark_changed();
+        }
+        response
     }
 }
 
