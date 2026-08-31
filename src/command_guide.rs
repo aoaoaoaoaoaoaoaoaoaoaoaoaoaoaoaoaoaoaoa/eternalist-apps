@@ -15,8 +15,6 @@ use crate::commands::{
 use crate::modal::{ModalShell, card_frame, scroll_aperture};
 use crate::witness::{self, ApplicationTarget};
 
-const GUIDE_NAME_SIZE: f32 = 15.0;
-const GUIDE_DETAIL_SIZE: f32 = 14.0;
 const GUIDE_COLUMN_SPACING: f32 = 10.0;
 const GUIDE_ROW_SPACING: f32 = 4.0;
 const GUIDE_GROUP_SPACING: f32 = 9.0;
@@ -472,8 +470,8 @@ fn show_command_group<'reason, 'spec, C, S>(
                     .iter()
                     .copied()
                     .chain(spec.mnemonic_key().map(Shortcut::mnemonic));
-                let name =
-                    spec.widget_text_with_font(ui, &egui::FontId::proportional(GUIDE_NAME_SIZE));
+                let name = spec
+                    .widget_text_with_font(ui, &chrome::TypeRole::Label.proportional(ui.style()));
                 let detail = command_detail(spec.detail(), state);
                 show_guide_row(ui, columns, enabled, bindings, name, detail);
             }
@@ -506,9 +504,7 @@ fn show_gesture_group(ui: &mut egui::Ui, group: GuideGroup) {
                     columns,
                     true,
                     gesture.shortcuts().iter().copied(),
-                    egui::RichText::new(gesture.label())
-                        .size(GUIDE_NAME_SIZE)
-                        .into(),
+                    chrome::TypeRole::Label.text(gesture.label()).into(),
                     guide_detail(gesture.detail()).into(),
                 );
             }
@@ -553,9 +549,7 @@ fn command_detail(detail: &str, state: CommandStatus<'_>) -> egui::WidgetText {
 }
 
 fn guide_detail(text: impl Into<String>) -> egui::RichText {
-    egui::RichText::new(text)
-        .size(GUIDE_DETAIL_SIZE)
-        .color(chrome::MUTED)
+    chrome::TypeRole::Body.text(text).color(chrome::MUTED)
 }
 
 #[cfg(test)]
@@ -614,6 +608,7 @@ mod tests {
         }
 
         let ctx = egui::Context::default();
+        chrome::install(&ctx);
         let canon = CommandCanon::new(&NO_COMMANDS);
         let mut guide = CommandGuide::default();
         let show = |guide: &mut CommandGuide, ctx: &egui::Context| {

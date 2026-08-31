@@ -5,7 +5,7 @@ description = "Native egui lifecycle and reusable high-level application primiti
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/eternalist-apps"
-rust-version = "1.96"
+rust-version = "1.98.0"
 keywords = ["egui", "wgpu", "winit", "desktop"]
 categories = ["gui"]
 exclude = ["vendor/**"]
@@ -19,10 +19,10 @@ egui-test = [
   "serde",
   "brass_poolrooms/instrumentation",
 ]
-serde = ["dep:serde"]
+serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
-brass_poolrooms = "0.14.2"
+brass_poolrooms = { version = "0.14.6", features = ["serde"] }
 egui = "=0.36.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 

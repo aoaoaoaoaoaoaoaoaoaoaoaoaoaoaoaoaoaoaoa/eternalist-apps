@@ -1,0 +1,11 @@
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
+allow-panic-in-tests = true
+
+disallowed-methods = [
+  { path = "egui::FontId::monospace", reason = "resolve a Poolrooms TypeRole or use chrome::spatial_font for a governed physical projection" },
+  { path = "egui::FontId::new", reason = "resolve a Poolrooms TypeRole or use chrome::spatial_font for a governed physical projection" },
+  { path = "egui::FontId::proportional", reason = "resolve a Poolrooms TypeRole or use chrome::spatial_font for a governed physical projection" },
+  { path = "egui::RichText::size", reason = "choose a Poolrooms TypeRole so the accessibility scale remains authoritative" },
+  { path = "egui::RichText::small", reason = "choose a Poolrooms TypeRole instead of egui's private Small metric" },
+]

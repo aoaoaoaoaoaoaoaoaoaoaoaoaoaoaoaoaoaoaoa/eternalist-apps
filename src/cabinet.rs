@@ -1073,7 +1073,7 @@ fn root_berth<T: CabinetEntry>(
             rect.center(),
             egui::Align2::CENTER_CENTER,
             "DROP OUTSIDE FOLDERS",
-            egui::FontId::monospace(9.0),
+            chrome::spatial_font(ui.ctx(), 9.0, egui::FontFamily::Monospace),
             color,
         );
     } else {

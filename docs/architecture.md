@@ -85,8 +85,11 @@ stable witness names. The application declares each `SettingSpec`, supplies its
 current value, applies returned changes, and may repeat the same declaration
 beside a contextual control. Boolean and numeric settings use shared controls;
 an application-owned control may descend through the typed row aperture until
-its reuse law earns promotion. The sheet is a projection, not a registry: it
-does not discover settings or execute domain callbacks.
+its reuse law earns promotion. The canonical Font Size row projects
+`brass_poolrooms::chrome::FontScale`; applications own the corresponding field
+in their typed configuration and apply it through `chrome::set_font_scale`.
+The sheet is a projection, not a registry: it does not discover settings or
+execute domain callbacks.
 
 On native targets, `ConfigurationLedger<T>` owns the configuration-file law.
 `T` supplies defaults, Serde structure, and optional semantic validation. Every

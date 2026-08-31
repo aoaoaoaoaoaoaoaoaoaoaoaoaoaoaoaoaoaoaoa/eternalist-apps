@@ -46,7 +46,7 @@ impl LivingWait {
             Stroke::new(1.0_f32, chrome::EDGE_STRONG),
             StrokeKind::Inside,
         );
-        let font = egui::FontId::new(37.0, egui::FontFamily::Proportional);
+        let font = chrome::spatial_font(ui.ctx(), 37.0, egui::FontFamily::Proportional);
         let galley = painter.layout_no_wrap(label.into(), font, chrome::HOT);
         painter.galley(rect.center() - galley.size() * 0.5, galley, chrome::HOT);
         rect

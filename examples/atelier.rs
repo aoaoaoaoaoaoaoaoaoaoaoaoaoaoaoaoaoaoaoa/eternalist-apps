@@ -437,6 +437,7 @@ fn paint_plates(
     labels: bool,
 ) {
     const COLUMNS: u16 = 4;
+    let label_font = chrome::spatial_font(painter.ctx(), 12.0, egui::FontFamily::Monospace);
     let gap = 14.0;
     let width = (rect.width() - gap * f32::from(COLUMNS - 1)) / f32::from(COLUMNS);
     let height = ((rect.height() - gap) * 0.5).min(170.0);
@@ -468,7 +469,7 @@ fn paint_plates(
                 plate.left_bottom() + egui::vec2(12.0, -12.0),
                 egui::Align2::LEFT_BOTTOM,
                 format!("PLATE {:02}", index + 1),
-                egui::FontId::monospace(12.0),
+                label_font.clone(),
                 chrome::TEXT,
             );
         }
@@ -558,7 +559,7 @@ impl WaitingExhibit {
                 arena.center(),
                 egui::Align2::CENTER_CENTER,
                 "QUIET",
-                egui::FontId::proportional(40.0),
+                chrome::spatial_font(ui.ctx(), 40.0, egui::FontFamily::Proportional),
                 chrome::MUTED,
             );
         }
@@ -584,7 +585,7 @@ fn waiting_card(ui: &egui::Ui, wait: &mut LivingWait, rect: egui::Rect, label: &
         rect.center(),
         egui::Align2::CENTER_CENTER,
         label,
-        egui::FontId::monospace(15.0),
+        chrome::spatial_font(ui.ctx(), 15.0, egui::FontFamily::Monospace),
         chrome::HOT,
     );
 }
@@ -849,6 +850,7 @@ struct SettingsExhibit {
     confirm_discard: bool,
     settlement_delay: f64,
     information_density: InformationDensity,
+    font_scale: chrome::FontScale,
     condition: SettingsCondition,
     visit: SettingsVisit,
 }
@@ -883,6 +885,7 @@ impl Default for SettingsExhibit {
             confirm_discard: true,
             settlement_delay: 0.4,
             information_density: InformationDensity::Quiet,
+            font_scale: chrome::FontScale::Standard,
             condition: SettingsCondition::Ready,
             visit: SettingsVisit::Unseen,
         }
@@ -906,42 +909,51 @@ impl SettingsExhibit {
                     .inner_margin(egui::Margin::same(28)),
             )
             .show(ui, |ui| {
-                let _eyebrow = ui.label(chrome::eyebrow("CENTRAL APPLICATION CONFIGURATION"));
-                let _header = ApplicationHeader::new("ETERNALIST ATELIER")
-                    .settings_attention(self.faulted())
-                    .show(ui, &mut self.guide, &mut self.sheet, water);
-                let _law = ui.label(chrome::muted(
-                    "contextual controls and one complete surface share the same setting declarations",
-                ));
-                ui.add_space(22.0);
-                let _specimen = egui::Frame::new()
-                    .fill(chrome::SURFACE)
-                    .stroke(egui::Stroke::new(1.0_f32, chrome::EDGE_STRONG))
-                    .inner_margin(egui::Margin::same(18))
+                let _scroll = egui::ScrollArea::vertical()
+                    .id_salt("settings-atelier-page")
                     .show(ui, |ui| {
-                        let _title = ui.label(chrome::section_title("PREFLIGHT SPECIMEN"));
-                        ui.add_space(8.0);
-                        let mut faulted = self.faulted();
-                        let fault = Checkbox::new(&mut faulted, "SIMULATE INVALID FILE")
-                            .size(chrome::MechanismSize::Small)
-                            .show(ui);
-                        witness::response(ui, "atelier.settings.fault", &fault);
-                        water.checkbox(&fault);
-                        if fault.changed() {
-                            self.condition = if faulted {
-                                self.sheet.require_attention(ui.ctx());
-                                SettingsCondition::Fault
-                            } else {
-                                SettingsCondition::Ready
-                            };
-                        }
-                        ui.add_space(8.0);
-                        let state = if self.faulted() {
-                            "unknown keys block mutation and summon this sheet without rewriting the file"
-                        } else {
-                            "configuration admitted; application controls remain writable"
-                        };
-                        let _state = ui.label(chrome::muted(state));
+                        let _eyebrow =
+                            ui.label(chrome::eyebrow("CENTRAL APPLICATION CONFIGURATION"));
+                        let _header = ApplicationHeader::new("ETERNALIST ATELIER")
+                            .settings_attention(self.faulted())
+                            .show(ui, &mut self.guide, &mut self.sheet, water);
+                        let _law = ui.label(chrome::muted(
+                            "contextual controls and one complete surface share the same setting declarations",
+                        ));
+                        ui.add_space(22.0);
+                        let _specimen = egui::Frame::new()
+                            .fill(chrome::SURFACE)
+                            .stroke(egui::Stroke::new(1.0_f32, chrome::EDGE_STRONG))
+                            .inner_margin(egui::Margin::same(18))
+                            .show(ui, |ui| {
+                                let _title =
+                                    ui.label(chrome::section_title("PREFLIGHT SPECIMEN"));
+                                ui.add_space(8.0);
+                                let mut faulted = self.faulted();
+                                let fault = Checkbox::new(
+                                    &mut faulted,
+                                    "SIMULATE INVALID FILE",
+                                )
+                                .size(chrome::MechanismSize::Small)
+                                .show(ui);
+                                witness::response(ui, "atelier.settings.fault", &fault);
+                                water.checkbox(&fault);
+                                if fault.changed() {
+                                    self.condition = if faulted {
+                                        self.sheet.require_attention(ui.ctx());
+                                        SettingsCondition::Fault
+                                    } else {
+                                        SettingsCondition::Ready
+                                    };
+                                }
+                                ui.add_space(8.0);
+                                let state = if self.faulted() {
+                                    "unknown keys block mutation and summon this sheet without rewriting the file"
+                                } else {
+                                    "configuration admitted; application controls remain writable"
+                                };
+                                let _state = ui.label(chrome::muted(state));
+                            });
                     });
             });
 
@@ -960,7 +972,10 @@ impl SettingsExhibit {
         } else {
             SettingsFile::ready(path)
         };
+        let mut font_scale_changed = false;
         let _response = self.sheet.show(ui.ctx(), water, file, |ui| {
+            ui.group("APPEARANCE");
+            font_scale_changed |= ui.font_scale(&mut self.font_scale);
             ui.group("WORKSPACE");
             let _restored = ui.boolean(RESTORE_WORKSPACE, &mut self.restore_workspace);
             let _confirmed = ui.boolean(CONFIRM_DISCARD, &mut self.confirm_discard);
@@ -975,6 +990,9 @@ impl SettingsExhibit {
                 Self::show_information_density(ui, &mut self.information_density)
             });
         });
+        if font_scale_changed {
+            chrome::set_font_scale(ui.ctx(), self.font_scale);
+        }
         if let Some(rect) = self.sheet.rect() {
             witness::rect(ui.ctx(), "atelier.settings.sheet", rect);
         }

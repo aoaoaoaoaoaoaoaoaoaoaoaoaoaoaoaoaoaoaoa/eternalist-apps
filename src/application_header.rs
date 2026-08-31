@@ -44,7 +44,7 @@ impl<'a> ApplicationHeader<'a> {
         water: &mut Surface,
     ) -> ApplicationHeaderResponse {
         let row = ui.horizontal(|ui| {
-            let title = ui.label(brass_poolrooms::chrome::title(self.name).size(18.0));
+            let title = ui.label(brass_poolrooms::chrome::title(self.name));
             ui.add_space(3.0);
             let actions = ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let settings = settings.activator(ui, self.settings_attention);

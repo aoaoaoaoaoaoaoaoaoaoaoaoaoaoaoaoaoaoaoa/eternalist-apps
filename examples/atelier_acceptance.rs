@@ -138,7 +138,23 @@ fn short_modal_story(testbed: &Testbed, binary: &Path, artifacts: Option<&Path>)
     let _closed = probe.wait(&app, WAIT, "close short Settings", |frame| {
         !frame.state.settings.open
     })?;
-    click_target(&session, &app, &mut probe, "atelier.settings.fault")?;
+    for _attempt in 0..4 {
+        let fault = probe.wait_anchor(&app, "atelier.settings.fault", WAIT)?;
+        if fault.rect[3] <= 290.0 {
+            break;
+        }
+        let (x, _) = fault.center();
+        let _scroll = session.wheel(x, 150, 6, Wheel::default())?;
+        let _scrolled = probe.wait_fresh(&app, WAIT)?;
+    }
+    let fault = probe.wait_anchor(&app, "atelier.settings.fault", WAIT)?;
+    ensure!(
+        fault.rect[1] >= 0.0 && fault.rect[3] <= 290.0,
+        "short Atelier did not reveal its fault control: {:?}",
+        fault.rect
+    );
+    let (x, y) = fault.center();
+    let _fault_click = session.click(x, y, Button::Primary)?;
     let _faulted = probe.wait(&app, WAIT, "faulted short Settings", |frame| {
         frame.state.settings.fault && frame.state.settings.open
     })?;
@@ -211,7 +227,7 @@ fn reveal_settings_target(
     magnitude: i32,
 ) -> Result<()> {
     ensure!(magnitude > 0, "settings reveal magnitude must be positive");
-    for _attempt in 0..3 {
+    for _attempt in 0..8 {
         let body = probe.wait_anchor(app, "eternalist.settings.body", WAIT)?;
         let target = probe.wait_anchor(app, target, WAIT)?;
         if ensure_anchor_contained(&body, &target).is_ok() {
@@ -322,6 +338,19 @@ fn settings_story(
         frame.state.page == "settings" && frame.state.settings.open
     })?;
     assert_application_header(app, probe)?;
+    let scale = probe.wait_anchor(app, "eternalist.settings.entry/font_scale", WAIT)?;
+    let (x, y) = scale.center();
+    let _large = session.click(x, y, Button::Primary)?;
+    let _large_frame = probe.wait_fresh(app, WAIT)?;
+    let _extra_large = session.key(Key::End)?;
+    let _extra_large_frame = probe.wait_fresh(app, WAIT)?;
+    assert_modal_containment(
+        session,
+        app,
+        probe,
+        "atelier.settings.sheet",
+        "eternalist.settings.body",
+    )?;
     if let Some(directory) = artifacts {
         thread::sleep(Duration::from_millis(250));
         let _settled = probe.wait_fresh(app, WAIT)?;

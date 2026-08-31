@@ -6,8 +6,8 @@ use std::{ops::RangeInclusive, path::Path};
 
 use brass_poolrooms::{
     chrome::{
-        self, Checkbox, MechanismSize, Monoglyph, MonoglyphFinish, MonoglyphResponse, NumberInput,
-        ScrewScroll, Symbol,
+        self, Checkbox, FontScale, MechanismSize, Monoglyph, MonoglyphFinish, MonoglyphResponse,
+        NumberInput, Rail, ScrewScroll, Symbol, TypeRole,
     },
     water::Surface,
 };
@@ -18,9 +18,14 @@ use crate::{
     witness::{self, ApplicationTarget},
 };
 
-const NAME_SIZE: f32 = 15.0;
-const DETAIL_SIZE: f32 = 14.0;
 const FAULT: egui::Color32 = egui::Color32::from_rgb(214, 92, 46);
+
+/// Canonical application-font accessibility setting.
+pub const FONT_SCALE: SettingSpec = SettingSpec::new(
+    "font_scale",
+    "FONT SIZE",
+    "Choose standard, large, or extra-large application text.",
+);
 
 /// Stable application-owned metadata for one configurable setting.
 #[derive(Clone, Copy, Debug)]
@@ -305,9 +310,9 @@ fn settings_body(
             settings.ui.add_space(3.0);
             let path = settings.ui.add(
                 egui::Label::new(
-                    egui::RichText::new(file.path.display().to_string())
-                        .monospace()
-                        .size(13.0)
+                    TypeRole::Label
+                        .text(file.path.display().to_string())
+                        .family(egui::FontFamily::Monospace)
                         .color(chrome::MUTED),
                 )
                 .selectable(true)
@@ -368,6 +373,40 @@ impl SettingsUi<'_> {
         })
     }
 
+    /// Render the canonical standard, large, and extra-large font scale.
+    pub fn font_scale(&mut self, value: &mut FontScale) -> bool {
+        setting_row(
+            self.ui,
+            self.water,
+            self.enabled,
+            FONT_SCALE,
+            |ui, water| {
+                let before = *value;
+                let mut station = match *value {
+                    FontScale::Standard => 0_u16,
+                    FontScale::Large => 1,
+                    FontScale::ExtraLarge => 2,
+                };
+                let (rect, changed) = ui
+                    .horizontal(|ui| {
+                        let _label = ui.label(TypeRole::Label.text(value.label()));
+                        let rail = Rail::new(&mut station, 0..=2).width(112.0).show(ui);
+                        let rect = rail.rect;
+                        let changed = rail.changed();
+                        water.rail(&rail);
+                        (rect, changed)
+                    })
+                    .inner;
+                *value = match station {
+                    0 => FontScale::Standard,
+                    1 => FontScale::Large,
+                    _ => FontScale::ExtraLarge,
+                };
+                (rect, changed || *value != before)
+            },
+        )
+    }
+
     /// Render one application-owned control inside the shared setting row.
     ///
     /// This is the escape hatch for a control whose reuse law has not earned
@@ -397,25 +436,19 @@ fn setting_row(
     let mut changed = false;
     let _row = ui.add_enabled_ui(enabled, |ui| {
         let _contents = ui.allocate_ui_with_layout(
-            egui::vec2(ui.available_width(), 48.0),
+            egui::vec2(ui.available_width(), 58.0),
             egui::Layout::right_to_left(egui::Align::Center),
             |ui| {
+                ui.set_min_height(58.0);
                 let (rect, control_changed) = control(ui, water);
                 witness::rect(ui.ctx(), ApplicationTarget::Setting(spec.id()), rect);
                 changed = control_changed;
                 ui.add_space(12.0);
                 let _copy =
                     ui.with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                        let _name = ui.label(
-                            egui::RichText::new(spec.name())
-                                .size(NAME_SIZE)
-                                .color(chrome::TEXT),
-                        );
-                        let _detail = ui.label(
-                            egui::RichText::new(spec.detail())
-                                .size(DETAIL_SIZE)
-                                .color(chrome::MUTED),
-                        );
+                        let _name = ui.label(TypeRole::Label.text(spec.name()).color(chrome::TEXT));
+                        let _detail =
+                            ui.label(TypeRole::Body.text(spec.detail()).color(chrome::MUTED));
                     });
             },
         );
@@ -439,13 +472,12 @@ fn fault_card(
             let _row = ui.horizontal(|ui| {
                 let _copy = ui.vertical(|ui| {
                     let _title = ui.label(
-                        egui::RichText::new("CONFIGURATION NEEDS ATTENTION")
-                            .size(14.0)
+                        TypeRole::Label
+                            .text("CONFIGURATION NEEDS ATTENTION")
                             .strong()
                             .color(FAULT),
                     );
-                    let _detail =
-                        ui.label(egui::RichText::new(message).size(13.0).color(chrome::TEXT));
+                    let _detail = ui.label(TypeRole::Body.text(message).color(chrome::TEXT));
                 });
                 let _reload =
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

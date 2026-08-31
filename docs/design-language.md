@@ -96,6 +96,11 @@ layout. Use the shared settings actuator, F2 key, and primary-modifier comma
 alias. Configuration faults summon the sheet, disable mutation, name the exact
 invalid condition, expose the file path, and offer explicit reload after
 repair. Never silently discard, rename, or overwrite an unknown key.
+Desktop applications expose the shared Font Size row and persist its
+`FontScale`. Standard is 100%, Large is 125%, and Extra Large is 150%. Scaling
+changes semantic font metrics before layout and rasterization. Extra Large is
+the compatibility ceiling; acceptance traverses it once through an existing
+settings story rather than cloning the complete story matrix at every scale.
 Ordinary labels remain selectable. Native hosts export their copy, cut, and
 paste commands through the platform clipboard.
 Permanent collections ordinarily belong in an inspector; transient candidates

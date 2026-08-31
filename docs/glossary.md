@@ -23,6 +23,9 @@ still-local implementation metaphors remain with their applications.
   Command Guide. An idiom is a reusable convention, not a guide-group value.
 - **Setting**: one user-adjustable declaration and value. The **Settings
   Sheet** is the central UI that presents such settings.
+- **Font Scale**: the closed Standard (100%), Large (125%), or Extra Large
+  (150%) multiplier applied to semantic application fonts before layout and
+  rasterization. Extra Large is the desktop compatibility ceiling.
 - **Configuration**: the typed aggregate admitted from the human-edited
   configuration file. A **Configuration Ledger** owns strict admission,
   format-preserving revision, fault state, reload, and settled writes; it is

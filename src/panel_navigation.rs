@@ -398,6 +398,7 @@ mod tests {
     #[test]
     fn traversal_is_caged_directional_and_reconciles_a_vanished_panel() {
         let ctx = egui::Context::default();
+        brass_poolrooms::chrome::install(&ctx);
         let mut navigator = PanelNavigator::default();
         let ids = pass(&ctx, &mut navigator, egui::RawInput::default());
 
@@ -433,6 +434,7 @@ mod tests {
         // A collapsed panel has no interior focus cycle. Treating its absent
         // body like an open panel used to strand Tab on the same header.
         let ctx = egui::Context::default();
+        brass_poolrooms::chrome::install(&ctx);
         let mut navigator = PanelNavigator::default();
         let ids = pass_with_openness(
             &ctx,
@@ -449,6 +451,7 @@ mod tests {
     #[test]
     fn traversal_relinquishes_obscured_or_overmodified_tab() {
         let ctx = egui::Context::default();
+        brass_poolrooms::chrome::install(&ctx);
         let mut navigator = PanelNavigator::default();
         let _ids = pass(&ctx, &mut navigator, egui::RawInput::default());
         let first = navigator.active();
