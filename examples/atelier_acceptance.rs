@@ -120,94 +120,8 @@ fn short_modal_story(testbed: &Testbed, binary: &Path, artifacts: Option<&Path>)
     let mut probe: Probe<Observation> = app.witness()?.typed();
     let _presented = probe.wait_surface_presented(&app, STARTUP_WAIT)?;
 
-    let _ready = probe.wait(&app, WAIT, "short Settings sheet", |frame| {
-        frame.state.page == "settings" && frame.state.settings.open
-    })?;
-    let _painted = probe.wait_fresh(&app, WAIT)?;
-    capture_optional(&session, artifacts, "settings-ready-short.png")?;
-    assert_modal_containment(
-        &session,
-        &app,
-        &mut probe,
-        "atelier.settings.sheet",
-        "eternalist.settings.body",
-    )?;
-    reveal_settings_target(&session, &app, &mut probe, "eternalist.settings.path", 6)?;
-
-    let _escape = session.key(Key::Escape)?;
-    let _closed = probe.wait(&app, WAIT, "close short Settings", |frame| {
-        !frame.state.settings.open
-    })?;
-    for _attempt in 0..4 {
-        let fault = probe.wait_anchor(&app, "atelier.settings.fault", WAIT)?;
-        if fault.rect[3] <= 290.0 {
-            break;
-        }
-        let (x, _) = fault.center();
-        let _scroll = session.wheel(x, 150, 6, Wheel::default())?;
-        let _scrolled = probe.wait_fresh(&app, WAIT)?;
-    }
-    let fault = probe.wait_anchor(&app, "atelier.settings.fault", WAIT)?;
-    ensure!(
-        fault.rect[1] >= 0.0 && fault.rect[3] <= 290.0,
-        "short Atelier did not reveal its fault control: {:?}",
-        fault.rect
-    );
-    let (x, y) = fault.center();
-    let _fault_click = session.click(x, y, Button::Primary)?;
-    let _faulted = probe.wait(&app, WAIT, "faulted short Settings", |frame| {
-        frame.state.settings.fault && frame.state.settings.open
-    })?;
-    assert_modal_containment(
-        &session,
-        &app,
-        &mut probe,
-        "atelier.settings.sheet",
-        "eternalist.settings.body",
-    )?;
-    reveal_settings_target(&session, &app, &mut probe, "eternalist.settings.fault", 8)?;
-    reveal_settings_target(&session, &app, &mut probe, "eternalist.settings.path", 10)?;
-    capture_optional(&session, artifacts, "settings-fault-short.png")?;
-
-    let _escape = session.key(Key::Escape)?;
-    let _closed = probe.wait(&app, WAIT, "close faulted short Settings", |frame| {
-        !frame.state.settings.open
-    })?;
-    click_target(&session, &app, &mut probe, "atelier.tab.commands")?;
-    let _commands = probe.wait(&app, WAIT, "short Commands tab", |frame| {
-        frame.state.page == "commands"
-    })?;
-    let _help = session.key(Key::Function(1))?;
-    let _guide = probe.wait(&app, WAIT, "short Help guide", |frame| {
-        frame.state.guide_open
-    })?;
-    let _painted = probe.wait_fresh(&app, WAIT)?;
-    capture_optional(&session, artifacts, "help-short.png")?;
-    assert_modal_containment(
-        &session,
-        &app,
-        &mut probe,
-        "atelier.commands.guide",
-        "eternalist.command-guide.body",
-    )?;
-    let body = probe.wait_anchor(&app, "eternalist.command-guide.body", WAIT)?;
-    let before_scroll = session.capture()?;
-    let (x, y) = body.center();
-    let _scroll = session.wheel(x, y, 8, Wheel::default())?;
-    let _scrolled = probe.wait_fresh(&app, WAIT)?;
-    let after_scroll = session.capture()?;
-    let changed = before_scroll.difference_region(&after_scroll, PixelRegion::anchor(&body), 2)?;
-    ensure!(
-        changed > 0.04,
-        "mouse wheel changed only {changed:.4} of the command-guide body pixels"
-    );
-    assert_modal_containment(
-        &session,
-        &app,
-        &mut probe,
-        "atelier.commands.guide",
-        "eternalist.command-guide.body",
-    )?;
+    short_settings_story(&session, &app, &mut probe, artifacts)?;
+    short_guide_story(&session, &app, &mut probe, artifacts)?;
 
     let _close = session.close()?;
     let exit = app
@@ -215,6 +129,114 @@ fn short_modal_story(testbed: &Testbed, binary: &Path, artifacts: Option<&Path>)
         .context("short Atelier to honor native close")?;
     ensure!(exit.success(), "short Atelier close failed: {exit:#?}");
     app.terminate().context("collect short Atelier cgroup")?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn short_settings_story(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+    artifacts: Option<&Path>,
+) -> Result<()> {
+    let _ready = probe.wait(app, WAIT, "short Settings sheet", |frame| {
+        frame.state.page == "settings" && frame.state.settings.open
+    })?;
+    let _painted = probe.wait_fresh(app, WAIT)?;
+    capture_optional(session, artifacts, "settings-ready-short.png")?;
+    assert_modal_containment(
+        session,
+        app,
+        probe,
+        "atelier.settings.sheet",
+        "eternalist.settings.body",
+    )?;
+    reveal_settings_target(session, app, probe, "eternalist.settings.path", 6)?;
+
+    let _escape = session.key(Key::Escape)?;
+    let _closed = probe.wait(app, WAIT, "close short Settings", |frame| {
+        !frame.state.settings.open
+    })?;
+    for _attempt in 0..4 {
+        let fault = probe.wait_anchor(app, "atelier.settings.fault", WAIT)?;
+        if fault.rect[3] <= 290.0 {
+            break;
+        }
+        let (x, _) = fault.center();
+        let _scroll = session.wheel(x, 150, 6, Wheel::default())?;
+        let _scrolled = probe.wait_fresh(app, WAIT)?;
+    }
+    let fault = probe.wait_anchor(app, "atelier.settings.fault", WAIT)?;
+    ensure!(
+        fault.rect[1] >= 0.0 && fault.rect[3] <= 290.0,
+        "short Atelier did not reveal its fault control: {:?}",
+        fault.rect
+    );
+    let (x, y) = fault.center();
+    let _fault_click = session.click(x, y, Button::Primary)?;
+    let _faulted = probe.wait(app, WAIT, "faulted short Settings", |frame| {
+        frame.state.settings.fault && frame.state.settings.open
+    })?;
+    assert_modal_containment(
+        session,
+        app,
+        probe,
+        "atelier.settings.sheet",
+        "eternalist.settings.body",
+    )?;
+    reveal_settings_target(session, app, probe, "eternalist.settings.fault", 8)?;
+    reveal_settings_target(session, app, probe, "eternalist.settings.path", 10)?;
+    capture_optional(session, artifacts, "settings-fault-short.png")?;
+
+    let _escape = session.key(Key::Escape)?;
+    let _closed = probe.wait(app, WAIT, "close faulted short Settings", |frame| {
+        !frame.state.settings.open
+    })?;
+    Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "egui-test"))]
+fn short_guide_story(
+    session: &egui_tester::X11Session<'_, '_>,
+    app: &egui_tester::Application<'_>,
+    probe: &mut Probe<Observation>,
+    artifacts: Option<&Path>,
+) -> Result<()> {
+    click_target(session, app, probe, "atelier.tab.commands")?;
+    let _commands = probe.wait(app, WAIT, "short Commands tab", |frame| {
+        frame.state.page == "commands"
+    })?;
+    let _help = session.key(Key::Function(1))?;
+    let _guide = probe.wait(app, WAIT, "short Help guide", |frame| {
+        frame.state.guide_open
+    })?;
+    let _painted = probe.wait_fresh(app, WAIT)?;
+    capture_optional(session, artifacts, "help-short.png")?;
+    assert_modal_containment(
+        session,
+        app,
+        probe,
+        "atelier.commands.guide",
+        "eternalist.command-guide.body",
+    )?;
+    let body = probe.wait_anchor(app, "eternalist.command-guide.body", WAIT)?;
+    let before_scroll = session.capture()?;
+    let (x, y) = body.center();
+    let _scroll = session.wheel(x, y, 8, Wheel::default())?;
+    let _scrolled = probe.wait_fresh(app, WAIT)?;
+    let after_scroll = session.capture()?;
+    let changed = before_scroll.difference_region(&after_scroll, PixelRegion::anchor(&body), 2)?;
+    ensure!(
+        changed > 0.04,
+        "mouse wheel changed only {changed:.4} of the command-guide body pixels"
+    );
+    assert_modal_containment(
+        session,
+        app,
+        probe,
+        "atelier.commands.guide",
+        "eternalist.command-guide.body",
+    )?;
     Ok(())
 }
 

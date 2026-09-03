@@ -385,7 +385,7 @@ impl CrashReports {
             self.delivery = Delivery::Failed;
             return;
         };
-        let digest = format!("{:x}", Sha256::digest(&body));
+        let digest = sha256_hex(&body);
         let (sender, receiver) = mpsc::sync_channel(1);
         let wake = self.wake.clone();
         let spawn = thread::Builder::new()
@@ -423,6 +423,20 @@ impl CrashReports {
             let _removed = fs::remove_file(&recorder.capsule);
         }
     }
+}
+
+fn sha256_hex(body: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+
+    Sha256::digest(body)
+        .into_iter()
+        .flat_map(|byte| {
+            [
+                char::from(HEX[usize::from(byte >> 4)]),
+                char::from(HEX[usize::from(byte & 0x0f)]),
+            ]
+        })
+        .collect()
 }
 
 fn deliver(endpoint: &str, body: Vec<u8>, digest: String) -> Result<u16, ureq::Error> {
@@ -477,7 +491,7 @@ pub fn native_crash_acceptance(endpoint: &str) -> Result<(), String> {
             .ok_or_else(|| "reload the persisted capsule".to_owned())?;
 
         let body = b"{}".to_vec();
-        let digest = format!("{:x}", Sha256::digest(&body));
+        let digest = sha256_hex(&body);
         let status = deliver(endpoint, body, digest)
             .map_err(|error| format!("native TLS delivery probe: {error}"))?;
         if status != 400 {

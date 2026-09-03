@@ -22,22 +22,22 @@ egui-test = [
 serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
-brass_poolrooms = { version = "0.14.6", features = ["serde"] }
+brass_poolrooms = { version = "0.14.7", features = ["serde"] }
 egui = "=0.36.1"
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.104"
-atomic-write-file = { version = "0.3.0", features = ["unnamed-tmpfile"] }
+atomic-write-file = { version = "0.3.1", features = ["unnamed-tmpfile"] }
 crossbeam-channel = "0.5.16"
 egui-wgpu = { version = "=0.36.1", default-features = false }
 egui-winit = { version = "=0.36.1", default-features = false, features = ["clipboard"] }
 pollster = "1.0.1"
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.151"
 serde_ignored = "0.1.14"
-sha2 = { version = "0.10.9", default-features = false }
-toml = "1.1.4"
+sha2 = { version = "0.11.0", default-features = false }
+toml = "1.1.5"
 toml_edit = { version = "0.25.13", features = ["serde"] }
 tracing = "0.1.44"
 tracing-chrome = "0.7.2"
@@ -52,22 +52,22 @@ tempfile = "3.27.0"
 [target.'cfg(target_os = "linux")'.dependencies]
 egui-winit = { version = "=0.36.1", default-features = false, features = ["wayland", "x11"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06", "wayland", "x11"] }
-wgpu = { version = "30.0.0", default-features = false, features = ["std", "vulkan", "wgsl"] }
+wgpu = { version = "30.0.1", default-features = false, features = ["std", "vulkan", "wgsl"] }
 x11rb = { version = "0.14.0", default-features = false, features = ["render"] }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 arboard = { version = "3.6.1", default-features = false }
-egui-tester = "0.9.7"
+egui-tester = "0.9.8"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.36.1", default-features = false, features = ["macos-window-resize-jitter-fix"] }
-wgpu = { version = "30.0.0", default-features = false, features = ["metal", "std", "wgsl"] }
+wgpu = { version = "30.0.1", default-features = false, features = ["metal", "std", "wgsl"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-wgpu = { version = "30.0.0", default-features = false, features = ["dx12", "std", "wgsl"] }
+wgpu = { version = "30.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
-version = "0.9.7"
+version = "0.9.8"
 optional = true
 features = ["egui"]
 
@@ -79,7 +79,7 @@ wasm-bindgen = "=0.2.127"
 wasm-bindgen-futures = "=0.4.77"
 web-time = "1.1.0"
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
-wgpu = { version = "30.0.0", default-features = false, features = ["std", "webgpu", "wgsl"] }
+wgpu = { version = "30.0.1", default-features = false, features = ["std", "webgpu", "wgsl"] }
 web-sys = { version = "=0.3.104", features = [
   "Document",
   "Element",
