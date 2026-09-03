@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.9.4"
+version = "0.9.5"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -57,7 +57,7 @@ x11rb = { version = "0.14.0", default-features = false, features = ["render"] }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 arboard = { version = "3.6.1", default-features = false }
-egui-tester = "0.9.8"
+egui-tester = "0.9.9"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.36.1", default-features = false, features = ["macos-window-resize-jitter-fix"] }
@@ -67,7 +67,7 @@ wgpu = { version = "30.0.1", default-features = false, features = ["metal", "std
 wgpu = { version = "30.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
-version = "0.9.8"
+version = "0.9.9"
 optional = true
 features = ["egui"]
 
