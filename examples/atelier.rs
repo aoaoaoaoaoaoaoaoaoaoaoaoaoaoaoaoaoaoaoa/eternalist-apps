@@ -704,7 +704,7 @@ impl CabinetExhibit {
                 "identity, order, shelves, and drag grammar are shared",
             ));
             ui.add_space(16.0);
-            self.cabinet.show_renamable(
+            self.cabinet.show_editable(
                 ui,
                 water,
                 "atelier",
@@ -715,7 +715,10 @@ impl CabinetExhibit {
             )
         });
         inspector.agitate(water);
-        self.apply(inspector.inner);
+        self.apply(inspector.inner.actions);
+        if let Some(item) = inspector.inner.edit {
+            self.status = format!("edit `{}` without changing the active entry", item.name);
+        }
 
         let _stage = egui::CentralPanel::default()
             .frame(

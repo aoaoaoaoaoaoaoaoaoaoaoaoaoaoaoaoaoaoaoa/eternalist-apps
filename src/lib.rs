@@ -43,7 +43,7 @@ pub mod responsiveness;
 
 pub use application_header::{ApplicationHeader, ApplicationHeaderResponse};
 pub use cabinet::{
-    Berth as CabinetBerth, Cabinet, CabinetAction, CabinetEntry, CabinetKey,
+    Berth as CabinetBerth, Cabinet, CabinetAction, CabinetEntry, CabinetKey, CabinetResponse,
     EntryEdit as CabinetEntryEdit, Shelf as CabinetShelf, ShelfBerth as CabinetShelfBerth,
     ShelfEdit as CabinetShelfEdit,
 };

@@ -45,10 +45,14 @@ casing, and the crown's depth within that casing communicate actuation and a
 latched state. Do not wrap a solitary monoglyph in another button, tile,
 border, or frame merely to advertise interactivity.
 
-Action monoglyphs precede the content they govern. A destructive deletion is
-the leftmost danger-finished trash can; auxiliary actions follow; Edit or
-Rename sits immediately left of the text. Do not exile deletion to a trailing
-edge or substitute a labelled rectangle when the canonical symbol exists.
+Action monoglyphs precede the content they govern. In a folder or library row,
+their order is Settings (gear), Remove (×), Duplicate (copy), Rename (pencil),
+then the name. Omit unavailable actions without changing the remaining order.
+The rename pencil is always the action closest to the text. A drag grip or
+folder disclosure precedes the action group. Settings opens the item's editor;
+Rename changes only its name. Use the canonical symbols and their finishes,
+not labelled rectangles. Copy to a clipboard uses Copy; creating another entry
+uses Duplicate.
 
 ## Basic Controls
 
@@ -137,6 +141,8 @@ order, and at most one level of named shelves. Implement `CabinetEntry` on the
 product value and interpret each returned `CabinetAction` in the application.
 Use its ordinary projection for fixed entry identities and its renamable
 projection when users may edit them; shelf reordering remains available in
-either projection.
+either projection. `show_editable` also offers a leading settings actuator and
+returns the requested entry separately from collection actions; opening an
+editor must not implicitly load or change the active document.
 Do not force trees, tags, recents, search results, or immutable built-ins into
 the cabinet merely because they are collections.

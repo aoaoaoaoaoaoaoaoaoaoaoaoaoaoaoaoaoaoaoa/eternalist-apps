@@ -373,6 +373,7 @@ impl<T: CabinetEntry> Cabinet<T> {
             active,
             shelf_edit,
             &mut EntryRenaming::Disabled,
+            None,
         )
     }
 
@@ -403,7 +404,40 @@ impl<T: CabinetEntry> Cabinet<T> {
             active,
             shelf_edit,
             &mut EntryRenaming::Enabled(entry_edit),
+            None,
         )
+    }
+
+    /// Render renamable entries with a leading settings actuator.
+    ///
+    /// `edit` identifies the requested entry without loading or mutating it.
+    /// The application owns the editor and its apply/cancel transaction.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "same explicit state as the renamable projection"
+    )]
+    pub fn show_editable(
+        &self,
+        ui: &mut egui::Ui,
+        water: &mut Surface,
+        scope: &'static str,
+        noun: &'static str,
+        active: Option<&T::Key>,
+        shelf_edit: &mut Option<ShelfEdit>,
+        entry_edit: &mut Option<EntryEdit<T::Key>>,
+    ) -> CabinetResponse<T> {
+        let mut edit = None;
+        let actions = self.show_with_entry_renaming(
+            ui,
+            water,
+            scope,
+            noun,
+            active,
+            shelf_edit,
+            &mut EntryRenaming::Enabled(entry_edit),
+            Some(&mut edit),
+        );
+        CabinetResponse { actions, edit }
     }
 
     #[expect(
@@ -419,6 +453,7 @@ impl<T: CabinetEntry> Cabinet<T> {
         active: Option<&T::Key>,
         shelf_edit: &mut Option<ShelfEdit>,
         entry_renaming: &mut EntryRenaming<'_, T::Key>,
+        mut editor: Option<&mut Option<T>>,
     ) -> Vec<CabinetAction<T>> {
         let mut actions = Vec::new();
         for entry in &self.saved {
@@ -431,6 +466,7 @@ impl<T: CabinetEntry> Cabinet<T> {
                 active,
                 entry,
                 entry_renaming,
+                editor.as_deref_mut(),
                 &mut actions,
             );
         }
@@ -447,6 +483,7 @@ impl<T: CabinetEntry> Cabinet<T> {
                 active,
                 shelf_edit,
                 entry_renaming,
+                editor.as_deref_mut(),
                 &mut actions,
             );
         }
@@ -489,6 +526,23 @@ impl<T: CabinetEntry> Cabinet<T> {
 
     fn is_shelved(&self, key: &T::Key) -> bool {
         matches!(self.berth_of(key), Some((Some(_), _)))
+    }
+}
+
+/// Collection actions and an optional request for application-owned editing.
+pub struct CabinetResponse<T: CabinetEntry> {
+    /// Ordinary collection actions, interpreted by the application.
+    pub actions: Vec<CabinetAction<T>>,
+    /// Snapshot requested for editing; rendering never activates the entry.
+    pub edit: Option<T>,
+}
+
+impl<T: CabinetEntry> Default for CabinetResponse<T> {
+    fn default() -> Self {
+        Self {
+            actions: Vec::new(),
+            edit: None,
+        }
     }
 }
 
@@ -577,20 +631,36 @@ fn entry_row<T: CabinetEntry>(
     active: Option<&T::Key>,
     entry: &T,
     entry_renaming: &mut EntryRenaming<'_, T::Key>,
+    editor: Option<&mut Option<T>>,
     actions: &mut Vec<CabinetAction<T>>,
 ) {
     let row = ui.horizontal(|ui| {
         ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
         let key = entry.key();
-        let drag = |ui: &mut egui::Ui| {
-            ui.push_id((scope, "drag", key.as_str()), |ui| {
+        let drag = ui
+            .push_id((scope, "drag", key.as_str()), |ui| {
                 DragHandle::friction_pad()
                     .size(MechanismSize::Small)
                     .show(ui)
                     .on_hover_text("drag to rearrange")
             })
-            .inner
-        };
+            .inner;
+        let edit = editor.map(|requested| {
+            let edit = Monoglyph::symbol(Symbol::Settings)
+                .size(MechanismSize::Small)
+                .show(ui)
+                .on_hover_text(format!("edit {noun}"));
+            water.monoglyph(&edit);
+            record(
+                ui,
+                format!("cabinet.{scope}.edit/{}", key.as_str()),
+                edit.interact_rect,
+            );
+            if edit.clicked() {
+                *requested = Some(entry.clone());
+            }
+            edit
+        });
         let delete = |ui: &mut egui::Ui| {
             Monoglyph::symbol(Symbol::Remove)
                 .size(MechanismSize::Small)
@@ -603,36 +673,23 @@ fn entry_row<T: CabinetEntry>(
                 .show(ui)
                 .on_hover_text(format!("clone {noun}"))
         };
-        let (drag, rename, delete, clone) = if entry_renaming.enabled() {
-            let assembly = Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, drag, |ui| {
-                Coupled::horizontal_with_gap(
-                    ui,
-                    CouplingGap::MINIMUM,
-                    |ui| {
-                        Monoglyph::symbol(Symbol::Rename)
-                            .size(MechanismSize::Small)
-                            .show(ui)
-                            .on_hover_text(format!("rename {noun}"))
-                    },
-                    |ui| Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, delete, clone),
-                )
+        let (delete, clone, rename) = if entry_renaming.enabled() {
+            let assembly = Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, delete, |ui| {
+                Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, clone, |ui| {
+                    Monoglyph::symbol(Symbol::Rename)
+                        .size(MechanismSize::Small)
+                        .show(ui)
+                        .on_hover_text(format!("rename {noun}"))
+                })
             });
             (
                 assembly.left,
-                Some(assembly.right.left),
-                assembly.right.right.left,
-                assembly.right.right.right,
+                assembly.right.left,
+                Some(assembly.right.right),
             )
         } else {
-            let assembly = Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, drag, |ui| {
-                Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, delete, clone)
-            });
-            (
-                assembly.left,
-                None,
-                assembly.right.left,
-                assembly.right.right,
-            )
+            let assembly = Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, delete, clone);
+            (assembly.left, assembly.right, None)
         };
         water.drag_handle(&drag);
         if let Some(rename) = &rename {
@@ -657,7 +714,13 @@ fn entry_row<T: CabinetEntry>(
         if clone.clicked() {
             actions.push(CabinetAction::Clone(key.clone()));
         }
-        if delete.clicked() || clone.clicked() || drag.drag_started() {
+        if delete.clicked()
+            || clone.clicked()
+            || drag.drag_started()
+            || edit
+                .as_ref()
+                .is_some_and(chrome::MonoglyphResponse::clicked)
+        {
             cancel_entry_edit(entry_renaming, key);
         } else if rename
             .as_ref()
@@ -874,6 +937,7 @@ fn shelf_rows<T: CabinetEntry>(
     active: Option<&T::Key>,
     shelf_edit: &mut Option<ShelfEdit>,
     entry_renaming: &mut EntryRenaming<'_, T::Key>,
+    mut editor: Option<&mut Option<T>>,
     actions: &mut Vec<CabinetAction<T>>,
 ) {
     let id = ui.make_persistent_id((scope, "shelf", slot));
@@ -914,14 +978,14 @@ fn shelf_rows<T: CabinetEntry>(
                             ui,
                             CouplingGap::MINIMUM,
                             |ui| {
-                                Monoglyph::symbol(Symbol::Rename)
-                                    .show(ui)
-                                    .on_hover_text("rename folder")
-                            },
-                            |ui| {
                                 Monoglyph::symbol(Symbol::Remove)
                                     .show(ui)
                                     .on_hover_text(format!("delete folder ({noun}s spill out)"))
+                            },
+                            |ui| {
+                                Monoglyph::symbol(Symbol::Rename)
+                                    .show(ui)
+                                    .on_hover_text("rename folder")
                             },
                         )
                     },
@@ -946,10 +1010,10 @@ fn shelf_rows<T: CabinetEntry>(
         if assembly.right.left.clicked() {
             actions.push(CabinetAction::ToggleShelf(slot));
         }
-        if assembly.right.right.left.clicked() {
+        if assembly.right.right.right.clicked() {
             actions.push(CabinetAction::BeginShelfRename(slot));
         }
-        if assembly.right.right.right.clicked() {
+        if assembly.right.right.left.clicked() {
             actions.push(CabinetAction::ScuttleShelf(slot));
         }
         match shelf_edit {
@@ -1035,6 +1099,7 @@ fn shelf_rows<T: CabinetEntry>(
                     active,
                     entry,
                     entry_renaming,
+                    editor.as_deref_mut(),
                     actions,
                 );
             }
