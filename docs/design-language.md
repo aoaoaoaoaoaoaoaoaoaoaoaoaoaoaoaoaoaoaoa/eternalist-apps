@@ -54,6 +54,14 @@ Rename changes only its name. Use the canonical symbols and their finishes,
 not labelled rectangles. Copy to a clipboard uses Copy; creating another entry
 uses Duplicate.
 
+Poolrooms owns the complete production glyph map. Font fallback is prohibited,
+including for monoglyphs. Gate authored UI literals against the shipped face's
+cmap using Poolrooms' `glyph-audit` development feature. A missing scalar is a
+gate failure: choose an admitted symbol or design a coherent addition to the
+editable font master. Do not import another font's outlines to conceal a
+mismatch. Arbitrary user text remains data; preserve it even when its script
+is outside the authored repertoire.
+
 ## Basic Controls
 
 Apply every idiom whose target exists; omission is correct only when the
