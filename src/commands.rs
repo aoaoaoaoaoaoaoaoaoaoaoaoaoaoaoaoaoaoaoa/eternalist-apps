@@ -1108,6 +1108,7 @@ mod tests {
 
         let ctx = egui::Context::default();
         let mut text = String::new();
+        brass_poolrooms::chrome::install(&ctx);
         ctx.run_ui(egui::RawInput::default(), |ui| {
             ui.text_edit_singleline(&mut text).request_focus();
         })
@@ -1125,6 +1126,7 @@ mod tests {
     fn command_routing_cannot_pierce_a_modal_layer() {
         let canon = CommandCanon::new(&SPECS);
         let ctx = egui::Context::default();
+        brass_poolrooms::chrome::install(&ctx);
         let modal_id = egui::Id::new("command-barrier");
         let modal_layer = egui::LayerId::new(egui::Order::Foreground, modal_id);
         let modal = || egui::Modal::new(modal_id);

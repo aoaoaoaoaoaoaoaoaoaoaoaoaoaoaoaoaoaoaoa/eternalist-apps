@@ -411,6 +411,7 @@ mod tests {
     #[test]
     fn rail_wheel_preserves_enclosing_inspector_scroll() {
         let ctx = egui::Context::default();
+        brass_poolrooms::chrome::install(&ctx);
         let mut value = 6;
         let (prior_offset, rail) = frame(&ctx, input(Vec::new()), Some(160.0), &mut value);
         assert!(prior_offset > 100.0);

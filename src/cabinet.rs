@@ -1522,6 +1522,7 @@ mod tests {
     #[test]
     fn competing_drop_types_cannot_devour_an_item_release() {
         let context = egui::Context::default();
+        chrome::install(&context);
         let position = egui::pos2(40.0, 40.0);
         let input = |pressed| egui::RawInput {
             screen_rect: Some(egui::Rect::from_min_size(

@@ -23,8 +23,15 @@ serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
 brass_poolrooms = { version = "0.14.8", features = ["serde"] }
-egui = "=0.36.1"
+egui = { version = "=0.36.1", default-features = false }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
+
+[dev-dependencies]
+brass_poolrooms = { version = "0.14.8", features = ["glyph-audit"] }
+
+[patch.crates-io]
+brass_poolrooms = { git = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/brass_poolrooms", rev = "e6b2dfe0e5f4c1294f179e5e36ff9760fcd1cba7" }
+egui-tester-witness = { git = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester", rev = "2411accb64b9c4012190d1bd0915d68113b8dcf1" }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.104"

@@ -207,22 +207,23 @@ dependencies = [
 
 [[package]]
 name = "brass_foundry"
-version = "0.14.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb41a95b1837c99b16c143f3359ca94153a929a431182f375841eba8daac1ef0"
+version = "0.14.9"
+source = "git+https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/brass_poolrooms?rev=e6b2dfe0e5f4c1294f179e5e36ff9760fcd1cba7#e6b2dfe0e5f4c1294f179e5e36ff9760fcd1cba7"
 
 [[package]]
 name = "brass_poolrooms"
-version = "0.14.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "934ce5d8eb8755a73303fa66c319b2a875635f5e1718df9007dcf22d2de7f77d"
+version = "0.14.9"
+source = "git+https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/brass_poolrooms?rev=e6b2dfe0e5f4c1294f179e5e36ff9760fcd1cba7#e6b2dfe0e5f4c1294f179e5e36ff9760fcd1cba7"
 dependencies = [
  "anyhow",
  "brass_foundry",
  "bytemuck",
  "egui",
  "egui-wgpu",
+ "proc-macro2",
  "serde",
+ "syn 2.0.119",
+ "ttf-parser",
  "web-time",
 ]
 
@@ -631,8 +632,7 @@ dependencies = [
 [[package]]
 name = "egui-tester-witness"
 version = "0.9.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac193ce1b862b73dda5a2f2fec1499096d52b8084cda52ff3c8a1a672e092a4b"
+source = "git+https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester?rev=2411accb64b9c4012190d1bd0915d68113b8dcf1#2411accb64b9c4012190d1bd0915d68113b8dcf1"
 dependencies = [
  "egui",
  "rustix 1.1.4",
@@ -720,7 +720,6 @@ dependencies = [
  "bytemuck",
  "ecolor",
  "emath",
- "epaint_default_fonts",
  "font-types",
  "harfrust",
  "log",
@@ -736,12 +735,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "epaint_default_fonts"
-version = "0.36.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18dee69613aac468922cf28a32025eb7d7ed6985b61f73245848e58f37876c98"
-
-[[package]]
 name = "equivalent"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -754,7 +747,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -1446,7 +1439,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2272,7 +2265,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.12.1",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2615,7 +2608,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2812,6 +2805,12 @@ dependencies = [
  "tracing-core",
  "tracing-log",
 ]
+
+[[package]]
+name = "ttf-parser"
+version = "0.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
 
 [[package]]
 name = "type-map"
@@ -3347,7 +3346,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

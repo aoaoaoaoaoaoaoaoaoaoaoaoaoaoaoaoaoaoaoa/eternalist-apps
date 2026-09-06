@@ -580,6 +580,7 @@ mod tests {
     #[test]
     fn question_mark_defers_to_text_entry() {
         let ctx = egui::Context::default();
+        chrome::install(&ctx);
         let mut guide = CommandGuide::default();
         let mut text = String::new();
         ctx.run_ui(egui::RawInput::default(), |ui| {
@@ -665,6 +666,7 @@ mod tests {
     fn delayed_focus_return_yields_only_to_fresh_navigation() {
         fn close(navigate: bool) -> (bool, bool) {
             let ctx = egui::Context::default();
+            chrome::install(&ctx);
             let mut guide = CommandGuide::default();
             let modal = || egui::Modal::new(egui::Id::new("focus-return-modal"));
 

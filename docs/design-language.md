@@ -56,7 +56,9 @@ uses Duplicate.
 
 Poolrooms owns the complete production glyph map. Font fallback is prohibited,
 including for monoglyphs. Gate authored UI literals against the shipped face's
-cmap using Poolrooms' `glyph-audit` development feature. A missing scalar is a
+cmap using Poolrooms' `glyph-audit` development feature. Disable egui's default
+font feature throughout the dependency graph, including instrumentation, so
+unused fallback assets do not enter the binary. A missing scalar is a
 gate failure: choose an admitted symbol or design a coherent addition to the
 editable font master. Do not import another font's outlines to conceal a
 mismatch. Arbitrary user text remains data; preserve it even when its script
