@@ -1,6 +1,6 @@
 [package]
 name = "eternalist-apps"
-version = "0.9.6"
+version = "0.10.0"
 description = "Native egui lifecycle and reusable high-level application primitives."
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -22,16 +22,13 @@ egui-test = [
 serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
-brass_poolrooms = { version = "0.14.8", features = ["serde"] }
+brass_poolrooms = { version = "0.15.0", features = ["serde"] }
 egui = { version = "=0.36.1", default-features = false }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [dev-dependencies]
-brass_poolrooms = { version = "0.14.8", features = ["glyph-audit"] }
+brass_poolrooms = { version = "0.15.0", features = ["glyph-audit"] }
 
-[patch.crates-io]
-brass_poolrooms = { path = "../../../brass_poolrooms/.worktrees/cell-walls" }
-egui-tester-witness = { git = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/egui-tester", rev = "2411accb64b9c4012190d1bd0915d68113b8dcf1" }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 anyhow = "1.0.104"
@@ -65,7 +62,7 @@ x11rb = { version = "0.14.0", default-features = false, features = ["render"] }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 arboard = { version = "3.6.1", default-features = false }
-egui-tester = "0.9.9"
+egui-tester = "0.9.11"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.36.1", default-features = false, features = ["macos-window-resize-jitter-fix"] }
@@ -75,7 +72,7 @@ wgpu = { version = "30.0.1", default-features = false, features = ["metal", "std
 wgpu = { version = "30.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
-version = "0.9.9"
+version = "0.9.11"
 optional = true
 features = ["egui"]
 
