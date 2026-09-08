@@ -15,39 +15,39 @@ later.
 
 ## 2. Establish Rust And Dependencies
 
-Apply `$rust-bootstrap`. Depend on one coherent generation of `egui`,
-`egui-wgpu`, `egui-winit`, `winit`, Brass Poolrooms, and
-`eternalist-apps`. Keep the product's direct Poolrooms dependency when its UI
-uses Poolrooms controls.
+Apply `$rust-bootstrap`. Depend on `egui`, Brass Poolrooms, and
+`eternalist-apps` at one coherent generation. The host owns `egui-wgpu`,
+`egui-winit`, `winit`, and `wgpu`: it selects exactly Vulkan on Linux, Metal
+on macOS, and DX12 on Windows, and re-exports `egui_wgpu` for GPU callbacks.
+A product does not depend on those crates directly; the line's cell-wall
+check refuses such a dependency.
 
-Keep direct `egui-wgpu` dependencies on `default-features = false`; the host
-selects exactly Vulkan on Linux, Metal on macOS, and DX12 on Windows. Do not
-re-enable wgpu's omnibus defaults in the product. Direct `egui-winit` and
-`winit` dependencies should likewise disable defaults and enable only the
-window-system coordinate the product claims; Linux applications currently use
-X11 explicitly.
+Give the product a dependency-light contract crate that declares its
+`ProductIdentity` constant and witness Target vocabulary; the GUI and its
+acceptance executable both consume it.
 
 ## 3. Implement The Native Seam
 
 ```rust
 use brass_poolrooms::water::{Frame, Surface};
-use eternalist_apps::{NativeApp, TraceGuard, WindowSpec};
+use eternalist_apps::{NativeApp, ProductIdentity, TraceGuard, WindowSpec};
 
 struct App {
     water: Surface,
 }
 
 impl NativeApp for App {
-    const WINDOW: WindowSpec = WindowSpec::new("product", [1_440.0, 920.0]);
+    const PRODUCT: ProductIdentity = ProductIdentity::declare(
+        product_contract::PRODUCT_IDENTIFIER,
+        product_contract::PRODUCT_NAME,
+    );
+    const RELEASE: &'static str = env!("CARGO_PKG_VERSION");
+    const WINDOW: WindowSpec = WindowSpec::new(Self::PRODUCT.name(), [1_440.0, 920.0]);
 
     fn draw(&mut self, ui: &mut egui::Ui) {
         let _canvas = egui::CentralPanel::default().show_inside(ui, |ui| {
             let _heading = ui.heading("PRODUCT");
         });
-    }
-
-    fn after_present(&mut self) -> bool {
-        false
     }
 
     fn water(
@@ -57,13 +57,6 @@ impl NativeApp for App {
         tooltip_rects: &[egui::Rect],
     ) -> Frame {
         self.water.frame(ctx, pixels_per_point, tooltip_rects, None)
-    }
-
-    fn register_gpu(
-        _renderer: &mut egui_wgpu::Renderer,
-        _device: &egui_wgpu::wgpu::Device,
-        _format: egui_wgpu::wgpu::TextureFormat,
-    ) {
     }
 
     #[cfg(feature = "egui-test")]

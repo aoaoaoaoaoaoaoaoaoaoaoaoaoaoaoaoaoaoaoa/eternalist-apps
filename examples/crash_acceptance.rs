@@ -24,7 +24,7 @@ const WAIT: Duration = Duration::from_secs(30);
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 const STATE: &str = "crash-state";
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
-const CAPSULE: &str = "crash-state/crash-report-v1.json";
+const CAPSULE: &str = "crash-state/crash-report-v2.json";
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 fn main() -> Result<()> {

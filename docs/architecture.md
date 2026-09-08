@@ -31,12 +31,28 @@ The complete shipped surface is enumerated in the
 [README](../README.md#present-surface). Architectural examples name ownership
 territory, not hidden or promised APIs.
 
+## Product Identity
+
+A product is one `ProductIdentity`: a reverse-DNS identifier of exactly three
+lowercase labels and a display name. The product's dependency-light contract
+crate owns both strings as `PRODUCT_IDENTIFIER` and `PRODUCT_NAME`; the typed
+`const` declaration in the GUI crate validates them at compile time.
+`ApplicationPaths` derives the platform directory triple from it, the crash
+report carries it verbatim, and the host reads it from `NativeApp::PRODUCT`.
+The identifier is also the macOS and Windows bundle identifier, so the Foundry
+contract must repeat it; the line's cell-wall sweep asserts the two agree.
+No other spelling of a product's name is admitted into this crate: the
+substrate never enumerates products, and the crash intake owns the closed set
+it accepts.
+
 ## Native Seam
 
-`NativeApp` admits one frame builder, post-present settlement, water
-composition, GPU callback registration, and an observation type when the
-`egui-test` feature is enabled. It does not admit domain callbacks, panel
-registries, persistence hooks, or a service locator.
+`NativeApp` admits the product identity and release, one frame builder,
+optional post-present settlement, water composition, optional GPU callback
+registration, and an observation type when the `egui-test` feature is
+enabled. It does not admit domain callbacks, panel registries, persistence
+hooks, or a service locator. The GPU seam's types are the crate's `egui_wgpu`
+re-export; a product must not pin that crate itself.
 
 `after_present` is the only host-owned commit fence. Return `true` when the
 commit requires another frame. Expensive preparation, filesystem work, and
@@ -44,12 +60,13 @@ complete queue drains never belong there.
 
 ## Crash Recovery
 
-A product enrolls through `NativeApp::crash_reports` and supplies its lawful
-state directory. Fallible products enter through `run_with`, which arms
-recovery before their constructor runs. The host retains at most one private,
-bounded JSON capsule.
-It contains only closed product and platform identity, a fault class, a
-source-relative panic location when available, and sanitized function names.
+A product enrolls by setting `NativeApp::CRASH_REPORTS`; the capsule lives at
+its `ApplicationPaths::state`. Fallible products enter through `run_with`,
+which arms recovery before their constructor runs. The host retains at most
+one private, bounded JSON capsule.
+It contains only the product identifier, release, platform identity, a fault
+class, a source-relative panic location when available, and sanitized function
+names.
 Panic text is excluded because it may contain paths, input, or domain state.
 
 The next launch places a modal consent surface above the ordinary application.

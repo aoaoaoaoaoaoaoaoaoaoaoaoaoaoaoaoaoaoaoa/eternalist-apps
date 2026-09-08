@@ -1,6 +1,6 @@
 //! One-window native winit, egui, wgpu, water, and witness lifecycle.
 
-use crate::{crash_reports::CrashReports, responsiveness};
+use crate::{ProductIdentity, crash_reports::CrashReports, responsiveness};
 use anyhow::{Context as _, Result, bail};
 use brass_poolrooms::water::{Engine, Frame as WaterFrame};
 use egui_wgpu::{
@@ -42,6 +42,7 @@ pub struct WindowSpec {
     /// Initial logical width and height in points.
     pub initial_size: [f64; 2],
     /// Whether X11 window managers should treat the window as a floating utility.
+    #[cfg(target_os = "linux")]
     pub floating: bool,
 }
 
@@ -80,11 +81,13 @@ impl WindowSpec {
         Self {
             title,
             initial_size,
+            #[cfg(target_os = "linux")]
             floating: false,
         }
     }
 
     /// Ask X11 window managers to treat this application as a floating utility.
+    #[cfg(target_os = "linux")]
     #[must_use]
     pub const fn floating(mut self) -> Self {
         self.floating = true;
@@ -94,19 +97,33 @@ impl WindowSpec {
 
 /// The narrow product seam admitted by the native host.
 pub trait NativeApp {
+    /// The product's closed identity.
+    const PRODUCT: ProductIdentity;
+    /// The product's release, normally `env!("CARGO_PKG_VERSION")`.
+    const RELEASE: &'static str;
     /// Initial top-level window identity and geometry.
     const WINDOW: WindowSpec;
     /// Main-thread frame-work obligation checked by the host instrumentation.
     const RESPONSIVENESS: ResponsivenessSpec = ResponsivenessSpec::interactive();
-
-    /// Opt this product into local crash recovery and explicit report consent.
+    /// Whether the product enrolls in local crash recovery and explicit report
+    /// consent at its platform state directory.
     ///
-    /// The host never transmits a report without a fresh user gesture. Storage
-    /// placement remains a product decision because it is part of the
-    /// product's filesystem contract.
-    #[must_use]
-    fn crash_reports() -> Option<crate::CrashReportSpec> {
-        None
+    /// The host never transmits a report without a fresh user gesture.
+    const CRASH_REPORTS: bool = false;
+
+    /// Crash-report enrollment, consumed once before construction.
+    ///
+    /// The default follows [`Self::CRASH_REPORTS`]. Override only in acceptance
+    /// apparatus that must redirect the intake.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the platform exposes no application directories.
+    fn crash_reports() -> Result<Option<crate::CrashReportSpec>> {
+        if !Self::CRASH_REPORTS {
+            return Ok(None);
+        }
+        crate::CrashReportSpec::standard(Self::PRODUCT, Self::RELEASE).map(Some)
     }
 
     /// Current top-level window identity.
@@ -170,7 +187,9 @@ pub trait NativeApp {
     /// The host calls this exactly once after each successful present and never
     /// after an acquisition or rendering failure. Return `true` to request a
     /// follow-up frame.
-    fn after_present(&mut self) -> bool;
+    fn after_present(&mut self) -> bool {
+        false
+    }
 
     /// Seal the Poolrooms water composition for the frame just drawn.
     ///
@@ -188,7 +207,12 @@ pub trait NativeApp {
     ///
     /// The host invokes this once after constructing its renderer. Registered
     /// resources must use the supplied device and target format.
-    fn register_gpu(renderer: &mut Renderer, device: &wgpu::Device, format: wgpu::TextureFormat);
+    fn register_gpu(
+        _renderer: &mut Renderer,
+        _device: &wgpu::Device,
+        _format: wgpu::TextureFormat,
+    ) {
+    }
 
     /// Minimal one-way state projected to native acceptance stories.
     #[cfg(feature = "egui-test")]
@@ -448,7 +472,7 @@ impl RepaintGovernor {
 /// Returns the first event-loop, window, GPU, rendering, tracing, or witness
 /// failure. The host does not continue after a corrupt frame path.
 pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
-    let crash_reports = CrashReports::arm(A::crash_reports(), &ctx);
+    let crash_reports = CrashReports::arm(A::crash_reports()?, &ctx);
     run_armed(ctx, app, crash_reports)
 }
 
@@ -466,7 +490,7 @@ where
     A: NativeApp,
     F: FnOnce(&egui::Context) -> Result<A>,
 {
-    let crash_reports = CrashReports::arm(A::crash_reports(), &ctx);
+    let crash_reports = CrashReports::arm(A::crash_reports()?, &ctx);
     let app = build(&ctx)?;
     run_armed(ctx, app, crash_reports)
 }

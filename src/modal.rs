@@ -6,7 +6,7 @@ const CARD_GUTTER: f32 = 24.0;
 const CARD_INSET: i8 = 14;
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) struct ScrollAperture {
+pub(crate) struct ScrollExtent {
     pub(crate) height: f32,
 }
 
@@ -18,11 +18,11 @@ pub(crate) fn card_frame() -> egui::Frame {
         .inner_margin(egui::Margin::same(CARD_INSET))
 }
 
-pub(crate) fn scroll_aperture(ctx: &Context, fixed_chrome: f32, ceiling: f32) -> ScrollAperture {
+pub(crate) fn scroll_extent(ctx: &Context, fixed_chrome: f32, ceiling: f32) -> ScrollExtent {
     let height =
         (ctx.content_rect().height() - 2.0 * (CARD_GUTTER + f32::from(CARD_INSET)) - fixed_chrome)
             .clamp(0.0, ceiling);
-    ScrollAperture { height }
+    ScrollExtent { height }
 }
 
 #[derive(Debug, Default)]

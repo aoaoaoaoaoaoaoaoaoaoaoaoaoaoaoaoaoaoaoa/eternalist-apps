@@ -16,7 +16,7 @@ use brass_poolrooms::{
     water::{Domain, Floor, Frame, Surface, Wetness},
 };
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
-use eternalist_apps::{CrashProduct, CrashReportSpec, NativeApp, WindowSpec};
+use eternalist_apps::{CrashReportSpec, NativeApp, ProductIdentity, WindowSpec};
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 struct CrashSpecimen {
@@ -27,17 +27,23 @@ struct CrashSpecimen {
 
 #[cfg(all(target_os = "linux", feature = "egui-test"))]
 impl NativeApp for CrashSpecimen {
+    const PRODUCT: ProductIdentity = eternalist_apps::ACCEPTANCE;
+    const RELEASE: &'static str = env!("CARGO_PKG_VERSION");
     const WINDOW: WindowSpec = WindowSpec::new("Eternalist · crash-path specimen", [720.0, 480.0]);
 
-    fn crash_reports() -> Option<CrashReportSpec> {
-        let state = std::env::var_os("ETERNALIST_CRASH_STATE").map(PathBuf::from)?;
-        let endpoint = std::env::var("ETERNALIST_CRASH_INTAKE").ok()?;
-        Some(CrashReportSpec::acceptance(
-            CrashProduct::Hrrr,
-            env!("CARGO_PKG_VERSION"),
+    fn crash_reports() -> Result<Option<CrashReportSpec>> {
+        let Some(state) = std::env::var_os("ETERNALIST_CRASH_STATE").map(PathBuf::from) else {
+            return Ok(None);
+        };
+        let Ok(endpoint) = std::env::var("ETERNALIST_CRASH_INTAKE") else {
+            return Ok(None);
+        };
+        Ok(Some(CrashReportSpec::acceptance(
+            Self::PRODUCT,
+            Self::RELEASE,
             state,
             endpoint,
-        ))
+        )))
     }
 
     fn draw(&mut self, ui: &mut egui::Ui) {
@@ -70,13 +76,6 @@ impl NativeApp for CrashSpecimen {
         tooltip_rects: &[egui::Rect],
     ) -> Frame {
         self.water.frame(ctx, pixels_per_point, tooltip_rects, None)
-    }
-
-    fn register_gpu(
-        _renderer: &mut egui_wgpu::Renderer,
-        _device: &wgpu::Device,
-        _format: wgpu::TextureFormat,
-    ) {
     }
 
     type Observation = bool;

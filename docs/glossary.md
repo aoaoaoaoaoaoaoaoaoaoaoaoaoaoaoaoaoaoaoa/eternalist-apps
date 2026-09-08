@@ -4,6 +4,9 @@ This glossary admits only durable application terms whose law is shared across
 products or fundamental to this crate's public boundary. Product nouns and
 still-local implementation metaphors remain with their applications.
 
+- **Product Identity**: one product's reverse-DNS identifier and display name,
+  declared once in its contract crate. Platform directories and the crash
+  report derive from it; no other spelling of the product is admitted here.
 - **Application Header**: the persistent application name with the standard
   Help and Settings actuators, placed above the nearest persistent control
   surface.
@@ -22,10 +25,8 @@ still-local implementation metaphors remain with their applications.
 - **Guide Group**: one application-named group of related Gesture rows in the
   Command Guide. An idiom is a reusable convention, not a guide-group value.
 - **Setting**: one user-adjustable declaration and value. The **Settings
-  Sheet** is the central UI that presents such settings.
-- **Font Scale**: the closed Standard (100%), Large (125%), or Extra Large
-  (150%) preset applied to semantic application fonts before layout and
-  rasterization. Extra Large is the desktop compatibility ceiling.
+  Sheet** is the central UI that presents such settings; its Font Size row
+  projects the Brass Font scale.
 - **Configuration**: the typed aggregate admitted from the human-edited
   configuration file. A **Configuration Ledger** owns strict admission,
   format-preserving revision, fault state, reload, and settled writes; it is

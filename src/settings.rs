@@ -14,14 +14,14 @@ use brass_poolrooms::{
 
 use crate::{
     commands::{SETTINGS_SHORTCUTS, Stroke, take},
-    modal::{ModalShell, card_frame, scroll_aperture},
+    modal::{ModalShell, card_frame, scroll_extent},
     witness::{self, ApplicationTarget},
 };
 
 const FAULT: egui::Color32 = egui::Color32::from_rgb(214, 92, 46);
 
 /// Canonical application-font accessibility setting.
-pub const FONT_SCALE: SettingSpec = SettingSpec::new(
+pub const FONT_SIZE: SettingSpec = SettingSpec::new(
     "font_scale",
     "FONT SIZE",
     "Choose standard, large, or extra-large application text.",
@@ -245,8 +245,8 @@ impl SettingsSheet {
                     SETTINGS_SHORTCUTS[1].label(ui.ctx())
                 )));
                 ui.add_space(10.0);
-                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 520.0);
-                reload_requested |= settings_body(ui, water, file, aperture, add_settings);
+                let extent = scroll_extent(ctx, ui.cursor().top() - chrome_top, 520.0);
+                reload_requested |= settings_body(ui, water, file, extent, add_settings);
             });
         self.shell
             .finish_present(ctx, modal.response.rect, close || modal.should_close());
@@ -258,7 +258,7 @@ fn settings_body(
     ui: &mut egui::Ui,
     water: &mut Surface,
     file: SettingsFile<'_>,
-    aperture: crate::modal::ScrollAperture,
+    extent: crate::modal::ScrollExtent,
     add_settings: impl FnOnce(&mut SettingsUi<'_>),
 ) -> bool {
     let mut reload_requested = false;
@@ -267,7 +267,7 @@ fn settings_body(
         .stroke(egui::Stroke::new(1.0_f32, chrome::EDGE))
         .corner_radius(1)
         .inner_margin(egui::Margin::symmetric(6, 5));
-    let scroll_height = (aperture.height - frame.total_margin().sum().y).max(0.0);
+    let scroll_height = (extent.height - frame.total_margin().sum().y).max(0.0);
     let mut body = frame.begin(ui);
     let _scroll = ScrewScroll::vertical()
         .id_salt("eternalist-settings-body")
@@ -340,12 +340,6 @@ impl SettingsUi<'_> {
         self.ui.add_space(4.0);
     }
 
-    /// Former name for [`Self::group`].
-    #[deprecated(since = "0.9.4", note = "use SettingsUi::group")]
-    pub fn section(&mut self, title: impl Into<String>) {
-        self.group(title);
-    }
-
     /// Render one boolean setting and return whether it changed.
     pub fn boolean(&mut self, spec: SettingSpec, value: &mut bool) -> bool {
         setting_row(self.ui, self.water, self.enabled, spec, |ui, water| {
@@ -374,37 +368,31 @@ impl SettingsUi<'_> {
     }
 
     /// Render the canonical standard, large, and extra-large font scale.
-    pub fn font_scale(&mut self, value: &mut FontScale) -> bool {
-        setting_row(
-            self.ui,
-            self.water,
-            self.enabled,
-            FONT_SCALE,
-            |ui, water| {
-                let before = *value;
-                let mut station = match *value {
-                    FontScale::Standard => 0_u16,
-                    FontScale::Large => 1,
-                    FontScale::ExtraLarge => 2,
-                };
-                let (rect, changed) = ui
-                    .horizontal(|ui| {
-                        let _label = ui.label(TypeRole::Label.text(value.label()));
-                        let rail = Rail::new(&mut station, 0..=2).width(112.0).show(ui);
-                        let rect = rail.rect;
-                        let changed = rail.changed();
-                        water.rail(&rail);
-                        (rect, changed)
-                    })
-                    .inner;
-                *value = match station {
-                    0 => FontScale::Standard,
-                    1 => FontScale::Large,
-                    _ => FontScale::ExtraLarge,
-                };
-                (rect, changed || *value != before)
-            },
-        )
+    pub fn font_size(&mut self, value: &mut FontScale) -> bool {
+        setting_row(self.ui, self.water, self.enabled, FONT_SIZE, |ui, water| {
+            let before = *value;
+            let mut station = match *value {
+                FontScale::Standard => 0_u16,
+                FontScale::Large => 1,
+                FontScale::ExtraLarge => 2,
+            };
+            let (rect, changed) = ui
+                .horizontal(|ui| {
+                    let _label = ui.label(TypeRole::Label.text(value.label()));
+                    let rail = Rail::new(&mut station, 0..=2).width(112.0).show(ui);
+                    let rect = rail.rect;
+                    let changed = rail.changed();
+                    water.rail(&rail);
+                    (rect, changed)
+                })
+                .inner;
+            *value = match station {
+                0 => FontScale::Standard,
+                1 => FontScale::Large,
+                _ => FontScale::ExtraLarge,
+            };
+            (rect, changed || *value != before)
+        })
     }
 
     /// Render one application-owned control inside the shared setting row.

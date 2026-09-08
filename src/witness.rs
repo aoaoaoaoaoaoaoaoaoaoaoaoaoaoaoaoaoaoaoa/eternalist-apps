@@ -92,6 +92,26 @@ pub fn response(ui: &egui::Ui, target: impl Display, response: &egui::Response) 
     }
 }
 
+/// Publish a rectangle allocated by `ui` as one semantic Target in observational builds.
+///
+/// Like [`rect`], this projection carries no keyboard-focus evidence.
+#[inline]
+pub fn anchor(ui: &egui::Ui, target: impl Display, rect: egui::Rect) {
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
+    egui_tester_witness::egui::record(ui, target.to_string(), rect);
+    #[cfg(not(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    )))]
+    {
+        let _ = (ui, rect);
+        drop(target);
+    }
+}
+
 /// Publish painter-owned geometry as one semantic Target in observational builds.
 ///
 /// Unlike [`response`], this projection carries no keyboard-focus evidence.

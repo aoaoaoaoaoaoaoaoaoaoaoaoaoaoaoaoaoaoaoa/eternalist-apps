@@ -13,7 +13,7 @@ use egui::{Id, InnerResponse, Rect, Response, ScrollArea, Ui};
 use crate::commands::{Stroke, TOGGLE_INSPECTOR, take};
 
 /// Default width for a dense Inspector.
-pub const WIDTH: f32 = brass_poolrooms::chrome::INSPECTOR_WIDTH;
+pub const WIDTH: f32 = 285.0;
 
 const ACTUATOR_INSET: f32 = 4.0;
 const BOUNDARY_HALF_WIDTH: f32 = 5.0;

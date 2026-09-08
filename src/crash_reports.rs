@@ -15,10 +15,12 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 
-use crate::{NativeWake, witness};
+use crate::{ApplicationPaths, NativeWake, ProductIdentity, witness};
 
-const SCHEMA: u8 = 1;
-const CAPSULE_NAME: &str = "crash-report-v1.json";
+const SCHEMA: u8 = 2;
+const CAPSULE_NAME: &str = "crash-report-v2.json";
+/// Capsule names written by earlier releases; an unreadable relic is removed on arming.
+const RETIRED_CAPSULE_NAMES: [&str; 1] = ["crash-report-v1.json"];
 const MAX_CAPSULE_BYTES: u64 = 16 * 1024;
 const MAX_STACK_FRAMES: usize = 32;
 const MAX_SYMBOL_BYTES: usize = 240;
@@ -28,32 +30,20 @@ const SEND_TIMEOUT: Duration = Duration::from_secs(5);
 // passed the release acceptance. There is deliberately no runtime override.
 const PRODUCTION_INTAKE_URL: Option<&str> = Some("https://faults.eternalist.moe/v1/report");
 
-/// Closed product identity admitted by the Eternalist crash intake.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum CrashProduct {
-    /// HRRR weather viewer.
-    Hrrr,
-    /// Adequate Trailgen.
-    Trailgen,
-    /// Adequate Booru Viewer.
-    BooruViewer,
-}
-
 /// One product's crash-report identity and local storage boundary.
 #[derive(Clone, Debug)]
 pub struct CrashReportSpec {
-    product: CrashProduct,
+    product: ProductIdentity,
     release: &'static str,
     state_dir: PathBuf,
     endpoint: Option<String>,
 }
 
 impl CrashReportSpec {
-    /// Declare crash recovery for one released product.
+    /// Declare crash recovery for one released product at an explicit state directory.
     #[must_use]
     pub fn new(
-        product: CrashProduct,
+        product: ProductIdentity,
         release: &'static str,
         state_dir: impl Into<PathBuf>,
     ) -> Self {
@@ -65,6 +55,19 @@ impl CrashReportSpec {
         }
     }
 
+    /// Declare crash recovery at the product's platform state directory.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the platform exposes no application directories.
+    pub fn standard(product: ProductIdentity, release: &'static str) -> anyhow::Result<Self> {
+        Ok(Self::new(
+            product,
+            release,
+            ApplicationPaths::claim(product)?.state,
+        ))
+    }
+
     /// Bind an isolated stack to the black-box crash-path acceptance.
     ///
     /// This constructor does not exist in ordinary product builds. Production
@@ -73,7 +76,7 @@ impl CrashReportSpec {
     #[doc(hidden)]
     #[must_use]
     pub fn acceptance(
-        product: CrashProduct,
+        product: ProductIdentity,
         release: &'static str,
         state_dir: impl Into<PathBuf>,
         endpoint: impl Into<String>,
@@ -91,7 +94,7 @@ impl CrashReportSpec {
 #[serde(deny_unknown_fields)]
 struct CrashReport {
     schema: u8,
-    product: CrashProduct,
+    product: String,
     release: String,
     platform: Platform,
     fault: Fault,
@@ -138,7 +141,7 @@ impl Recorder {
         }
         let report = CrashReport {
             schema: SCHEMA,
-            product: self.spec.product,
+            product: self.spec.product.identifier().to_owned(),
             release: self.spec.release.to_owned(),
             platform: Platform {
                 os: std::env::consts::OS.to_owned(),
@@ -200,6 +203,9 @@ impl CrashReports {
         let Some(spec) = spec else {
             return Self::inert(ctx);
         };
+        for retired in RETIRED_CAPSULE_NAMES {
+            let _removed = fs::remove_file(spec.state_dir.join(retired));
+        }
         let capsule = spec.state_dir.join(CAPSULE_NAME);
         let pending = load_pending(&capsule, spec.product);
         let recorder = Arc::new(Recorder { spec, capsule });
@@ -461,6 +467,12 @@ fn deliver(endpoint: &str, body: Vec<u8>, digest: String) -> Result<u16, ureq::E
         .map(|response| response.status().as_u16())
 }
 
+/// Identity carried by crash-path acceptance apparatus; the intake admits it explicitly.
+#[cfg(feature = "egui-test")]
+#[doc(hidden)]
+pub const ACCEPTANCE: ProductIdentity =
+    ProductIdentity::declare("moe.eternalist.crash-specimen", "Crash-path specimen");
+
 /// Exercise the native crash filesystem and TLS seams without sending a report.
 #[cfg(feature = "egui-test")]
 #[doc(hidden)]
@@ -480,14 +492,13 @@ pub fn native_crash_acceptance(endpoint: &str) -> Result<(), String> {
         ));
     }
     let result = (|| {
-        let spec =
-            CrashReportSpec::acceptance(CrashProduct::Hrrr, "0.0.0-acceptance", &state, endpoint);
+        let spec = CrashReportSpec::acceptance(ACCEPTANCE, "0.0.0-acceptance", &state, endpoint);
         let capsule = state.join(CAPSULE_NAME);
         let recorder = Recorder { spec, capsule };
         recorder
             .capture(None)
             .map_err(|error| format!("persist capsule in new state directory: {error}"))?;
-        load_pending(&recorder.capsule, CrashProduct::Hrrr)
+        load_pending(&recorder.capsule, ACCEPTANCE)
             .ok_or_else(|| "reload the persisted capsule".to_owned())?;
 
         let body = b"{}".to_vec();
@@ -519,7 +530,7 @@ impl Drop for CrashReports {
     }
 }
 
-fn load_pending(path: &Path, product: CrashProduct) -> Option<CrashReport> {
+fn load_pending(path: &Path, product: ProductIdentity) -> Option<CrashReport> {
     let loaded = (|| {
         let file = File::open(path).ok()?;
         let length = file.metadata().ok()?.len();
@@ -531,7 +542,7 @@ fn load_pending(path: &Path, product: CrashProduct) -> Option<CrashReport> {
             .read_to_end(&mut bytes)
             .ok()?;
         let report: CrashReport = serde_json::from_slice(&bytes).ok()?;
-        (report.schema == SCHEMA && report.product == product).then_some(report)
+        (report.schema == SCHEMA && report.product == product.identifier()).then_some(report)
     })();
     if loaded.is_none() && path.exists() {
         let _removed = fs::remove_file(path);

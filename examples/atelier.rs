@@ -978,7 +978,7 @@ impl SettingsExhibit {
         let mut font_scale_changed = false;
         let _response = self.sheet.show(ui.ctx(), water, file, |ui| {
             ui.group("APPEARANCE");
-            font_scale_changed |= ui.font_scale(&mut self.font_scale);
+            font_scale_changed |= ui.font_size(&mut self.font_scale);
             ui.group("WORKSPACE");
             let _restored = ui.boolean(RESTORE_WORKSPACE, &mut self.restore_workspace);
             let _confirmed = ui.boolean(CONFIRM_DISCARD, &mut self.confirm_discard);

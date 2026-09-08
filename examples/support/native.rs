@@ -4,7 +4,7 @@ use brass_poolrooms::{
     chrome, egui,
     water::{Domain, Floor, Frame, Surface, Wetness},
 };
-use eternalist_apps::{NativeApp, TraceGuard, WindowSpec};
+use eternalist_apps::{NativeApp, ProductIdentity, TraceGuard, WindowSpec};
 
 struct Atelier<A> {
     exhibit: A,
@@ -12,6 +12,9 @@ struct Atelier<A> {
 }
 
 impl<A: Exhibit> NativeApp for Atelier<A> {
+    const PRODUCT: ProductIdentity =
+        ProductIdentity::declare("moe.eternalist.atelier", "Eternalist Atelier");
+    const RELEASE: &'static str = env!("CARGO_PKG_VERSION");
     const WINDOW: WindowSpec = WindowSpec::new(A::TITLE, A::SIZE);
 
     fn draw(&mut self, ui: &mut egui::Ui) {
@@ -21,10 +24,6 @@ impl<A: Exhibit> NativeApp for Atelier<A> {
         self.exhibit.ui(ui, &mut self.water);
     }
 
-    fn after_present(&mut self) -> bool {
-        false
-    }
-
     fn water(
         &mut self,
         ctx: &egui::Context,
@@ -32,13 +31,6 @@ impl<A: Exhibit> NativeApp for Atelier<A> {
         tooltip_rects: &[egui::Rect],
     ) -> Frame {
         self.water.frame(ctx, pixels_per_point, tooltip_rects, None)
-    }
-
-    fn register_gpu(
-        _renderer: &mut egui_wgpu::Renderer,
-        _device: &wgpu::Device,
-        _format: wgpu::TextureFormat,
-    ) {
     }
 
     #[cfg(feature = "egui-test")]

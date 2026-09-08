@@ -12,7 +12,7 @@ use crate::commands::{
     ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
     PREVIOUS_CONTROL, SETTINGS_SHORTCUTS, Shortcut, Stroke, UNWIND, take,
 };
-use crate::modal::{ModalShell, card_frame, scroll_aperture};
+use crate::modal::{ModalShell, card_frame, scroll_extent};
 use crate::witness::{self, ApplicationTarget};
 
 const GUIDE_COLUMN_SPACING: f32 = 10.0;
@@ -153,14 +153,6 @@ impl GuideGroup {
     }
 }
 
-/// Former name for [`GuideGroup`].
-///
-/// New applications should say “group”; `Section` is a Brass physical
-/// disclosure. This alias remains for one release boundary so already
-/// published applications continue to resolve.
-#[deprecated(since = "0.9.4", note = "use GuideGroup")]
-pub type GuideSection = GuideGroup;
-
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 enum GuidePage {
     #[default]
@@ -295,11 +287,11 @@ impl CommandGuide {
                     }
                 });
                 ui.add_space(8.0);
-                let aperture = scroll_aperture(ctx, ui.cursor().top() - chrome_top, 560.0);
+                let extent = scroll_extent(ctx, ui.cursor().top() - chrome_top, 560.0);
                 let body = ScrewScroll::vertical()
                     .id_salt("eternalist-command-guide-body")
-                    .min_scrolled_height(aperture.height)
-                    .max_height(aperture.height)
+                    .min_scrolled_height(extent.height)
+                    .max_height(extent.height)
                     .auto_shrink([false, false])
                     .show(ui, |ui| match *page {
                         GuidePage::Context => {

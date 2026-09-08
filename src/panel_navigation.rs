@@ -267,19 +267,6 @@ impl PanelFrame<'_> {
             activated: section.activated,
         }
     }
-
-    /// Former name for [`Self::panel`].
-    #[deprecated(since = "0.9.4", note = "use PanelFrame::panel")]
-    pub fn section(
-        &mut self,
-        ui: &mut egui::Ui,
-        id_salt: impl egui::AsIdSalt + Clone,
-        title: &'static str,
-        default_open: bool,
-        add: impl FnOnce(&mut egui::Ui),
-    ) -> PanelResponse {
-        self.panel(ui, id_salt, title, default_open, add)
-    }
 }
 
 impl Drop for PanelFrame<'_> {
