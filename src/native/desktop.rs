@@ -23,9 +23,9 @@ impl Bars {
 }
 
 /// A system-trace section; desktops trace through `tracing` alone.
-pub struct Section;
+pub struct Span;
 
-impl Section {
+impl Span {
     pub const fn begin(_name: &'static str) -> Self {
         Self
     }

@@ -45,7 +45,7 @@ use winit::{
 macro_rules! main_phase {
     ($name:literal, $body:expr) => {{
         let _phase = tracing::info_span!(target: "eternalist::main", $name).entered();
-        let _section = platform::Section::begin($name);
+        let _section = platform::Span::begin($name);
         $body
     }};
 }

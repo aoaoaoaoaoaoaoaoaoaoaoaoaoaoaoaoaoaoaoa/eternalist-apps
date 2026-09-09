@@ -43,20 +43,17 @@ still-local implementation metaphors remain with their applications.
 
 - **Capabilities**: the facts the host declares about one run, installed
   before the application is built. Applications consult one fact and never an
-  operating system. The facts are Pointer, Touch, Keyboard,
-  Power-unconstrained, Configuration, and Retirement.
-- **Pointer**: a hovering precise pointer exists. Tension, tooltips, and the
-  Inspector actuator require it.
-- **Touch**: direct multi-touch manipulation exists. Pinch and swipe are
-  meaningful, and mechanisms step up to a fingertip.
-- **Keyboard**: a physical keyboard with shortcuts is expected. Shortcut hints
-  and the command canon appear only where it holds.
-- **Power-unconstrained**: the host may spend the GPU continuously on
-  ornament. Water, radiators, and tension require it; a Handheld never grants
-  it.
-- **Retirement**: the operating system may suspend or destroy the process at
-  will. Where it holds, close never exits and the application checkpoints on
-  suspension.
+  operating system. The facts are `pointer` (a hovering precise pointer
+  exists; tension, tooltips, and the Inspector actuator require it), `touch`
+  (direct multi-touch manipulation exists; pinch and swipe are meaningful and
+  mechanisms step up to a fingertip), `keyboard` (a physical keyboard with
+  shortcuts is expected; shortcut hints and the command canon appear only
+  where it holds), `power_unconstrained` (the host may spend the GPU
+  continuously on ornament; water, radiators, and tension require it, and a
+  Handheld never grants it), `configuration` (a human-edited Configuration
+  exists), and `retirement` (the operating system may suspend or destroy the
+  process at will; close never exits and the application checkpoints on
+  suspension).
 - **Handheld**: a phone or a tablet held in the hand. The word names the device
   class and the Capabilities constructor; code never branches on it.
 - **Ingress**: the operating-system entry token handed to the native host:

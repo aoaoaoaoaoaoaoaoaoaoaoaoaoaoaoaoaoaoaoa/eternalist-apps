@@ -108,9 +108,9 @@ struct InsetsPx {
 
 /// One RAII section in Android's system trace, near zero cost while tracing
 /// is inactive.
-pub struct Section(Option<ndk::trace::Section>);
+pub struct Span(Option<ndk::trace::Section>);
 
-impl Section {
+impl Span {
     pub fn begin(name: &'static str) -> Self {
         let section = ndk::trace::is_trace_enabled()
             .then(|| ndk::trace::Section::new(name).ok())
@@ -119,7 +119,7 @@ impl Section {
     }
 }
 
-impl Drop for Section {
+impl Drop for Span {
     fn drop(&mut self) {
         drop(self.0.take());
     }
