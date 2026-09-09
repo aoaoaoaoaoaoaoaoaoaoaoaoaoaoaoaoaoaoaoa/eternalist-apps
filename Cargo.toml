@@ -6,7 +6,7 @@ edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/aoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoaoa/eternalist-apps"
 rust-version = "1.98.0"
-keywords = ["egui", "wgpu", "winit", "desktop"]
+keywords = ["egui", "wgpu", "winit", "desktop", "android"]
 categories = ["gui"]
 exclude = ["vendor/**"]
 
@@ -22,15 +22,15 @@ egui-test = [
 serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
-brass_poolrooms = { version = "0.15.0", features = ["serde"] }
+brass_poolrooms = { version = "0.15.3", features = ["serde"] }
 egui = { version = "=0.36.1", default-features = false }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [dev-dependencies]
-brass_poolrooms = { version = "0.15.0", features = ["glyph-audit"] }
+brass_poolrooms = { version = "0.15.3", features = ["glyph-audit"] }
 
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
 anyhow = "1.0.104"
 atomic-write-file = { version = "0.3.1", features = ["unnamed-tmpfile"] }
 crossbeam-channel = "0.5.16"
@@ -47,10 +47,20 @@ toml_edit = { version = "0.25.13", features = ["serde"] }
 tracing = "0.1.44"
 tracing-chrome = "0.7.2"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["registry"] }
-ureq = { version = "3.4.0", default-features = false, features = ["native-tls"] }
 winit = { version = "0.30.13", default-features = false, features = ["rwh_06"] }
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dev-dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
+ureq = { version = "3.4.0", default-features = false, features = ["native-tls"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+egui-winit = { version = "=0.36.1", default-features = false, features = ["android-native-activity"] }
+jni = "0.22.4"
+ndk = { version = "0.9.0", default-features = false, features = ["api-level-29"] }
+ureq = { version = "3.4.0", default-features = false, features = ["rustls"] }
+winit = { version = "0.30.13", default-features = false, features = ["android-native-activity", "rwh_06"] }
+wgpu = { version = "30.0.1", default-features = false, features = ["std", "vulkan", "wgsl"] }
+
+[target.'cfg(not(target_family = "wasm"))'.dev-dependencies]
 proptest = { version = "1.11.0", default-features = false, features = ["std"] }
 tempfile = "3.27.0"
 
@@ -71,7 +81,7 @@ wgpu = { version = "30.0.1", default-features = false, features = ["metal", "std
 [target.'cfg(target_os = "windows")'.dependencies]
 wgpu = { version = "30.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
 
-[target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies.egui-tester-witness]
+[target.'cfg(not(target_family = "wasm"))'.dependencies.egui-tester-witness]
 version = "0.9.11"
 optional = true
 features = ["egui"]

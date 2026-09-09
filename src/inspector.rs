@@ -1,4 +1,5 @@
-//! Opt-in geometry and visibility for a persistent left inspector.
+//! The Inspector's two dispositions: the persistent left Dock, and the
+//! bottom [`Drawer`] for handhelds.
 //!
 //! This module owns surface placement, scrolling, animated concealment, its F9
 //! idiom, and the resulting water forcing. Panel structure, commands,
@@ -11,6 +12,10 @@ use brass_poolrooms::{
 use egui::{Id, InnerResponse, Rect, Response, ScrollArea, Ui};
 
 use crate::commands::{Stroke, TOGGLE_INSPECTOR, take};
+
+mod drawer;
+
+pub use drawer::{Drawer, DrawerResponse};
 
 /// Default width for a dense Inspector.
 pub const WIDTH: f32 = 285.0;

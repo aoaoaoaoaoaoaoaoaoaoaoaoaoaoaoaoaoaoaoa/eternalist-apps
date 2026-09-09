@@ -13,10 +13,20 @@ use std::{
     sync::Arc,
 };
 
+use crate::Capabilities;
 use brass_poolrooms::{
     chrome::{self, Coupled, CouplingGap, DragHandle, MechanismSize, Monoglyph, Symbol},
     water::Surface,
 };
+
+/// Entry mechanisms are small under a pointer and medium under a fingertip.
+fn entry_mechanism_size(ctx: &egui::Context) -> MechanismSize {
+    if Capabilities::of(ctx).touch {
+        MechanismSize::Medium
+    } else {
+        MechanismSize::Small
+    }
+}
 
 /// Identity admitted by a [`Cabinet`].
 ///
@@ -640,14 +650,14 @@ fn entry_row<T: CabinetEntry>(
         let drag = ui
             .push_id((scope, "drag", key.as_str()), |ui| {
                 DragHandle::friction_pad()
-                    .size(MechanismSize::Small)
+                    .size(entry_mechanism_size(ui.ctx()))
                     .show(ui)
                     .on_hover_text("drag to rearrange")
             })
             .inner;
         let edit = editor.map(|requested| {
             let edit = Monoglyph::symbol(Symbol::Settings)
-                .size(MechanismSize::Small)
+                .size(entry_mechanism_size(ui.ctx()))
                 .show(ui)
                 .on_hover_text(format!("edit {noun}"));
             water.monoglyph(&edit);
@@ -663,13 +673,13 @@ fn entry_row<T: CabinetEntry>(
         });
         let delete = |ui: &mut egui::Ui| {
             Monoglyph::symbol(Symbol::Remove)
-                .size(MechanismSize::Small)
+                .size(entry_mechanism_size(ui.ctx()))
                 .show(ui)
                 .on_hover_text(format!("delete {noun}"))
         };
         let clone = |ui: &mut egui::Ui| {
             Monoglyph::symbol(Symbol::Duplicate)
-                .size(MechanismSize::Small)
+                .size(entry_mechanism_size(ui.ctx()))
                 .show(ui)
                 .on_hover_text(format!("clone {noun}"))
         };
@@ -677,7 +687,7 @@ fn entry_row<T: CabinetEntry>(
             let assembly = Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, delete, |ui| {
                 Coupled::horizontal_with_gap(ui, CouplingGap::MINIMUM, clone, |ui| {
                     Monoglyph::symbol(Symbol::Rename)
-                        .size(MechanismSize::Small)
+                        .size(entry_mechanism_size(ui.ctx()))
                         .show(ui)
                         .on_hover_text(format!("rename {noun}"))
                 })

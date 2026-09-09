@@ -47,10 +47,19 @@ it accepts.
 
 ## Native Seam
 
+One host serves every native platform. It is entered through an `Ingress`,
+the operating-system entry token, and it declares `Capabilities`, the facts of
+the run, before the product is built. Platform facts that differ, such as
+safe-area insets, swapchain depth, and system tracing, live in a platform
+module selected by target; a product never reads an operating system.
+
 `NativeApp` admits the product identity and release, one frame builder,
 optional post-present settlement, water composition, optional GPU callback
-registration, and an observation type when the `egui-test` feature is
-enabled. It does not admit domain callbacks, panel registries, persistence
+registration, suspension, memory-warning, and retirement hooks, and an
+observation type when the `egui-test` feature is enabled. The GPU outlives
+any one surface, so a platform that takes the surface away on suspension
+returns to the same device, renderer, and water. Without
+`Capabilities::power_unconstrained` the host composes no water at all. It does not admit domain callbacks, panel registries, persistence
 hooks, or a service locator. The GPU seam's types are the crate's `egui_wgpu`
 re-export; a product must not pin that crate itself.
 

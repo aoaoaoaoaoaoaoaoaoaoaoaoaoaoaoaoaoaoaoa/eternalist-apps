@@ -31,7 +31,7 @@ impl NativeApp for CrashSpecimen {
     const RELEASE: &'static str = env!("CARGO_PKG_VERSION");
     const WINDOW: WindowSpec = WindowSpec::new("Eternalist · crash-path specimen", [720.0, 480.0]);
 
-    fn crash_reports() -> Result<Option<CrashReportSpec>> {
+    fn crash_reports(_ingress: &eternalist_apps::Ingress) -> Result<Option<CrashReportSpec>> {
         let Some(state) = std::env::var_os("ETERNALIST_CRASH_STATE").map(PathBuf::from) else {
             return Ok(None);
         };
@@ -91,6 +91,7 @@ fn main() -> Result<()> {
     let ctx = egui::Context::default();
     chrome::install(&ctx);
     eternalist_apps::run(
+        eternalist_apps::Ingress::Desktop,
         ctx,
         CrashSpecimen {
             detonate,

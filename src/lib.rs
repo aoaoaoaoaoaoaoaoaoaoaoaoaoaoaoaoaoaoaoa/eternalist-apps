@@ -20,12 +20,14 @@ use egui_tester as _;
 
 pub mod application_header;
 pub mod cabinet;
+pub mod capabilities;
 pub mod command_guide;
 pub mod commands;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub mod configuration;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 mod crash_reports;
+pub mod ingress;
 pub mod inspector;
 pub mod living_wait;
 mod modal;
@@ -34,15 +36,15 @@ mod product;
 pub mod settings;
 pub mod witness;
 
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 mod native;
 #[cfg(target_os = "linux")]
 mod native_cursor;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 mod paths;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub mod persistence;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub mod responsiveness;
 
 pub use application_header::{ApplicationHeader, ApplicationHeaderResponse};
@@ -51,29 +53,30 @@ pub use cabinet::{
     EntryEdit as CabinetEntryEdit, Shelf as CabinetShelf, ShelfBerth as CabinetShelfBerth,
     ShelfEdit as CabinetShelfEdit,
 };
-pub use inspector::{Inspector, InspectorResponse};
+pub use capabilities::Capabilities;
+#[cfg(target_os = "android")]
+pub use ingress::AndroidApp;
+pub use ingress::{CAPABILITIES_ENV, Ingress};
+pub use inspector::{Drawer, DrawerResponse, Inspector, InspectorResponse};
 pub use living_wait::LivingWait;
 pub use product::ProductIdentity;
 
 /// The GPU seam consumed by [`NativeApp::register_gpu`]; products must not pin it themselves.
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub use egui_wgpu;
 
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub use crash_reports::CrashReportSpec;
-#[cfg(all(
-    feature = "egui-test",
-    any(target_os = "linux", target_os = "macos", target_os = "windows")
-))]
+#[cfg(all(feature = "egui-test", not(target_family = "wasm")))]
 #[doc(hidden)]
 pub use crash_reports::{ACCEPTANCE, native_crash_acceptance};
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub use native::{
     CloseDisposition, NativeApp, NativeWake, ResponsivenessSpec, WindowSpec, run, run_with,
 };
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub use paths::ApplicationPaths;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub use persistence::{ScribeOutcome, SettledScribe};
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+#[cfg(not(target_family = "wasm"))]
 pub use responsiveness::TraceGuard;

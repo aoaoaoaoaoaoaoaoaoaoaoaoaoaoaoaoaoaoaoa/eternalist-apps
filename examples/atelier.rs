@@ -976,7 +976,7 @@ impl SettingsExhibit {
             SettingsFile::ready(path)
         };
         let mut font_scale_changed = false;
-        let _response = self.sheet.show(ui.ctx(), water, file, |ui| {
+        let _response = self.sheet.show(ui.ctx(), water, Some(file), |ui| {
             ui.group("APPEARANCE");
             font_scale_changed |= ui.font_size(&mut self.font_scale);
             ui.group("WORKSPACE");

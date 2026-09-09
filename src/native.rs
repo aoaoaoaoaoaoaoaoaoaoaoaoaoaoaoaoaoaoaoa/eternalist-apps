@@ -1,6 +1,21 @@
 //! One-window native winit, egui, wgpu, water, and witness lifecycle.
+//!
+//! One host serves every native platform. Platform facts that differ, such as
+//! safe-area insets, swapchain depth, and system tracing, live in the
+//! `platform` module selected by target; everything the application observes
+//! is expressed through [`Capabilities`], never through an operating system.
 
-use crate::{ProductIdentity, crash_reports::CrashReports, responsiveness};
+#[cfg(target_os = "android")]
+mod android;
+#[cfg(not(target_os = "android"))]
+mod desktop;
+
+#[cfg(target_os = "android")]
+use android as platform;
+#[cfg(not(target_os = "android"))]
+use desktop as platform;
+
+use crate::{Capabilities, Ingress, ProductIdentity, crash_reports::CrashReports, responsiveness};
 use anyhow::{Context as _, Result, bail};
 use brass_poolrooms::water::{Engine, Frame as WaterFrame};
 use egui_wgpu::{
@@ -23,13 +38,14 @@ use winit::{
     application::ApplicationHandler,
     dpi::{LogicalSize, PhysicalSize},
     event::{StartCause, WindowEvent},
-    event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy},
+    event_loop::{ActiveEventLoop, ControlFlow, EventLoopProxy},
     window::{Window, WindowAttributes},
 };
 
 macro_rules! main_phase {
     ($name:literal, $body:expr) => {{
         let _phase = tracing::info_span!(target: "eternalist::main", $name).entered();
+        let _section = platform::Section::begin($name);
         $body
     }};
 }
@@ -39,7 +55,8 @@ macro_rules! main_phase {
 pub struct WindowSpec {
     /// Initial and fallback window title.
     pub title: &'static str,
-    /// Initial logical width and height in points.
+    /// Initial logical width and height in points. A platform that owns the
+    /// window geometry ignores it.
     pub initial_size: [f64; 2],
     /// Whether X11 window managers should treat the window as a floating utility.
     #[cfg(target_os = "linux")]
@@ -54,6 +71,9 @@ pub struct ResponsivenessSpec {
 }
 
 /// Product policy for a window-manager close request.
+///
+/// Where [`Capabilities::retirement`] holds, the window cannot be hidden and
+/// both dispositions end the application: the platform retires it.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CloseDisposition {
     /// End the native application.
@@ -119,11 +139,11 @@ pub trait NativeApp {
     /// # Errors
     ///
     /// Returns an error when the platform exposes no application directories.
-    fn crash_reports() -> Result<Option<crate::CrashReportSpec>> {
+    fn crash_reports(ingress: &Ingress) -> Result<Option<crate::CrashReportSpec>> {
         if !Self::CRASH_REPORTS {
             return Ok(None);
         }
-        crate::CrashReportSpec::standard(Self::PRODUCT, Self::RELEASE).map(Some)
+        crate::CrashReportSpec::standard(Self::PRODUCT, Self::RELEASE, ingress).map(Some)
     }
 
     /// Current top-level window identity.
@@ -132,6 +152,9 @@ pub trait NativeApp {
     }
 
     /// Build one ordinary product UI frame on the native event-loop thread.
+    ///
+    /// The `ui` covers the platform's safe area; system bars and notches lie
+    /// outside it.
     fn draw(&mut self, ui: &mut egui::Ui);
 
     /// Decide what a window-manager close request means for this product.
@@ -195,7 +218,9 @@ pub trait NativeApp {
     ///
     /// `pixels_per_point` is the physical-to-logical scale for this render.
     /// `tooltip_rects` contains final-pass logical rectangles that must remain
-    /// optically above the water surface.
+    /// optically above the water surface. Without
+    /// [`Capabilities::power_unconstrained`] the host composes no water and the
+    /// frame is only consulted for its repaint request.
     fn water(
         &mut self,
         ctx: &egui::Context,
@@ -206,13 +231,27 @@ pub trait NativeApp {
     /// Install application-owned wgpu callback resources before the first frame.
     ///
     /// The host invokes this once after constructing its renderer. Registered
-    /// resources must use the supplied device and target format.
+    /// resources must use the supplied device and target format, and may pick
+    /// their rendering tier from the declared `capabilities`.
     fn register_gpu(
         _renderer: &mut Renderer,
         _device: &wgpu::Device,
         _format: wgpu::TextureFormat,
+        _capabilities: Capabilities,
     ) {
     }
+
+    /// Quiesce application state before the platform destroys the render
+    /// surface. Checkpoint durable state here: under
+    /// [`Capabilities::retirement`] the process may not run again.
+    fn suspended(&mut self) {}
+
+    /// Relinquish dispensable memory after the platform raises a low-memory
+    /// warning.
+    fn memory_warning(&mut self) {}
+
+    /// Commit final orderly retirement work when the event loop exits.
+    fn retiring(&mut self) {}
 
     /// Minimal one-way state projected to native acceptance stories.
     #[cfg(feature = "egui-test")]
@@ -383,6 +422,8 @@ enum Concealment {
     ZeroSized = 1 << 1,
     Hidden = 1 << 2,
     Minimized = 1 << 3,
+    /// The platform has taken the render surface away; it returns on resume.
+    Suspended = 1 << 4,
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -416,6 +457,13 @@ struct WindowStanding {
 }
 
 impl WindowStanding {
+    /// Before the platform hands over a surface, nothing can be presented.
+    fn suspended() -> Self {
+        let mut standing = Self::default();
+        standing.concealments.set(Concealment::Suspended, true);
+        standing
+    }
+
     const fn presentation(self) -> Presentation {
         if self.concealments.any() {
             Presentation::Concealed
@@ -433,7 +481,7 @@ struct RepaintGovernor(Arc<AtomicU8>);
 
 impl RepaintGovernor {
     fn new() -> Self {
-        Self(Arc::new(AtomicU8::new(Presentation::Foreground as u8)))
+        Self(Arc::new(AtomicU8::new(Presentation::Concealed as u8)))
     }
 
     fn presentation(&self) -> Presentation {
@@ -471,34 +519,41 @@ impl RepaintGovernor {
 ///
 /// Returns the first event-loop, window, GPU, rendering, tracing, or witness
 /// failure. The host does not continue after a corrupt frame path.
-pub fn run<A: NativeApp>(ctx: egui::Context, app: A) -> Result<()> {
-    let crash_reports = CrashReports::arm(A::crash_reports()?, &ctx);
-    run_armed(ctx, app, crash_reports)
+pub fn run<A: NativeApp>(ingress: Ingress, ctx: egui::Context, app: A) -> Result<()> {
+    ingress.capabilities().install(&ctx);
+    let crash_reports = CrashReports::arm(A::crash_reports(&ingress)?, &ctx);
+    run_armed(ingress, ctx, app, crash_reports)
 }
 
 /// Construct and run one native application inside the recoverable panic boundary.
 ///
 /// Prefer this entry point when application construction performs fallible
-/// platform or storage work. The crash hook is armed before `build` runs.
+/// platform or storage work. The crash hook is armed and the
+/// [`Capabilities`] are installed before `build` runs.
 ///
 /// # Errors
 ///
 /// Returns the first application-construction, event-loop, window, GPU,
 /// rendering, tracing, or witness failure.
-pub fn run_with<A, F>(ctx: egui::Context, build: F) -> Result<()>
+pub fn run_with<A, F>(ingress: Ingress, ctx: egui::Context, build: F) -> Result<()>
 where
     A: NativeApp,
-    F: FnOnce(&egui::Context) -> Result<A>,
+    F: FnOnce(&egui::Context, &Ingress) -> Result<A>,
 {
-    let crash_reports = CrashReports::arm(A::crash_reports()?, &ctx);
-    let app = build(&ctx)?;
-    run_armed(ctx, app, crash_reports)
+    ingress.capabilities().install(&ctx);
+    let crash_reports = CrashReports::arm(A::crash_reports(&ingress)?, &ctx);
+    let app = build(&ctx, &ingress)?;
+    run_armed(ingress, ctx, app, crash_reports)
 }
 
-fn run_armed<A: NativeApp>(ctx: egui::Context, app: A, crash_reports: CrashReports) -> Result<()> {
-    let event_loop = EventLoop::<Spark>::with_user_event()
-        .build()
-        .context("build event loop")?;
+fn run_armed<A: NativeApp>(
+    ingress: Ingress,
+    ctx: egui::Context,
+    app: A,
+    crash_reports: CrashReports,
+) -> Result<()> {
+    let capabilities = ingress.capabilities();
+    let event_loop = platform::event_loop(ingress)?;
     event_loop.set_control_flow(ControlFlow::Wait);
     let alarm = Alarm::default();
     let governor = RepaintGovernor::new();
@@ -516,13 +571,16 @@ fn run_armed<A: NativeApp>(ctx: egui::Context, app: A, crash_reports: CrashRepor
     let mut shell = Shell {
         ctx,
         app,
+        capabilities,
         alarm,
         governor,
+        gpu: None,
         rig: None,
         force_redraw: false,
         surface_occlusion_retries: 0,
-        window_standing: WindowStanding::default(),
+        window_standing: WindowStanding::suspended(),
         window_title: A::WINDOW.title.to_owned(),
+        bars: platform::Bars::unread(),
         fault: None,
         crash_reports,
         trace_deadline: responsiveness::deadline()?,
@@ -612,13 +670,18 @@ fn lock_alarm(alarm: &Alarm) -> MutexGuard<'_, Option<Instant>> {
 struct Shell<A: NativeApp> {
     ctx: egui::Context,
     app: A,
+    capabilities: Capabilities,
     alarm: Alarm,
     governor: RepaintGovernor,
+    /// Survives surface loss; a platform that suspends the surface keeps the
+    /// device, renderer, and water across the gap.
+    gpu: Option<Gpu>,
     rig: Option<Rig>,
     force_redraw: bool,
     surface_occlusion_retries: usize,
     window_standing: WindowStanding,
     window_title: String,
+    bars: platform::Bars,
     fault: Option<anyhow::Error>,
     crash_reports: CrashReports,
     trace_deadline: Option<Instant>,
@@ -637,7 +700,7 @@ impl<A: NativeApp> Shell<A> {
             Presentation::Concealed => return Ok(()),
             Presentation::Background | Presentation::Foreground => {}
         }
-        let Some(rig) = self.rig.as_mut() else {
+        let (Some(rig), Some(gpu)) = (self.rig.as_mut(), self.gpu.as_mut()) else {
             return Ok(());
         };
         let begun = Instant::now();
@@ -658,14 +721,35 @@ impl<A: NativeApp> Shell<A> {
             .witness
             .as_ref()
             .map(|_| egui_tester_witness::FramePulse::begin());
-        let raw_input = main_phase!("frame.input", rig.input.take_egui_input(&rig.window));
+        let safe_area = platform::safe_area(&self.ctx, &rig.window, event_loop, &mut self.bars)
+            .context("read platform safe area")?;
+        if safe_area.unsettled {
+            schedule_repaint(
+                &self.governor,
+                &self.alarm,
+                &rig.window,
+                Duration::from_millis(16),
+                RepaintOrigin::External,
+            );
+        }
+        let mut raw_input = main_phase!("frame.input", rig.input.take_egui_input(&rig.window));
+        raw_input.safe_area_insets = safe_area.insets;
         let mut output = main_phase!(
             "frame.ui",
-            self.ctx.run_ui(raw_input, |ui| {
-                self.crash_reports.quarantine_input(ui.ctx());
-                self.app.draw(ui);
-                self.crash_reports.restore_input(ui.ctx());
-                self.crash_reports.show(ui.ctx());
+            self.ctx.run_ui(raw_input, |root| {
+                self.crash_reports.quarantine_input(root.ctx());
+                if safe_area.insets.is_some() {
+                    let mut safe = root.new_child(
+                        egui::UiBuilder::new()
+                            .id_salt("eternalist-safe-area")
+                            .max_rect(root.ctx().content_rect()),
+                    );
+                    self.app.draw(&mut safe);
+                } else {
+                    self.app.draw(root);
+                }
+                self.crash_reports.restore_input(root.ctx());
+                self.crash_reports.show(root.ctx());
             })
         );
         frame_span.record("pixels_per_point", output.pixels_per_point);
@@ -695,7 +779,7 @@ impl<A: NativeApp> Shell<A> {
             self.app
                 .water(&self.ctx, output.pixels_per_point, &tooltip_rects)
         );
-        if water.wants_repaint() {
+        if gpu.water.is_some() && water.wants_repaint() {
             schedule_repaint(
                 &self.governor,
                 &self.alarm,
@@ -720,6 +804,7 @@ impl<A: NativeApp> Shell<A> {
         let rendered = main_phase!(
             "frame.render",
             rig.render(
+                gpu,
                 &primitives,
                 &output.textures_delta,
                 output.pixels_per_point,
@@ -956,13 +1041,32 @@ fn tooltip_rects(ctx: &egui::Context) -> Vec<egui::Rect> {
 
 impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.rig.is_some() {
-            return;
+        if self.rig.is_none() {
+            match Rig::raise::<A>(event_loop, &self.ctx, &mut self.gpu, self.capabilities) {
+                Ok(rig) => self.rig = Some(rig),
+                Err(error) => {
+                    self.abort(event_loop, error.context("raise native window"));
+                    return;
+                }
+            }
         }
-        match Rig::raise::<A>(event_loop, &self.ctx) {
-            Ok(rig) => self.rig = Some(rig),
-            Err(error) => self.abort(event_loop, error.context("raise native window")),
+        self.window_standing
+            .concealments
+            .set(Concealment::Suspended, false);
+        self.reconcile_presentation();
+        if let Some(rig) = &self.rig {
+            rig.window.request_redraw();
         }
+    }
+
+    fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
+        self.app.suspended();
+        self.window_standing
+            .concealments
+            .set(Concealment::Suspended, true);
+        self.reconcile_presentation();
+        self.bars = platform::Bars::unread();
+        drop(self.rig.take());
     }
 
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
@@ -1016,6 +1120,7 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
             WindowEvent::MouseWheel { .. } => "mouse_wheel",
             WindowEvent::MouseInput { .. } => "mouse_input",
             WindowEvent::KeyboardInput { .. } => "keyboard_input",
+            WindowEvent::Touch(_) => "touch",
             WindowEvent::Resized(_) => "resized",
             WindowEvent::Focused(_) => "focused",
             WindowEvent::Occluded(_) => "occluded",
@@ -1053,12 +1158,13 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
             }
             WindowEvent::Resized(size) => {
                 self.surface_occlusion_retries = 0;
+                self.bars = platform::Bars::unread();
                 self.window_standing
                     .concealments
                     .set(Concealment::ZeroSized, size.width == 0 || size.height == 0);
                 self.reconcile_presentation();
-                if let Some(rig) = &mut self.rig {
-                    rig.resize(*size);
+                if let (Some(rig), Some(gpu)) = (&mut self.rig, &mut self.gpu) {
+                    rig.resize(gpu, *size);
                 }
             }
             WindowEvent::Focused(focused) => {
@@ -1121,17 +1227,32 @@ impl<A: NativeApp> ApplicationHandler<Spark> for Shell<A> {
             .min();
         event_loop.set_control_flow(deadline.map_or(ControlFlow::Wait, ControlFlow::WaitUntil));
     }
+
+    fn memory_warning(&mut self, _event_loop: &ActiveEventLoop) {
+        self.app.memory_warning();
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        self.app.retiring();
+    }
 }
 
+/// The device-side state that outlives any one surface.
+struct Gpu {
+    instance: wgpu::Instance,
+    render: RenderState,
+    /// Present only under [`Capabilities::power_unconstrained`].
+    water: Option<Engine>,
+}
+
+/// The window, its input translation, and the surface bound to it.
 struct Rig {
     window: Arc<Window>,
     input: egui_winit::State,
     #[cfg(target_os = "linux")]
     cursor_foundry: crate::native_cursor::X11CursorFoundry,
     surface: wgpu::Surface<'static>,
-    gpu: RenderState,
     config: wgpu::SurfaceConfiguration,
-    water: Engine,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -1148,7 +1269,48 @@ const SURFACE_OCCLUSION_RETRY_DELAYS: [Duration; 4] = [
     Duration::from_millis(128),
 ];
 
+impl Gpu {
+    fn raise<A: NativeApp>(
+        surface: &wgpu::Surface<'static>,
+        instance: wgpu::Instance,
+        configuration: &WgpuConfiguration,
+        capabilities: Capabilities,
+    ) -> Result<Self> {
+        let render = pollster::block_on(RenderState::create(
+            configuration,
+            &instance,
+            Some(surface),
+            RendererOptions::default(),
+        ))
+        .context("create wgpu render state")?;
+        A::register_gpu(
+            &mut render.renderer.write(),
+            &render.device,
+            render.target_format,
+            capabilities,
+        );
+        let water = capabilities
+            .power_unconstrained
+            .then(|| Engine::new(&render.device, render.target_format));
+        Ok(Self {
+            instance,
+            render,
+            water,
+        })
+    }
+
+    fn resize_water(&mut self, width: u32, height: u32) {
+        if let Some(water) = &mut self.water {
+            water.resize(&self.render.device, width, height);
+        }
+    }
+}
+
 impl Rig {
+    #[allow(
+        clippy::unnecessary_wraps,
+        reason = "fallible only where the X11 cursor foundry applies"
+    )]
     fn handle_platform_output(
         &mut self,
         event_loop: &ActiveEventLoop,
@@ -1180,11 +1342,18 @@ impl Rig {
         Ok(())
     }
 
+    /// Raise the window and its surface, creating the GPU on the first raise
+    /// and rebinding the surviving GPU on every later one.
     #[allow(
         clippy::cast_possible_truncation,
         reason = "winit reports DPI as f64 while egui's scale contract is f32"
     )]
-    fn raise<A: NativeApp>(event_loop: &ActiveEventLoop, ctx: &egui::Context) -> Result<Self> {
+    fn raise<A: NativeApp>(
+        event_loop: &ActiveEventLoop,
+        ctx: &egui::Context,
+        gpu: &mut Option<Gpu>,
+        capabilities: Capabilities,
+    ) -> Result<Self> {
         let [width, height] = A::WINDOW.initial_size;
         let attributes = WindowAttributes::default()
             .with_title(A::WINDOW.title)
@@ -1211,58 +1380,75 @@ impl Rig {
         #[cfg(target_os = "linux")]
         let cursor_foundry = crate::native_cursor::X11CursorFoundry::bind(&window)
             .context("bind X11 cursor foundry")?;
-        let mut configuration = WgpuConfiguration::default();
-        if let WgpuSetup::CreateNew(setup) = &mut configuration.wgpu_setup {
-            let inherited = Arc::clone(&setup.device_descriptor);
-            setup.device_descriptor = Arc::new(move |adapter| {
-                let mut descriptor = inherited(adapter);
-                descriptor.memory_hints = wgpu::MemoryHints::MemoryUsage;
-                descriptor
+        let Some(gpu) = gpu.as_mut() else {
+            let mut configuration = WgpuConfiguration::default();
+            if let WgpuSetup::CreateNew(setup) = &mut configuration.wgpu_setup {
+                platform::temper_instance(&mut setup.instance_descriptor);
+                let inherited = Arc::clone(&setup.device_descriptor);
+                setup.device_descriptor = Arc::new(move |adapter| {
+                    let mut descriptor = inherited(adapter);
+                    descriptor.memory_hints = wgpu::MemoryHints::MemoryUsage;
+                    descriptor
+                });
+            }
+            let instance = pollster::block_on(configuration.wgpu_setup.new_instance());
+            let surface = instance
+                .create_surface(Arc::clone(&window))
+                .context("create surface")?;
+            let mut raised = Gpu::raise::<A>(&surface, instance, &configuration, capabilities)?;
+            let config = Self::configure(&window, &surface, &raised)?;
+            raised.resize_water(config.width, config.height);
+            *gpu = Some(raised);
+            return Ok(Self {
+                window,
+                input,
+                #[cfg(target_os = "linux")]
+                cursor_foundry,
+                surface,
+                config,
             });
-        }
-        let instance = pollster::block_on(configuration.wgpu_setup.new_instance());
-        let surface = instance
+        };
+        let surface = gpu
+            .instance
             .create_surface(Arc::clone(&window))
-            .context("create surface")?;
-        let gpu = pollster::block_on(RenderState::create(
-            &configuration,
-            &instance,
-            Some(&surface),
-            RendererOptions::default(),
-        ))
-        .context("create wgpu render state")?;
-        A::register_gpu(&mut gpu.renderer.write(), &gpu.device, gpu.target_format);
-        let size = window.inner_size();
-        let mut config = surface
-            .get_default_config(&gpu.adapter, size.width.max(1), size.height.max(1))
-            .context("surface is unsupported by the adapter")?;
-        config.format = gpu.target_format;
-        config.present_mode = wgpu::PresentMode::AutoVsync;
-        config.desired_maximum_frame_latency = 1;
-        config.view_formats = vec![gpu.target_format];
-        surface.configure(&gpu.device, &config);
-        let mut water = Engine::new(&gpu.device, gpu.target_format);
-        water.resize(&gpu.device, config.width, config.height);
+            .context("recreate surface")?;
+        let config = Self::configure(&window, &surface, gpu)?;
+        gpu.resize_water(config.width, config.height);
         Ok(Self {
             window,
             input,
             #[cfg(target_os = "linux")]
             cursor_foundry,
             surface,
-            gpu,
             config,
-            water,
         })
     }
 
-    fn resize(&mut self, size: PhysicalSize<u32>) {
+    fn configure(
+        window: &Window,
+        surface: &wgpu::Surface<'static>,
+        gpu: &Gpu,
+    ) -> Result<wgpu::SurfaceConfiguration> {
+        let size = window.inner_size();
+        let mut config = surface
+            .get_default_config(&gpu.render.adapter, size.width.max(1), size.height.max(1))
+            .context("surface is unsupported by the adapter")?;
+        config.format = gpu.render.target_format;
+        config.present_mode = wgpu::PresentMode::AutoVsync;
+        config.desired_maximum_frame_latency = platform::FRAME_LATENCY;
+        config.view_formats = vec![gpu.render.target_format];
+        surface.configure(&gpu.render.device, &config);
+        Ok(config)
+    }
+
+    fn resize(&mut self, gpu: &mut Gpu, size: PhysicalSize<u32>) {
         if size.width == 0 || size.height == 0 {
             return;
         }
         self.config.width = size.width;
         self.config.height = size.height;
-        self.surface.configure(&self.gpu.device, &self.config);
-        self.water.resize(&self.gpu.device, size.width, size.height);
+        self.surface.configure(&gpu.render.device, &self.config);
+        gpu.resize_water(size.width, size.height);
     }
 
     fn process_viewport_commands(
@@ -1286,6 +1472,7 @@ impl Rig {
     )]
     fn render(
         &mut self,
+        gpu: &mut Gpu,
         primitives: &[egui::ClippedPrimitive],
         delta: &egui::TexturesDelta,
         pixels_per_point: f32,
@@ -1297,22 +1484,27 @@ impl Rig {
         };
         let mut encoder = main_phase!(
             "render.encoder",
-            self.gpu
+            gpu.render
                 .device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: Some("native-app-shell"),
                 })
         );
         let user_commands = main_phase!("render.prepare", {
-            let mut renderer = self.gpu.renderer.write();
+            let mut renderer = gpu.render.renderer.write();
             for (id, image_deltas) in &delta.set {
                 for image_delta in image_deltas {
-                    renderer.update_texture(&self.gpu.device, &self.gpu.queue, *id, image_delta);
+                    renderer.update_texture(
+                        &gpu.render.device,
+                        &gpu.render.queue,
+                        *id,
+                        image_delta,
+                    );
                 }
             }
             renderer.update_buffers(
-                &self.gpu.device,
-                &self.gpu.queue,
+                &gpu.render.device,
+                &gpu.render.queue,
                 &mut encoder,
                 primitives,
                 &screen,
@@ -1324,20 +1516,20 @@ impl Rig {
                 wgpu::CurrentSurfaceTexture::Success(frame)
                 | wgpu::CurrentSurfaceTexture::Suboptimal(frame) => frame,
                 wgpu::CurrentSurfaceTexture::Timeout => {
-                    self.free_textures(delta);
+                    free_textures(&gpu.render, delta);
                     return Ok(RenderOutcome::Retry);
                 }
                 wgpu::CurrentSurfaceTexture::Occluded => {
-                    self.free_textures(delta);
+                    free_textures(&gpu.render, delta);
                     return Ok(RenderOutcome::Occluded);
                 }
                 wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                    self.free_textures(delta);
-                    self.surface.configure(&self.gpu.device, &self.config);
+                    free_textures(&gpu.render, delta);
+                    self.surface.configure(&gpu.render.device, &self.config);
                     return Ok(RenderOutcome::Retry);
                 }
                 wgpu::CurrentSurfaceTexture::Validation => {
-                    self.free_textures(delta);
+                    free_textures(&gpu.render, delta);
                     bail!("surface texture validation failure");
                 }
             }
@@ -1345,16 +1537,18 @@ impl Rig {
         let surface_view = frame
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        if water.dry() {
-            self.water.becalm(&self.gpu.queue);
+        if water.dry()
+            && let Some(engine) = &mut gpu.water
+        {
+            engine.becalm(&gpu.render.queue);
         }
-        let frosted = water.live() && self.water.scene_view().is_some();
+        let scene = water
+            .live()
+            .then(|| gpu.water.as_ref().and_then(Engine::scene_view))
+            .flatten();
+        let frosted = scene.is_some();
         main_phase!("render.egui_pass", {
-            let target = if frosted {
-                self.water.scene_view().unwrap_or(&surface_view)
-            } else {
-                &surface_view
-            };
+            let target = scene.unwrap_or(&surface_view);
             let mut pass = encoder
                 .begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("native-app-egui"),
@@ -1373,17 +1567,17 @@ impl Rig {
                     multiview_mask: None,
                 })
                 .forget_lifetime();
-            self.gpu
+            gpu.render
                 .renderer
                 .read()
                 .render(&mut pass, primitives, &screen);
         });
-        if frosted {
+        if frosted && let Some(engine) = &mut gpu.water {
             main_phase!(
                 "render.water_compose",
-                self.water.compose(
-                    &self.gpu.device,
-                    &self.gpu.queue,
+                engine.compose(
+                    &gpu.render.device,
+                    &gpu.render.queue,
                     &mut encoder,
                     &surface_view,
                     water,
@@ -1392,30 +1586,33 @@ impl Rig {
         }
         let _submission = main_phase!(
             "render.submit",
-            self.gpu
+            gpu.render
                 .queue
                 .submit(user_commands.into_iter().chain([encoder.finish()]))
         );
         let repaint = main_phase!(
             "render.water_after_submit",
-            self.water
-                .after_submit(&self.gpu.device, &self.gpu.queue, water)
+            gpu.water.as_mut().is_some_and(|engine| engine.after_submit(
+                &gpu.render.device,
+                &gpu.render.queue,
+                water
+            ))
         );
-        main_phase!("render.free_textures", self.free_textures(delta));
+        main_phase!("render.free_textures", free_textures(&gpu.render, delta));
         self.window.pre_present_notify();
-        main_phase!("render.present", self.gpu.queue.present(frame));
+        main_phase!("render.present", gpu.render.queue.present(frame));
         let _maintained = main_phase!(
             "render.maintain",
-            self.gpu.device.poll(wgpu::PollType::Poll)
+            gpu.render.device.poll(wgpu::PollType::Poll)
         );
         Ok(RenderOutcome::Presented { repaint })
     }
+}
 
-    fn free_textures(&self, delta: &egui::TexturesDelta) {
-        let mut renderer = self.gpu.renderer.write();
-        for id in &delta.free {
-            renderer.free_texture(id);
-        }
+fn free_textures(render: &RenderState, delta: &egui::TexturesDelta) {
+    let mut renderer = render.renderer.write();
+    for id in &delta.free {
+        renderer.free_texture(id);
     }
 }
 
@@ -1466,6 +1663,15 @@ fn stage_witness<T: Serialize>(
     )
 }
 
+/// What the platform reports about the area an application may draw into.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct SafeArea {
+    /// Insets to hand egui, or `None` where the whole surface is safe.
+    pub insets: Option<egui::SafeAreaInsets>,
+    /// The platform has not yet reported its bars; ask again next frame.
+    pub unsettled: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1474,6 +1680,7 @@ mod tests {
     fn repaint_authority_distinguishes_visibility_from_focus() {
         let governor = RepaintGovernor::new();
         let delay = Duration::from_millis(7);
+        let _prior = governor.set(Presentation::Foreground);
         for origin in [
             RepaintOrigin::External,
             RepaintOrigin::ForegroundExternal,
@@ -1498,5 +1705,13 @@ mod tests {
         ] {
             assert_eq!(governor.delay(delay, origin), None);
         }
+    }
+
+    #[test]
+    fn nothing_presents_before_the_platform_hands_over_a_surface() {
+        let mut standing = WindowStanding::suspended();
+        assert_eq!(standing.presentation(), Presentation::Concealed);
+        standing.concealments.set(Concealment::Suspended, false);
+        assert_eq!(standing.presentation(), Presentation::Foreground);
     }
 }

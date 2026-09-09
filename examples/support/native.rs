@@ -47,6 +47,7 @@ pub fn run(exhibit: impl Exhibit + 'static) -> Result<()> {
     let ctx = egui::Context::default();
     chrome::install(&ctx);
     let result = eternalist_apps::run(
+        eternalist_apps::Ingress::Desktop,
         ctx,
         Atelier {
             exhibit,

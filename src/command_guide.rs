@@ -8,6 +8,7 @@ use brass_poolrooms::chrome::{
     self, Keycap, MechanismSize, Monoglyph, MonoglyphResponse, ScrewScroll, Symbol,
 };
 
+use crate::Capabilities;
 use crate::commands::{
     ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
     PREVIOUS_CONTROL, SETTINGS_SHORTCUTS, Shortcut, Stroke, UNWIND, take,
@@ -86,6 +87,7 @@ pub struct GuideGesture {
     label: &'static str,
     detail: &'static str,
     shortcuts: &'static [Shortcut],
+    cue: Option<&'static str>,
 }
 
 impl GuideGesture {
@@ -100,7 +102,33 @@ impl GuideGesture {
             label,
             detail,
             shortcuts,
+            cue: None,
         }
+    }
+
+    /// Name the touch gesture that performs this action, such as `SWIPE ↔`.
+    ///
+    /// A gesture with a cue and no shortcuts appears only where
+    /// [`Capabilities::touch`] holds; one with shortcuts and no cue only where
+    /// [`Capabilities::keyboard`] holds; one with neither is modality-free and
+    /// always appears.
+    #[must_use]
+    pub const fn cued(mut self, cue: &'static str) -> Self {
+        self.cue = Some(cue);
+        self
+    }
+
+    /// The touch cue, when the gesture has one.
+    #[must_use]
+    pub const fn cue(self) -> Option<&'static str> {
+        self.cue
+    }
+
+    /// Whether the gesture applies under the declared facts.
+    fn applies(self, capabilities: Capabilities) -> bool {
+        (!self.shortcuts.is_empty() && capabilities.keyboard)
+            || (self.cue.is_some() && capabilities.touch)
+            || (self.shortcuts.is_empty() && self.cue.is_none())
     }
 
     /// Visible gesture label.
@@ -218,14 +246,19 @@ impl CommandGuide {
     /// Show the persistent small help plunger and toggle the guide when used.
     pub fn activator(&mut self, ui: &mut egui::Ui) -> MonoglyphResponse {
         self.shell.prepare(ui.ctx());
-        let response = Monoglyph::symbol(Symbol::Help)
-            .size(MechanismSize::Medium)
-            .show(ui)
-            .on_hover_text(format!(
+        let hint = if Capabilities::of(ui.ctx()).keyboard {
+            format!(
                 "Help · {} or {}",
                 HELP_SHORTCUTS[0].label(ui.ctx()),
                 HELP_SHORTCUTS[1].label(ui.ctx())
-            ));
+            )
+        } else {
+            "Help".to_owned()
+        };
+        let response = Monoglyph::symbol(Symbol::Help)
+            .size(MechanismSize::Medium)
+            .show(ui)
+            .on_hover_text(hint);
         if response.clicked() {
             self.shell.toggle(ui.ctx());
         }
@@ -252,6 +285,7 @@ impl CommandGuide {
             return;
         }
         let width = (ctx.content_rect().width() - 48.0).clamp(340.0, 760.0);
+        let keyboard = Capabilities::of(ctx).keyboard;
         let mut close = false;
         let page = &mut self.page;
         let modal = egui::Modal::new(egui::Id::new("eternalist-command-guide"))
@@ -261,31 +295,41 @@ impl CommandGuide {
                 ui.set_width(width);
                 let chrome_top = ui.cursor().top();
                 let _header = ui.horizontal(|ui| {
-                    let _title = ui.label(chrome::title("HELP & COMMANDS"));
+                    let _title = ui.label(chrome::title(if keyboard {
+                        "HELP & COMMANDS"
+                    } else {
+                        "HELP"
+                    }));
                     let _close =
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             let response = Monoglyph::symbol(Symbol::Remove)
                                 .size(MechanismSize::Small)
                                 .focusable(false)
                                 .show(ui)
-                                .on_hover_text("Close help · Escape");
+                                .on_hover_text(if keyboard {
+                                    "Close help · Escape"
+                                } else {
+                                    "Close help"
+                                });
                             close |= response.clicked();
                         });
                 });
-                let _hint = ui.label(chrome::muted(format!(
-                    "{} or {} toggles this guide",
-                    HELP_SHORTCUTS[0].label(ui.ctx()),
-                    HELP_SHORTCUTS[1].label(ui.ctx())
-                )));
-                ui.add_space(10.0);
-                let _pages = ui.horizontal(|ui| {
-                    if page_button(ui, "CURRENT CONTEXT", *page == GuidePage::Context) {
-                        *page = GuidePage::Context;
-                    }
-                    if page_button(ui, "ALL COMMANDS", *page == GuidePage::All) {
-                        *page = GuidePage::All;
-                    }
-                });
+                if keyboard {
+                    let _hint = ui.label(chrome::muted(format!(
+                        "{} or {} toggles this guide",
+                        HELP_SHORTCUTS[0].label(ui.ctx()),
+                        HELP_SHORTCUTS[1].label(ui.ctx())
+                    )));
+                    ui.add_space(10.0);
+                    let _pages = ui.horizontal(|ui| {
+                        if page_button(ui, "CURRENT CONTEXT", *page == GuidePage::Context) {
+                            *page = GuidePage::Context;
+                        }
+                        if page_button(ui, "ALL COMMANDS", *page == GuidePage::All) {
+                            *page = GuidePage::All;
+                        }
+                    });
+                }
                 ui.add_space(8.0);
                 let extent = scroll_extent(ctx, ui.cursor().top() - chrome_top, 560.0);
                 let body = ScrewScroll::vertical()
@@ -294,6 +338,7 @@ impl CommandGuide {
                     .max_height(extent.height)
                     .auto_shrink([false, false])
                     .show(ui, |ui| match *page {
+                        _ if !keyboard => show_guide_groups(ui, application_groups),
                         GuidePage::Context => {
                             show_context(
                                 ui,
@@ -465,7 +510,7 @@ fn show_command_group<'reason, 'spec, C, S>(
                 let name = spec
                     .widget_text_with_font(ui, &chrome::TypeRole::Label.proportional(ui.style()));
                 let detail = command_detail(spec.detail(), state);
-                show_guide_row(ui, columns, enabled, bindings, name, detail);
+                show_guide_row(ui, columns, enabled, bindings, None, name, detail);
             }
         });
     ui.add_space(GUIDE_GROUP_SPACING);
@@ -480,6 +525,15 @@ fn show_guide_groups(ui: &mut egui::Ui, application_groups: &[GuideGroup]) {
 }
 
 fn show_gesture_group(ui: &mut egui::Ui, group: GuideGroup) {
+    let capabilities = Capabilities::of(ui.ctx());
+    let gestures = group
+        .gestures()
+        .iter()
+        .filter(|gesture| gesture.applies(capabilities))
+        .collect::<Vec<_>>();
+    if gestures.is_empty() {
+        return;
+    }
     let _title = ui.label(chrome::eyebrow(group.title()));
     ui.add_space(4.0);
     let columns = GuideColumns::for_width(ui.available_width());
@@ -490,12 +544,13 @@ fn show_gesture_group(ui: &mut egui::Ui, group: GuideGroup) {
         .spacing(egui::vec2(GUIDE_COLUMN_SPACING, GUIDE_ROW_SPACING))
         .striped(false)
         .show(ui, |ui| {
-            for gesture in group.gestures() {
+            for gesture in gestures {
                 show_guide_row(
                     ui,
                     columns,
                     true,
                     gesture.shortcuts().iter().copied(),
+                    gesture.cue(),
                     chrome::TypeRole::Label.text(gesture.label()).into(),
                     guide_detail(gesture.detail()).into(),
                 );
@@ -509,6 +564,7 @@ fn show_guide_row(
     columns: GuideColumns,
     enabled: bool,
     bindings: impl IntoIterator<Item = Shortcut>,
+    cue: Option<&'static str>,
     name: egui::WidgetText,
     detail: egui::WidgetText,
 ) {
@@ -517,6 +573,9 @@ fn show_guide_row(
         let _keys = ui.horizontal_wrapped(|ui| {
             for shortcut in bindings {
                 let _cap = Keycap::new(shortcut.label(ui.ctx())).show(ui);
+            }
+            if let Some(cue) = cue {
+                let _cue = ui.label(chrome::eyebrow(cue));
             }
         });
     });

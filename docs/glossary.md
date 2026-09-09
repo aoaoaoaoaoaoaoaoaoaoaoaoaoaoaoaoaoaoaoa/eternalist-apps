@@ -41,6 +41,33 @@ still-local implementation metaphors remain with their applications.
 - **Settled Scribe**: the sequenced background-write boundary for a latest-wins
   durable projection after a finite settlement interval.
 
+- **Capabilities**: the facts the host declares about one run, installed
+  before the application is built. Applications consult one fact and never an
+  operating system. The facts are Pointer, Touch, Keyboard,
+  Power-unconstrained, Configuration, and Retirement.
+- **Pointer**: a hovering precise pointer exists. Tension, tooltips, and the
+  Inspector actuator require it.
+- **Touch**: direct multi-touch manipulation exists. Pinch and swipe are
+  meaningful, and mechanisms step up to a fingertip.
+- **Keyboard**: a physical keyboard with shortcuts is expected. Shortcut hints
+  and the command canon appear only where it holds.
+- **Power-unconstrained**: the host may spend the GPU continuously on
+  ornament. Water, radiators, and tension require it; a Handheld never grants
+  it.
+- **Retirement**: the operating system may suspend or destroy the process at
+  will. Where it holds, close never exits and the application checkpoints on
+  suspension.
+- **Handheld**: a phone or a tablet held in the hand. The word names the device
+  class and the Capabilities constructor; code never branches on it.
+- **Ingress**: the operating-system entry token handed to the native host:
+  bare on a desktop, or Android's `NativeActivity` with its application
+  handle.
+- **Dock**: the Inspector's persistent left-side disposition.
+- **Drawer**: the Inspector's bottom disposition for a Handheld, showing one
+  Panel at a time with swipe paging.
+- **Cue**: the touch gesture a Gesture names, such as `SWIPE ↔`, shown where
+  Touch holds in place of key bindings.
+
 Acceptance terms such as Target, Anchor, Observation, Story, and Oracle belong
 to egui-tester. Physical terms such as Section, Rail, mechanism, and casing
 belong to Brass Poolrooms.

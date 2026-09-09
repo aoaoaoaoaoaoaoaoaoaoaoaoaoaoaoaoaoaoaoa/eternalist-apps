@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 
-use crate::{ApplicationPaths, NativeWake, ProductIdentity, witness};
+use crate::{ApplicationPaths, Ingress, NativeWake, ProductIdentity, witness};
 
 const SCHEMA: u8 = 2;
 const CAPSULE_NAME: &str = "crash-report-v2.json";
@@ -60,11 +60,15 @@ impl CrashReportSpec {
     /// # Errors
     ///
     /// Returns an error when the platform exposes no application directories.
-    pub fn standard(product: ProductIdentity, release: &'static str) -> anyhow::Result<Self> {
+    pub fn standard(
+        product: ProductIdentity,
+        release: &'static str,
+        ingress: &Ingress,
+    ) -> anyhow::Result<Self> {
         Ok(Self::new(
             product,
             release,
-            ApplicationPaths::claim(product)?.state,
+            ApplicationPaths::claim_from(product, ingress)?.state,
         ))
     }
 
@@ -445,17 +449,25 @@ fn sha256_hex(body: &[u8]) -> String {
         .collect()
 }
 
+/// Desktops trust the platform's verifier through its native TLS; Android
+/// carries no usable native stack for Rust and verifies against bundled roots.
+fn tls_config() -> TlsConfig {
+    #[cfg(target_os = "android")]
+    let (provider, roots) = (TlsProvider::Rustls, RootCerts::WebPki);
+    #[cfg(not(target_os = "android"))]
+    let (provider, roots) = (TlsProvider::NativeTls, RootCerts::PlatformVerifier);
+    TlsConfig::builder()
+        .provider(provider)
+        .root_certs(roots)
+        .build()
+}
+
 fn deliver(endpoint: &str, body: Vec<u8>, digest: String) -> Result<u16, ureq::Error> {
     let agent = ureq::Agent::config_builder()
         .https_only(true)
         .max_redirects(0)
         .http_status_as_error(false)
-        .tls_config(
-            TlsConfig::builder()
-                .provider(TlsProvider::NativeTls)
-                .root_certs(RootCerts::PlatformVerifier)
-                .build(),
-        )
+        .tls_config(tls_config())
         .timeout_global(Some(SEND_TIMEOUT))
         .build()
         .new_agent();

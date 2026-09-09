@@ -1,6 +1,6 @@
 //! Platform application directories derived from a product identity.
 
-use crate::ProductIdentity;
+use crate::{Ingress, ProductIdentity};
 use anyhow::{Context as _, Result};
 use directories::ProjectDirs;
 use std::path::{Path, PathBuf};
@@ -40,6 +40,28 @@ impl ApplicationPaths {
                 .state_dir()
                 .map_or_else(|| dirs.data_local_dir().join("state"), Path::to_path_buf),
             runtime: dirs.runtime_dir().map(Path::to_path_buf),
+        })
+    }
+
+    /// Resolve the directories for the platform the process entered through.
+    ///
+    /// A platform that owns storage roots every directory beneath the private
+    /// root it hands the application; otherwise the user's home applies.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the platform exposes no application directories.
+    pub fn claim_from(product: ProductIdentity, ingress: &Ingress) -> Result<Self> {
+        let Some(root) = ingress.private_root() else {
+            return Self::claim(product);
+        };
+        Ok(Self {
+            config: root.join("config"),
+            data: root.join("data"),
+            local_data: root.join("data"),
+            cache: root.join("cache"),
+            state: root.join("state"),
+            runtime: None,
         })
     }
 

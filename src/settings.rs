@@ -4,6 +4,7 @@
 
 use std::{ops::RangeInclusive, path::Path};
 
+use crate::Capabilities;
 use brass_poolrooms::{
     chrome::{
         self, Checkbox, FontScale, MechanismSize, Monoglyph, MonoglyphFinish, MonoglyphResponse,
@@ -19,6 +20,8 @@ use crate::{
 };
 
 const FAULT: egui::Color32 = egui::Color32::from_rgb(214, 92, 46);
+const POINTER_ROW_HEIGHT: f32 = 58.0;
+const TOUCH_ROW_HEIGHT: f32 = 64.0;
 
 /// Canonical application-font accessibility setting.
 pub const FONT_SIZE: SettingSpec = SettingSpec::new(
@@ -185,7 +188,13 @@ impl SettingsSheet {
         if needs_attention {
             actuator = actuator.finish(MonoglyphFinish::Danger);
         }
-        let hint = if needs_attention {
+        let hint = if !Capabilities::of(ui.ctx()).keyboard {
+            if needs_attention {
+                "Settings need attention".to_owned()
+            } else {
+                "Settings".to_owned()
+            }
+        } else if needs_attention {
             format!(
                 "Settings need attention · {} or {}",
                 SETTINGS_SHORTCUTS[0].label(ui.ctx()),
@@ -207,16 +216,21 @@ impl SettingsSheet {
     }
 
     /// Render settings above the completed application UI.
+    ///
+    /// `file` describes the human-edited configuration file where
+    /// [`Capabilities::configuration`] holds; without one the sheet omits its
+    /// source and reload controls.
     pub fn show(
         &mut self,
         ctx: &egui::Context,
         water: &mut Surface,
-        file: SettingsFile<'_>,
+        file: Option<SettingsFile<'_>>,
         add_settings: impl FnOnce(&mut SettingsUi<'_>),
     ) -> SettingsResponse {
         if !self.shell.begin_present(ctx) {
             return SettingsResponse::default();
         }
+        let keyboard = Capabilities::of(ctx).keyboard;
         let width = (ctx.content_rect().width() - 48.0).clamp(380.0, 680.0);
         let mut close = false;
         let mut reload_requested = false;
@@ -234,16 +248,22 @@ impl SettingsSheet {
                                 .size(MechanismSize::Small)
                                 .focusable(false)
                                 .show(ui)
-                                .on_hover_text("Close settings · Escape");
+                                .on_hover_text(if keyboard {
+                                    "Close settings · Escape"
+                                } else {
+                                    "Close settings"
+                                });
                             witness::response(ui, ApplicationTarget::SettingsClose, &response);
                             close |= response.clicked();
                         });
                 });
-                let _hint = ui.label(chrome::muted(format!(
-                    "{} or {} toggles settings",
-                    SETTINGS_SHORTCUTS[0].label(ui.ctx()),
-                    SETTINGS_SHORTCUTS[1].label(ui.ctx())
-                )));
+                if keyboard {
+                    let _hint = ui.label(chrome::muted(format!(
+                        "{} or {} toggles settings",
+                        SETTINGS_SHORTCUTS[0].label(ui.ctx()),
+                        SETTINGS_SHORTCUTS[1].label(ui.ctx())
+                    )));
+                }
                 ui.add_space(10.0);
                 let extent = scroll_extent(ctx, ui.cursor().top() - chrome_top, 520.0);
                 reload_requested |= settings_body(ui, water, file, extent, add_settings);
@@ -257,7 +277,7 @@ impl SettingsSheet {
 fn settings_body(
     ui: &mut egui::Ui,
     water: &mut Surface,
-    file: SettingsFile<'_>,
+    file: Option<SettingsFile<'_>>,
     extent: crate::modal::ScrollExtent,
     add_settings: impl FnOnce(&mut SettingsUi<'_>),
 ) -> bool {
@@ -274,7 +294,8 @@ fn settings_body(
         .max_height(scroll_height)
         .auto_shrink([false, true])
         .show(&mut body.content_ui, |ui| {
-            if let Some(fault) = file.fault {
+            if let Some((file, fault)) = file.and_then(|file| file.fault.map(|fault| (file, fault)))
+            {
                 fault_card(
                     ui,
                     water,
@@ -288,37 +309,41 @@ fn settings_body(
             let mut settings = SettingsUi {
                 ui,
                 water,
-                enabled: file.enabled(),
+                enabled: file.is_none_or(SettingsFile::enabled),
             };
             add_settings(&mut settings);
-            settings.ui.add_space(12.0);
-            let _source = settings.ui.horizontal(|ui| {
-                let _label = ui.label(chrome::eyebrow("CONFIGURATION FILE"));
-                if file.fault.is_none() {
-                    let _reload =
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            reload_requested |= reload_actuator(
-                                ui,
-                                settings.water,
-                                file.reload_pending,
-                                file.reloadable,
-                                false,
-                            );
-                        });
-                }
-            });
-            settings.ui.add_space(3.0);
-            let path = settings.ui.add(
-                egui::Label::new(
-                    TypeRole::Label
-                        .text(file.path.display().to_string())
-                        .family(egui::FontFamily::Monospace)
-                        .color(chrome::MUTED),
-                )
-                .selectable(true)
-                .wrap(),
-            );
-            witness::response(settings.ui, ApplicationTarget::SettingsPath, &path);
+            if let Some(file) = file {
+                settings.ui.add_space(12.0);
+                let _source = settings.ui.horizontal(|ui| {
+                    let _label = ui.label(chrome::eyebrow("CONFIGURATION FILE"));
+                    if file.fault.is_none() {
+                        let _reload = ui.with_layout(
+                            egui::Layout::right_to_left(egui::Align::Center),
+                            |ui| {
+                                reload_requested |= reload_actuator(
+                                    ui,
+                                    settings.water,
+                                    file.reload_pending,
+                                    file.reloadable,
+                                    false,
+                                );
+                            },
+                        );
+                    }
+                });
+                settings.ui.add_space(3.0);
+                let path = settings.ui.add(
+                    egui::Label::new(
+                        TypeRole::Label
+                            .text(file.path.display().to_string())
+                            .family(egui::FontFamily::Monospace)
+                            .color(chrome::MUTED),
+                    )
+                    .selectable(true)
+                    .wrap(),
+                );
+                witness::response(settings.ui, ApplicationTarget::SettingsPath, &path);
+            }
             settings.ui.add_space(8.0);
         });
     let body = body.end(ui);
@@ -424,7 +449,14 @@ fn setting_row(
     let mut changed = false;
     let _row = ui.add_enabled_ui(enabled, |ui| {
         let _contents = ui.allocate_ui_with_layout(
-            egui::vec2(ui.available_width(), 58.0),
+            egui::vec2(
+                ui.available_width(),
+                if Capabilities::of(ui.ctx()).touch {
+                    TOUCH_ROW_HEIGHT
+                } else {
+                    POINTER_ROW_HEIGHT
+                },
+            ),
             egui::Layout::right_to_left(egui::Align::Center),
             |ui| {
                 ui.set_min_height(58.0);
