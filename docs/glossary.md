@@ -51,9 +51,9 @@ still-local implementation metaphors remain with their applications.
   where it holds), `power_unconstrained` (the host may spend the GPU
   continuously on ornament; water, radiators, and tension require it, and a
   Handheld never grants it), `configuration` (a human-edited Configuration
-  exists), and `retirement` (the operating system may suspend or destroy the
-  process at will; close never exits and the application checkpoints on
-  suspension).
+  exists), and `retirement` (the operating system owns the process's end: it suspends or
+  destroys the application at will and presents no close of its own, so the
+  application checkpoints on suspension rather than at exit).
 - **Handheld**: a phone or a tablet held in the hand. The word names the device
   class and the Capabilities constructor; code never branches on it.
 - **Ingress**: the operating-system entry token handed to the native host:

@@ -32,8 +32,9 @@ pub struct Capabilities {
     /// A human-edited configuration file exists beside the application's
     /// settings.
     pub configuration: bool,
-    /// The operating system may suspend or destroy the process at will. Close
-    /// never exits, and the application checkpoints on suspension.
+    /// The operating system owns the process's end: it suspends or destroys
+    /// the application at will and presents no close of its own, so the
+    /// application checkpoints on suspension rather than at exit.
     pub retirement: bool,
 }
 
