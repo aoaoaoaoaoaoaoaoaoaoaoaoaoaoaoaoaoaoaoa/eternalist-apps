@@ -6,6 +6,7 @@
 //! title bar or raises it again. Panel structure, persistence, and domain
 //! actions remain with the caller, exactly as for the docked Inspector.
 
+use crate::witness::{self, ApplicationTarget};
 use brass_poolrooms::chrome::{self, MechanismSize, Monoglyph, MonoglyphResponse, Symbol};
 use egui::{Id, Rect, Ui};
 
@@ -138,6 +139,7 @@ impl<'a> Drawer<'a> {
                         },
                         |_ui| {},
                     );
+                    witness::response(ui, ApplicationTarget::DrawerRaise, &raise);
                     if raise.clicked() {
                         requested = Some(true);
                     }
@@ -220,6 +222,9 @@ fn show_raised(
             .on_hover_text("Next Inspector panel")
         },
     );
+    witness::response(ui, ApplicationTarget::DrawerPrevious, &previous);
+    witness::response(ui, ApplicationTarget::DrawerLower, &lower);
+    witness::response(ui, ApplicationTarget::DrawerNext, &next);
     if previous.clicked() {
         let _stepped = step(state, last_start, -1);
     }

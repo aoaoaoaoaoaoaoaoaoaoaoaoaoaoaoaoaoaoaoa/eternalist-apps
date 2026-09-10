@@ -7,10 +7,14 @@ elif [ ! -d "$(rustc --print target-libdir --target wasm32-unknown-unknown)" ]; 
     printf '%s\n' 'wasm32-unknown-unknown is absent and rustup is unavailable' >&2
     exit 1
 fi
-if ! command -v wasm-bindgen >/dev/null 2>&1 ||
-    [ "$(wasm-bindgen --version)" != 'wasm-bindgen 0.2.127' ]; then
-    cargo install wasm-bindgen-cli --version 0.2.127 --locked
+# The pinned wasm-bindgen CLI lives in the chamber's own tool prefix and
+# leads PATH, so a distribution's newer package can never shadow it.
+tools=$(cargo metadata --format-version 1 --no-deps | jq -r .target_directory)/tools
+if [ "$("$tools/bin/wasm-bindgen" --version 2>/dev/null)" != 'wasm-bindgen 0.2.127' ]; then
+    cargo install wasm-bindgen-cli --version 0.2.127 --locked --root "$tools"
 fi
+PATH="$tools/bin:$PATH"
+export PATH
 scripts/check source
 if [ -n "${FOUNDRY_ARTIFACT_DIR:-}" ]; then
     exec scripts/package-web-demo

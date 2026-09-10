@@ -33,6 +33,14 @@ pub enum ApplicationTarget<'a> {
     Setting(&'a str),
     /// Complete Command Guide body.
     CommandGuideBody,
+    /// The Drawer's previous-Panel arrow.
+    DrawerPrevious,
+    /// The Drawer's next-Panel arrow.
+    DrawerNext,
+    /// The Drawer's lowering arrow, shown while raised.
+    DrawerLower,
+    /// The Drawer's raising arrow, shown while lowered.
+    DrawerRaise,
 }
 
 impl Display for ApplicationTarget<'_> {
@@ -52,6 +60,10 @@ impl Display for ApplicationTarget<'_> {
                 write_identity(formatter, id)
             }
             Self::CommandGuideBody => formatter.write_str("eternalist.command-guide.body"),
+            Self::DrawerPrevious => formatter.write_str("eternalist.drawer.previous"),
+            Self::DrawerNext => formatter.write_str("eternalist.drawer.next"),
+            Self::DrawerLower => formatter.write_str("eternalist.drawer.lower"),
+            Self::DrawerRaise => formatter.write_str("eternalist.drawer.raise"),
         }
     }
 }
