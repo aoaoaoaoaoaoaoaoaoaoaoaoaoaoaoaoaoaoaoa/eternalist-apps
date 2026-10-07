@@ -1,39 +1,18 @@
-# Eternalist Apps Agent Guidance
+eternalist_apps: native lifecycle and reusable high-level logical app primitives; products = thin domain glue over typed composable primitives
 
-Read and obey the `$style-doctrine`, `$product-doctrine`, and `$ui-doctrine`
-skills before changing public code or doctrine. Read `$unit-test-doctrine`
-before changing unit tests.
+## invariants
+- Not owned: domain behavior, workers, product-specific persistence projections, low-level physical GUI (Brass Poolrooms, usable without Eternalist)
+- On crates.io for distribution only: internal substrate, not product or portfolio project; Atelier = dev and verification apparatus, not supported surface
+- Browser bundle hosted under `/demos/`; neither crate nor Atelier enters portfolio ledger; Atelier evidence never establishes public WebGPU claim
+- README Present Surface table exhaustive: examples of future primitive classes are not latent APIs
+- Repo docs cover only this library's telos and contracts; no cross-repo governance prose
+- Every renderer-neutral visual primitive: one decisive `examples/atelier.rs` tab exercising the real public type and its meaningful states
+- No counterfeit primitives or cosmetic combination sprawl in Atelier
+- Promote logical primitive after two apps prove same law with further reuse evident, or three use it identically
+- Promotion needs executable evidence, migration of every adopter, deletion of every local rival; similar source without common semantics stays local
 
-The crate owns native lifecycle and reusable high-level logical application
-primitives. Its north star is a product expressed as thin domain glue over
-typed, composable Eternalist primitives. It does not own domain behavior,
-workers, product-specific persistence projections, or low-level physical GUI
-elements. Brass Poolrooms owns that visual and mechanical substrate and must
-remain independently usable without Eternalist, including through WebGPU.
-
-The crate is published to crates.io for dependency distribution but remains
-internal substrate, not a standalone product or portfolio project. The Atelier
-is development and verification apparatus, not a product or supported
-execution surface. Eternalist permanently hosts its browser bundle beneath
-`/demos/`, but neither the crate nor the Atelier belongs in the portfolio
-project ledger; Atelier evidence cannot establish a public WebGPU claim.
-
-Read [README.md](README.md) before changing the public surface. Its Present
-Surface table is exhaustive: architectural examples of future primitive
-classes are not latent APIs. Keep repository documentation about this library's
-own telos and contracts; do not introduce cross-repository governance prose.
-Every renderer-neutral visual primitive must have one decisive tab in
-`examples/atelier.rs` that exercises the real public type and its meaningful
-states. Do not counterfeit a primitive or multiply cosmetic combinations.
-
-Before changing the host lifecycle or latency instrumentation, read
-[docs/responsiveness.md](docs/responsiveness.md). Before changing the public
-application seam or adding shared machinery, read
-[docs/architecture.md](docs/architecture.md). Before changing test support,
-read [docs/verification.md](docs/verification.md).
-
-Promote a logical primitive after two applications prove the same law and a
-further reuse is evident, or after three applications use it identically.
-Promotion requires executable evidence, migration of every adopter, and
-deletion of every local rival. Similar source without common semantics remains
-local.
+## routes
+- Changing public surface → `README.md`
+- Changing host lifecycle or latency instrumentation → `docs/responsiveness.md`
+- Changing public application seam or adding shared machinery → `docs/architecture.md`
+- Changing test support → `docs/verification.md`
