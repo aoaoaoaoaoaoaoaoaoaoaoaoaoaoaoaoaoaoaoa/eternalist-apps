@@ -38,7 +38,9 @@ Permanent Alt mnemonics underline their label glyph. A command button presents
 its first effective non-mnemonic shortcut at its trailing edge: an
 unmodified character uses a small void-finished monoglyph, while modified and
 multicharacter chords use a compact key well. The legend therefore follows any
-future keymap projection without rewriting the command label.
+future keymap projection without rewriting the command label. A routed
+shortcut strikes the command's control briefly, exactly as keyboard activation
+would, so every keystroke has visible consequence before its effect settles.
 
 A monoglyph is already a complete physical control: crown, forged socket
 casing, and the crown's depth within that casing communicate actuation and a

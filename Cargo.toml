@@ -22,13 +22,13 @@ egui-test = [
 serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
-brass_poolrooms = { version = "0.16.0", features = ["serde"] }
+brass_poolrooms = { version = "0.16.2", features = ["serde"] }
 egui = { version = "=0.36.1", default-features = false }
 egui-tester-witness = { version = "0.10.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [dev-dependencies]
-brass_poolrooms = { version = "0.16.0", features = ["glyph-audit"] }
+brass_poolrooms = { version = "0.16.2", features = ["glyph-audit"] }
 
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]

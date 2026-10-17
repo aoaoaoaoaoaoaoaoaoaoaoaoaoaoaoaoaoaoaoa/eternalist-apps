@@ -7,7 +7,7 @@
 
 use std::{fmt::Debug, ops::Deref};
 
-use brass_poolrooms::chrome::{Keycap, MechanismSize, Monoglyph, MonoglyphFinish};
+use brass_poolrooms::chrome::{Keycap, MechanismSize, Monoglyph, MonoglyphFinish, struck_plate};
 
 pub(crate) const HELP_SHORTCUTS: [Shortcut; 2] = [
     Shortcut::new(ShortcutModifiers::NONE, ShortcutKey::QuestionMark),
@@ -688,7 +688,8 @@ where
     ///
     /// The configurator may alter egui presentation such as selection state or
     /// minimum size. Eternalist retains ownership of the command label,
-    /// shortcut legend, and exact activation semantics.
+    /// shortcut legend, exact activation semantics, and the plate's press
+    /// when a shortcut routes the command.
     pub fn button_with(
         &self,
         command: C,
@@ -696,8 +697,10 @@ where
         configure: impl FnOnce(egui::Button<'static>) -> egui::Button<'static>,
     ) -> CommandButtonResponse {
         let spec = self.spec(command);
+        let routed = claim_routed(ui.ctx(), spec);
         let button = configure(egui::Button::new(spec.widget_text(ui)));
-        let response = match self.shortcuts(command).first().copied() {
+        let legend = self.shortcuts(command).first().copied();
+        let response = struck_plate(ui, routed_id(spec), routed, |ui| match legend {
             Some(shortcut) => match shortcut.bare_character() {
                 Some(glyph) => Monoglyph::new(glyph)
                     .size(MechanismSize::Small)
@@ -706,7 +709,7 @@ where
                 None => Keycap::new(shortcut.label(ui.ctx())).show_in(ui, button),
             },
             None => ui.add(button),
-        };
+        });
         let activated = brass_poolrooms::chrome::exact_activation(ui, &response);
         if activated {
             response.request_focus();
@@ -715,6 +718,18 @@ where
             response,
             activated,
         }
+    }
+
+    /// Consume whether a shortcut routed `command` since its controls last
+    /// rendered.
+    ///
+    /// Routing marks a command whenever one of its bindings invokes it.
+    /// [`Self::button_with`] claims the mark to press the command's plate; a
+    /// product presenting the command through another mechanism, such as a
+    /// [`Monoglyph`], strikes that mechanism with the claim. An unclaimed mark
+    /// expires after the pass following its dispatch.
+    pub fn take_routed(&self, command: C, ctx: &egui::Context) -> bool {
+        claim_routed(ctx, self.spec(command))
     }
 
     /// Consume at most one exact shortcut and return its typed consequence.
@@ -823,7 +838,10 @@ fn route_spec<'reason, C: Copy, S>(
             return Route::Consumed;
         }
         return match status {
-            CommandStatus::Enabled => Route::Dispatch(CommandDispatch::Invoke(spec.command)),
+            CommandStatus::Enabled => {
+                mark_routed(ctx, spec);
+                Route::Dispatch(CommandDispatch::Invoke(spec.command))
+            }
             CommandStatus::Disabled(reason) => Route::Dispatch(CommandDispatch::Refused {
                 command: spec.command,
                 reason,
@@ -832,6 +850,25 @@ fn route_spec<'reason, C: Copy, S>(
         };
     }
     Route::Miss
+}
+
+fn routed_id<C, S>(spec: &CommandSpec<C, S>) -> egui::Id {
+    egui::Id::new(("eternalist-command-routed", spec.id))
+}
+
+/// Mark the command routed for its controls. Routing may run before or
+/// after those controls render, so the claim window spans this pass and the
+/// next; the repaint guarantees that next pass exists.
+fn mark_routed<C, S>(ctx: &egui::Context, spec: &CommandSpec<C, S>) {
+    let pass = ctx.cumulative_pass_nr();
+    ctx.data_mut(|data| data.insert_temp(routed_id(spec), pass));
+    ctx.request_repaint();
+}
+
+fn claim_routed<C, S>(ctx: &egui::Context, spec: &CommandSpec<C, S>) -> bool {
+    let pass = ctx.cumulative_pass_nr();
+    ctx.data_mut(|data| data.remove_temp::<u64>(routed_id(spec)))
+        .is_some_and(|routed| pass <= routed + 1)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1120,6 +1157,49 @@ mod tests {
         .drop_without_applying_deltas();
         assert_eq!(dispatch, None);
         assert!(ctx.input(|input| input.key_pressed(egui::Key::Slash)));
+    }
+
+    #[test]
+    fn a_routed_mark_survives_exactly_one_following_pass() {
+        // Routing may run after the routed command's button has rendered, so its
+        // mark must survive into the next pass, and no further: a stale mark
+        // would press the plate whenever that button next appears.
+        let canon = CommandCanon::new(&SPECS);
+        let save = key(
+            egui::Modifiers::CTRL.plus(egui::Modifiers::COMMAND),
+            egui::Key::S,
+            false,
+        );
+        let pass = |ctx: &egui::Context, input, status: CommandStatus<'static>, claim: bool| {
+            let mut routed = false;
+            ctx.run_ui(input, |ui| {
+                let _dispatch = canon.route(ui.ctx(), &[], |_| status);
+                routed = claim && canon.take_routed(Command::Save, ui.ctx());
+            })
+            .drop_without_applying_deltas();
+            routed
+        };
+        let idle = egui::RawInput::default;
+        let enabled = CommandStatus::Enabled;
+
+        let ctx = egui::Context::default();
+        assert!(!pass(&ctx, save.clone(), enabled, false));
+        assert!(pass(&ctx, idle(), enabled, true));
+        assert!(!pass(&ctx, idle(), enabled, true));
+
+        let ctx = egui::Context::default();
+        assert!(!pass(&ctx, save.clone(), enabled, false));
+        assert!(!pass(&ctx, idle(), enabled, false));
+        assert!(!pass(&ctx, idle(), enabled, true));
+
+        let ctx = egui::Context::default();
+        assert!(!pass(
+            &ctx,
+            save,
+            CommandStatus::Disabled("nothing to save"),
+            true
+        ));
+        assert!(!pass(&ctx, idle(), enabled, true));
     }
 
     #[test]

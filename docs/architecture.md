@@ -178,7 +178,11 @@ receives a command by default unless that command explicitly declares capture.
 Fresh keys dispatch once, rejected repeats are consumed, and repeatable
 commands dispatch at most once per input frame. Generated buttons accept
 pointer, accessibility, or fresh unmodified Enter/Space activation, so a
-modified chord cannot leak through the focused actuator. A preceding modal
+modified chord cannot leak through the focused actuator. Every routed
+invocation marks its command: a generated button claims the mark and strikes
+its plate through Poolrooms' synthetic press, and `take_routed` hands the mark
+to any other mechanism presenting the command. A mark unclaimed through
+the pass after its dispatch expires. A preceding modal
 layer suspends ordinary application command routing without consuming its
 keys. An application-owned modal may route its own context through
 `route_in_modal`; the route remains dormant when any later modal is above its

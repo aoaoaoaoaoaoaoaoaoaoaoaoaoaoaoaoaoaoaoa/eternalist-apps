@@ -207,15 +207,15 @@ dependencies = [
 
 [[package]]
 name = "brass_foundry"
-version = "0.16.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80b5c28b5d3d56dccd0475c83fa72f7c00ad9e43268889ee11b338d6f450f823"
+checksum = "37433050d0ded5a04107a304e16be8ddfa9cd5c4b0fbfd5e4e259789ae82ab4a"
 
 [[package]]
 name = "brass_poolrooms"
-version = "0.16.0"
+version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0c9fdcb7405459fe9eafe244e8a3265e73529a8dbec3641392a8caf5092a032"
+checksum = "5e08beb60c0995a61bfa0df691d8e7448f4ec075ddadb73aeb83ec6b87fa874a"
 dependencies = [
  "anyhow",
  "brass_foundry",
@@ -811,6 +811,7 @@ dependencies = [
  "egui-winit 0.36.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "jni",
  "ndk",
+ "png",
  "pollster",
  "proptest",
  "serde",
