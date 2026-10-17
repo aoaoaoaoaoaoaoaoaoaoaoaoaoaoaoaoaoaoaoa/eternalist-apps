@@ -253,6 +253,21 @@ No global panel registry, service locator, declarative product schema, or
 closed inventory of application roles is admitted. Shared primitives must
 remain independently composable with raw egui, Poolrooms, and product-local UI.
 
+## Clipboard Images
+
+`clipboard::Seizure` takes the system clipboard for one `RgbaImage` on a
+worker: it encodes PNG, seizes the clipboard, settles once the clipboard holds
+the image, and wakes the host. On X11, XWayland included, the worker remains
+the clipboard's owner and answers `TARGETS`, `TIMESTAMP`, and `image/png`
+until another client takes the clipboard. A PNG larger than one X11 request
+travels by ICCCM INCR; arboard and egui-winit lack INCR, so their image copies
+beyond 16 MiB of PNG paste nothing anywhere. The owner blocks on its own
+connection, retains one PNG, forgets transfers silent for a minute, and ends
+when ownership passes or the process exits. macOS and Windows hand the image to
+the system pasteboard through arboard. The product owns the copy command, its
+lease, and its feedback. The hermetic `clipboard_acceptance` example pastes an
+oversized image back byte for byte.
+
 ## Promotion Law
 
 Shared code crosses this repository boundary through either promotion gate:

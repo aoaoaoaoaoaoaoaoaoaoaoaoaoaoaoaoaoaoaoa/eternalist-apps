@@ -53,6 +53,23 @@ coordinates = [
 timeout-minutes = 15
 
 [[proofs]]
+name = "clipboard-acceptance"
+laws = ["native-acceptance"]
+run = [
+  "cargo",
+  "run",
+  "--locked",
+  "--release",
+  "--example",
+  "clipboard_acceptance",
+  "--features",
+  "egui-test",
+]
+coordinates = ["linux-x86_64"]
+setup = "x11"
+timeout-minutes = 15
+
+[[proofs]]
 name = "native-acceptance"
 laws = ["native-acceptance"]
 run = ["scripts/test-atelier"]

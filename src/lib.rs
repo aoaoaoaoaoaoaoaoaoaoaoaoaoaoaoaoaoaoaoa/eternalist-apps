@@ -5,7 +5,8 @@
 //! [`command_guide`], [`panel_navigation`], and [`settings`] are renderer-neutral
 //! logical primitives. Native targets additionally expose the one-window `NativeApp`
 //! lifecycle, Poolrooms-water composition, responsiveness tracing, and
-//! optional post-present acceptance witnessing. The native support layer also
+//! optional post-present acceptance witnessing; desktop targets add [`clipboard`]
+//! image seizure. The native support layer also
 //! owns generic bounded drains, latest-wins worker mailboxes, and settled
 //! background-write scheduling. Domain state, typed command consequences,
 //! product schemas and storage paths, fixtures, oracles, and acceptance stories
@@ -21,6 +22,8 @@ use egui_tester as _;
 pub mod application_header;
 pub mod cabinet;
 pub mod capabilities;
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+pub mod clipboard;
 pub mod command_guide;
 pub mod commands;
 #[cfg(not(target_family = "wasm"))]
