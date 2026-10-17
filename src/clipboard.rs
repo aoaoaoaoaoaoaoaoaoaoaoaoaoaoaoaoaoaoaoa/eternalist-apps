@@ -9,7 +9,13 @@
 
 #![deny(missing_docs)]
 
-use std::thread;
+use std::{
+    sync::{
+        Mutex, PoisonError,
+        atomic::{AtomicU64, Ordering},
+    },
+    thread,
+};
 
 use anyhow::{Context as _, Result, anyhow, ensure};
 use crossbeam_channel::{Receiver, TryRecvError, bounded};
@@ -48,6 +54,10 @@ impl RgbaImage {
 /// The worker encodes the image and takes the clipboard, then wakes the host.
 /// On X11 it remains the clipboard's owner, serving pastes until another client
 /// takes the clipboard.
+///
+/// The newest seizure in a process prevails: an older seizure that has not yet
+/// taken the clipboard when a newer one is requested stands down and settles
+/// with an error.
 #[derive(Debug)]
 #[must_use = "a seizure reports whether the clipboard holds the image"]
 pub struct Seizure {
@@ -59,10 +69,11 @@ impl Seizure {
     pub fn image(image: RgbaImage, wake: NativeWake) -> Self {
         let (settle, outcome) = bounded(1);
         let worker = settle.clone();
+        let writ = Writ::issue();
         let spawned = thread::Builder::new()
             .name("eternalist-clipboard".to_owned())
             .spawn(move || {
-                platform::seize(image, |seized| {
+                platform::seize(image, &writ, |seized| {
                     let _sent = worker.send(seized);
                     let _woken = wake.request_repaint();
                 });
@@ -86,6 +97,33 @@ impl Seizure {
     }
 }
 
+/// The rank of the newest seizure requested in this process.
+static NEWEST: AtomicU64 = AtomicU64::new(0);
+/// Held by one worker at a time, from its rank check through its acquisition.
+static ACQUISITION: Mutex<()> = Mutex::new(());
+
+/// A seizure's rank: only the newest seizure requested may take the clipboard.
+struct Writ(u64);
+
+impl Writ {
+    fn issue() -> Self {
+        Self(NEWEST.fetch_add(1, Ordering::Relaxed) + 1)
+    }
+
+    /// Take the clipboard through `acquire` unless a newer seizure has been
+    /// requested. Acquisitions never overlap, and each check observes every
+    /// rank issued before an earlier acquisition, so a writ that passes is
+    /// overtaken only by a newer seizure acquiring after it.
+    fn execute<T>(&self, acquire: impl FnOnce() -> Result<T>) -> Result<T> {
+        let _serial = ACQUISITION.lock().unwrap_or_else(PoisonError::into_inner);
+        ensure!(
+            NEWEST.load(Ordering::Relaxed) == self.0,
+            "a newer clipboard seizure superseded this one"
+        );
+        acquire()
+    }
+}
+
 #[cfg(target_os = "linux")]
 mod platform {
     use std::time::{Duration, Instant};
@@ -106,7 +144,7 @@ mod platform {
         wrapper::ConnectionExt as _,
     };
 
-    use super::RgbaImage;
+    use super::{RgbaImage, Writ};
 
     /// An abandoned INCR transfer is forgotten after this much silence.
     const STALE_TRANSFER: Duration = Duration::from_mins(1);
@@ -124,8 +162,8 @@ mod platform {
         }
     }
 
-    pub(super) fn seize(image: RgbaImage, settle: impl FnOnce(Result<()>)) {
-        match encode(image).and_then(Owner::seize) {
+    pub(super) fn seize(image: RgbaImage, writ: &Writ, settle: impl FnOnce(Result<()>)) {
+        match encode(image).and_then(|png| Owner::seize(png, writ)) {
             Ok(owner) => {
                 settle(Ok(()));
                 if let Err(error) = owner.serve() {
@@ -176,7 +214,7 @@ mod platform {
     }
 
     impl Owner {
-        fn seize(png: Vec<u8>) -> Result<Self> {
+        fn seize(png: Vec<u8>, writ: &Writ) -> Result<Self> {
             let (connection, screen) =
                 x11rb::connect(None).context("connect to the X11 clipboard")?;
             let root = connection.setup().roots[screen].root;
@@ -198,31 +236,37 @@ mod platform {
                 .check()
                 .context("create the clipboard window")?;
             let atoms = Atoms::new(&connection)?.reply()?;
-            // ICCCM forbids seizing a selection at CurrentTime; a zero-length
-            // append to our own window reports the server's present time.
-            connection
-                .change_property8(PropMode::APPEND, window, atoms.STAMP, AtomEnum::STRING, &[])?
-                .check()
-                .context("stamp the clipboard window")?;
-            let acquired = loop {
-                if let Event::PropertyNotify(notify) = connection.wait_for_event()?
-                    && notify.window == window
-                {
-                    break notify.time;
-                }
-            };
-            connection
-                .set_selection_owner(window, atoms.CLIPBOARD, acquired)?
-                .check()
-                .context("seize the clipboard")?;
-            ensure!(
+            // Stamped under the writ, this acquisition's time is no earlier
+            // than any prior acquisition's in the process.
+            let acquired = writ.execute(|| {
+                // ICCCM forbids seizing a selection at CurrentTime; a
+                // zero-length append to our own window reports the server's
+                // present time.
                 connection
-                    .get_selection_owner(atoms.CLIPBOARD)?
-                    .reply()?
-                    .owner
-                    == window,
-                "another client kept the clipboard"
-            );
+                    .change_property8(PropMode::APPEND, window, atoms.STAMP, AtomEnum::STRING, &[])?
+                    .check()
+                    .context("stamp the clipboard window")?;
+                let acquired = loop {
+                    if let Event::PropertyNotify(notify) = connection.wait_for_event()?
+                        && notify.window == window
+                    {
+                        break notify.time;
+                    }
+                };
+                connection
+                    .set_selection_owner(window, atoms.CLIPBOARD, acquired)?
+                    .check()
+                    .context("seize the clipboard")?;
+                ensure!(
+                    connection
+                        .get_selection_owner(atoms.CLIPBOARD)?
+                        .reply()?
+                        .owner
+                        == window,
+                    "another client kept the clipboard"
+                );
+                Ok(acquired)
+            })?;
             let chunk = connection.maximum_request_bytes().saturating_sub(HEADER);
             Ok(Self {
                 connection,
@@ -387,10 +431,10 @@ mod platform {
 
     use anyhow::{Context as _, Result};
 
-    use super::RgbaImage;
+    use super::{RgbaImage, Writ};
 
-    pub(super) fn seize(image: RgbaImage, settle: impl FnOnce(Result<()>)) {
-        settle(
+    pub(super) fn seize(image: RgbaImage, writ: &Writ, settle: impl FnOnce(Result<()>)) {
+        settle(writ.execute(|| {
             arboard::Clipboard::new()
                 .and_then(|mut clipboard| {
                     clipboard.set_image(arboard::ImageData {
@@ -399,7 +443,7 @@ mod platform {
                         bytes: Cow::Owned(image.rgba),
                     })
                 })
-                .context("copy the image to the clipboard"),
-        );
+                .context("copy the image to the clipboard")
+        }));
     }
 }

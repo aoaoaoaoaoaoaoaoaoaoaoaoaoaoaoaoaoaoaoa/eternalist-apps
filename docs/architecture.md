@@ -264,9 +264,11 @@ travels by ICCCM INCR; arboard and egui-winit lack INCR, so their image copies
 beyond 16 MiB of PNG paste nothing anywhere. The owner blocks on its own
 connection, retains one PNG, forgets transfers silent for a minute, and ends
 when ownership passes or the process exits. macOS and Windows hand the image to
-the system pasteboard through arboard. The product owns the copy command, its
-lease, and its feedback. The hermetic `clipboard_acceptance` example pastes an
-oversized image back byte for byte.
+the system pasteboard through arboard. Within a process the newest seizure
+prevails: an older one that has not yet taken the clipboard stands down and
+settles with an error, so the product owns only the copy command and its
+feedback. The hermetic `clipboard_acceptance` example pastes an oversized image
+back byte for byte.
 
 ## Promotion Law
 
