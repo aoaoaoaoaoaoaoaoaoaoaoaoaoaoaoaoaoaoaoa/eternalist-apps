@@ -138,7 +138,7 @@ The remaining contracts are documented in:
 ```sh
 scripts/check
 scripts/test-atelier
-scripts/audit
+cargo audit --deny warnings
 ```
 
 The library compiles and tests its own laws. A native product adopter must also

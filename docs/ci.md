@@ -11,7 +11,7 @@ locally.
 | `scripts/test-atelier` | optimized Atelier under egui-tester's private X11, XDG, process, and software-Vulkan universe | command routing, focus traversal, generated help, Poolrooms controls, witness focus, and the native host compose end to end |
 | Foundry `host` proof | ordinary host compilation and tests on Linux, macOS, and Windows | portability regressions are caught; runtime support is not implied |
 | Foundry `crash-path-native` proof | a nonexistent state directory followed by capsule persistence, reload, and an invalid HTTPS delivery through the production edge on Linux, macOS, and Windows | native filesystem semantics, TLS linkage, platform trust roots, and the reporting route compose without storing a report |
-| `scripts/audit` | the locked dependency graph against the checked policy | known dependency advisories are adjudicated |
+| `cargo audit --deny warnings` | the locked dependency graph against `.cargo/audit.toml` | known dependency advisories are adjudicated |
 | `cargo semver-checks` | the candidate public API against the latest crates.io release | a compatible version cannot remove or narrow an API already admitted by downstream Cargo requirements |
 | `cargo package --locked` | the exact publishable archive and its dependency resolution | crates.io receives the intended source, examples, and documentation |
 
@@ -47,11 +47,11 @@ networkless.
 
 ## Library Releases
 
-A release identifies one exact source commit. Publish only from a clean,
-tagged checkout after `scripts/check`, `scripts/audit`, `cargo semver-checks`,
-and `cargo package --locked` pass. The manifest version, tag, packaged
-metadata, and Git commit must identify the same source. `--allow-dirty` is
-forbidden.
+A release identifies one exact source commit. Publish only from a clean, tagged
+checkout after `scripts/check`, `cargo audit --deny warnings`, `cargo
+semver-checks`, and `cargo package --locked` pass. The manifest version, tag,
+packaged metadata, and Git commit must identify the same source. `--allow-dirty`
+is forbidden.
 
 Publication claims only that this package satisfies its documented contract.
 Applications adopt a release deliberately and prove the resulting product
