@@ -1643,7 +1643,11 @@ fn stage_witness<T: Serialize>(
         .map(|anchor| {
             let name = match anchor.identity {
                 Some(identity) => {
-                    format!("{}/{}", anchor.path, crate::witness::Identity(&identity))
+                    format!(
+                        "{}/{}",
+                        anchor.path,
+                        egui_tester_witness::encode_identity(&identity)
+                    )
                 }
                 None => anchor.path,
             };

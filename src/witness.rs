@@ -2,7 +2,9 @@
 
 #![deny(missing_docs)]
 
-use std::fmt::{self, Display, Formatter, Write as _};
+use std::fmt::{self, Display, Formatter};
+
+use egui_tester_witness::encode_identity;
 
 /// Shared semantic Targets owned by Eternalist application composition.
 ///
@@ -55,32 +57,17 @@ impl Display for ApplicationTarget<'_> {
             Self::SettingsPath => formatter.write_str("eternalist.settings.path"),
             Self::SettingsFault => formatter.write_str("eternalist.settings.fault"),
             Self::SettingsReload => formatter.write_str("eternalist.settings.reload"),
-            Self::Setting(id) => write!(formatter, "eternalist.settings.entry/{}", Identity(id)),
+            Self::Setting(id) => write!(
+                formatter,
+                "eternalist.settings.entry/{}",
+                encode_identity(id)
+            ),
             Self::CommandGuideBody => formatter.write_str("eternalist.command-guide.body"),
             Self::DrawerPrevious => formatter.write_str("eternalist.drawer.previous"),
             Self::DrawerNext => formatter.write_str("eternalist.drawer.next"),
             Self::DrawerLower => formatter.write_str("eternalist.drawer.lower"),
             Self::DrawerRaise => formatter.write_str("eternalist.drawer.raise"),
         }
-    }
-}
-
-/// One runtime identity, percent-encoded under the witness wire grammar.
-pub(crate) struct Identity<'a>(pub(crate) &'a str);
-
-impl Display for Identity<'_> {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        const HEX: &[u8; 16] = b"0123456789ABCDEF";
-        for byte in self.0.bytes() {
-            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-                formatter.write_char(char::from(byte))?;
-            } else {
-                formatter.write_char('%')?;
-                formatter.write_char(char::from(HEX[usize::from(byte >> 4)]))?;
-                formatter.write_char(char::from(HEX[usize::from(byte & 0x0f)]))?;
-            }
-        }
-        Ok(())
     }
 }
 

@@ -15,7 +15,7 @@ all-features = true
 
 [features]
 egui-test = [
-  "dep:egui-tester-witness",
+  "egui-tester-witness/egui",
   "serde",
   "brass_poolrooms/instrumentation",
 ]
@@ -24,6 +24,7 @@ serde = ["dep:serde", "brass_poolrooms/serde"]
 [dependencies]
 brass_poolrooms = { version = "0.15.3", features = ["serde"] }
 egui = { version = "=0.36.1", default-features = false }
+egui-tester-witness = { version = "0.9.14", default-features = false }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [dev-dependencies]
@@ -80,11 +81,6 @@ wgpu = { version = "30.0.1", default-features = false, features = ["metal", "std
 
 [target.'cfg(target_os = "windows")'.dependencies]
 wgpu = { version = "30.0.1", default-features = false, features = ["dx12", "std", "wgsl"] }
-
-[target.'cfg(not(target_family = "wasm"))'.dependencies.egui-tester-witness]
-version = "0.9.11"
-optional = true
-features = ["egui"]
 
 [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
 anyhow = "1.0.104"

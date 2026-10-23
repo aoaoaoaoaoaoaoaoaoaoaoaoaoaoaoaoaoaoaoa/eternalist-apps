@@ -1250,7 +1250,11 @@ fn publish(ui: &egui::Ui, scope: &str, target: Target<'_>, response: &egui::Resp
         fmt::from_fn(|formatter| {
             write!(formatter, "cabinet.{scope}.{path}")?;
             identity.map_or(Ok(()), |identity| {
-                write!(formatter, "/{}", witness::Identity(identity))
+                write!(
+                    formatter,
+                    "/{}",
+                    egui_tester_witness::encode_identity(identity)
+                )
             })
         }),
         response,
