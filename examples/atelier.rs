@@ -95,7 +95,7 @@ impl Page {
     const fn target(self) -> &'static str {
         match self {
             Self::Inspector => "atelier.tab.inspector",
-            Self::LivingWait => "atelier.tab.living_wait",
+            Self::LivingWait => "atelier.tab.living-wait",
             Self::Cabinet => "atelier.tab.cabinet",
             Self::Commands => "atelier.tab.commands",
             Self::Settings => "atelier.tab.settings",

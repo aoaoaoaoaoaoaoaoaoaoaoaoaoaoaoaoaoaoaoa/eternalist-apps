@@ -8,12 +8,12 @@
 use std::{
     any::Any,
     collections::{BTreeSet, HashSet},
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display, Write as _},
     hash::Hash,
     sync::Arc,
 };
 
-use crate::Capabilities;
+use crate::{Capabilities, witness};
 use brass_poolrooms::{
     chrome::{self, Coupled, CouplingGap, DragHandle, MechanismSize, Monoglyph, Symbol},
     water::Surface,
@@ -502,7 +502,7 @@ impl<T: CabinetEntry> Cabinet<T> {
                 .show(ui)
                 .on_hover_text("new folder");
             water.monoglyph(&add);
-            record(ui, format!("cabinet.{scope}.new-shelf"), add.interact_rect);
+            publish(ui, scope, Target::NewShelf, &add);
             if add.clicked() {
                 actions.push(CabinetAction::NewShelf);
             }
@@ -661,11 +661,7 @@ fn entry_row<T: CabinetEntry>(
                 .show(ui)
                 .on_hover_text(format!("edit {noun}"));
             water.monoglyph(&edit);
-            record(
-                ui,
-                format!("cabinet.{scope}.edit/{}", key.as_str()),
-                edit.interact_rect,
-            );
+            publish(ui, scope, Target::Edit(key.as_str()), &edit);
             if edit.clicked() {
                 *requested = Some(entry.clone());
             }
@@ -702,25 +698,19 @@ fn entry_row<T: CabinetEntry>(
             (assembly.left, assembly.right, None)
         };
         water.drag_handle(&drag);
+        publish(ui, scope, Target::EntryDrag(key.as_str()), &drag);
         if let Some(rename) = &rename {
             water.monoglyph(rename);
-            record(
-                ui,
-                format!("cabinet.{scope}.rename/{}", key.as_str()),
-                rename.interact_rect,
-            );
+            publish(ui, scope, Target::Rename(key.as_str()), rename);
         }
         water.monoglyph(&delete);
         water.monoglyph(&clone);
         drag.dnd_set_drag_payload(key.clone());
+        publish(ui, scope, Target::Delete(key.as_str()), &delete);
         if delete.clicked() {
             actions.push(CabinetAction::Delete(key.clone()));
         }
-        record(
-            ui,
-            format!("cabinet.{scope}.clone/{}", key.as_str()),
-            clone.interact_rect,
-        );
+        publish(ui, scope, Target::Clone(key.as_str()), &clone);
         if clone.clicked() {
             actions.push(CabinetAction::Clone(key.clone()));
         }
@@ -844,11 +834,7 @@ fn entry_identity<T: CabinetEntry>(
                 egui::StrokeKind::Inside,
             );
         }
-        record(
-            ui,
-            format!("cabinet.{scope}.entry-edit/{}", key.as_str()),
-            response.interact_rect,
-        );
+        publish(ui, scope, Target::EntryEdit(key.as_str()), &response);
         let (enter, escape) = ui.input(|input| {
             (
                 input.key_pressed(egui::Key::Enter),
@@ -918,11 +904,7 @@ fn entry_label<T: CabinetEntry>(
     } else {
         response
     };
-    record(
-        ui,
-        format!("cabinet.{scope}.entry/{}", key.as_str()),
-        response.interact_rect,
-    );
+    publish(ui, scope, Target::Entry(key.as_str()), &response);
     if chrome::hover_started(ui, &response) {
         water.bump(response.rect);
     }
@@ -958,7 +940,7 @@ fn shelf_rows<T: CabinetEntry>(
         } else {
             Symbol::Expand
         };
-        let assembly = Coupled::horizontal_with_gap(
+        let (grip, rest) = Coupled::horizontal_with_gap(
             ui,
             CouplingGap::MINIMUM,
             |ui| {
@@ -1001,35 +983,33 @@ fn shelf_rows<T: CabinetEntry>(
                     },
                 )
             },
-        );
-        water.drag_handle(&assembly.left);
-        water.monoglyph(&assembly.right.left);
-        water.monoglyph(&assembly.right.right.left);
-        water.monoglyph(&assembly.right.right.right);
-        assembly.left.dnd_set_drag_payload(ShelfDrag(slot));
-        record(
-            ui,
-            format!("cabinet.{scope}.shelf-drag/{}", shelf.name),
-            assembly.left.interact_rect,
-        );
-        record(
-            ui,
-            format!("cabinet.{scope}.shelf/{}", shelf.name),
-            assembly.right.left.interact_rect,
-        );
-        if assembly.right.left.clicked() {
+        )
+        .into_parts();
+        let (fold, rest) = rest.into_parts();
+        let (scuttle, rename) = rest.into_parts();
+        water.drag_handle(&grip);
+        water.monoglyph(&fold);
+        water.monoglyph(&scuttle);
+        water.monoglyph(&rename);
+        grip.dnd_set_drag_payload(ShelfDrag(slot));
+        publish(ui, scope, Target::ShelfDrag(&shelf.name), &grip);
+        publish(ui, scope, Target::Shelf(&shelf.name), &fold);
+        publish(ui, scope, Target::ShelfDelete(&shelf.name), &scuttle);
+        publish(ui, scope, Target::ShelfRename(&shelf.name), &rename);
+        if fold.clicked() {
             actions.push(CabinetAction::ToggleShelf(slot));
         }
-        if assembly.right.right.right.clicked() {
+        if rename.clicked() {
             actions.push(CabinetAction::BeginShelfRename(slot));
         }
-        if assembly.right.right.left.clicked() {
+        if scuttle.clicked() {
             actions.push(CabinetAction::ScuttleShelf(slot));
         }
         match shelf_edit {
             Some(edit) if edit.shelf == slot => {
                 let before = edit.name.clone();
                 let entry = ui.text_edit_singleline(&mut edit.name);
+                publish(ui, scope, Target::ShelfEdit(&shelf.name), &entry);
                 if let Some(wake) = chrome::text_wake(ui, &entry, &before, &edit.name) {
                     water.text(wake);
                 }
@@ -1128,7 +1108,7 @@ fn root_berth<T: CabinetEntry>(
             ui.allocate_exact_size(egui::vec2(ui.available_width(), 18.0), egui::Sense::hover())
         })
         .inner;
-    record(ui, format!("cabinet.{scope}.root-berth"), rect);
+    publish(ui, scope, Target::RootBerth, &response);
     let armed =
         egui::DragAndDrop::payload::<T::Key>(ui.ctx()).is_some_and(|key| cabinet.is_shelved(&key));
     if armed {
@@ -1220,27 +1200,62 @@ fn spare_shelf_name(taken: &HashSet<String>, raw: &str) -> String {
     }
 }
 
-#[inline]
-fn record(ui: &egui::Ui, name: String, rect: egui::Rect) {
-    #[cfg(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    ))]
-    {
-        // Scroll areas lay out concealed children; their disjoint interaction
-        // rectangles are inverted and cannot name a reachable test target.
-        let visible = rect.intersect(ui.clip_rect());
-        if visible.is_positive() {
-            egui_tester_witness::egui::record(ui, name, visible);
+/// One semantic Target a Cabinet publishes, spelled
+/// `cabinet.<scope>.<path>[/<identity>]`. Entry keys and shelf names are
+/// runtime identities: forged spellings such as `folder 2` reach the wire
+/// only percent-encoded.
+#[derive(Clone, Copy)]
+enum Target<'a> {
+    NewShelf,
+    RootBerth,
+    Entry(&'a str),
+    EntryDrag(&'a str),
+    EntryEdit(&'a str),
+    Edit(&'a str),
+    Rename(&'a str),
+    Clone(&'a str),
+    Delete(&'a str),
+    Shelf(&'a str),
+    ShelfDrag(&'a str),
+    ShelfEdit(&'a str),
+    ShelfRename(&'a str),
+    ShelfDelete(&'a str),
+}
+
+impl<'a> Target<'a> {
+    const fn spell(self) -> (&'static str, Option<&'a str>) {
+        match self {
+            Self::NewShelf => ("new-shelf", None),
+            Self::RootBerth => ("root-berth", None),
+            Self::Entry(key) => ("entry", Some(key)),
+            Self::EntryDrag(key) => ("entry-drag", Some(key)),
+            Self::EntryEdit(key) => ("entry-edit", Some(key)),
+            Self::Edit(key) => ("edit", Some(key)),
+            Self::Rename(key) => ("rename", Some(key)),
+            Self::Clone(key) => ("clone", Some(key)),
+            Self::Delete(key) => ("delete", Some(key)),
+            Self::Shelf(name) => ("shelf", Some(name)),
+            Self::ShelfDrag(name) => ("shelf-drag", Some(name)),
+            Self::ShelfEdit(name) => ("shelf-edit", Some(name)),
+            Self::ShelfRename(name) => ("shelf-rename", Some(name)),
+            Self::ShelfDelete(name) => ("shelf-delete", Some(name)),
         }
     }
-    #[cfg(not(all(
-        feature = "egui-test",
-        any(target_os = "linux", target_os = "macos", target_os = "windows")
-    )))]
-    {
-        let _ = (ui, name, rect);
-    }
+}
+
+fn publish(ui: &egui::Ui, scope: &str, target: Target<'_>, response: &egui::Response) {
+    let (path, identity) = target.spell();
+    witness::visible_response(
+        ui,
+        fmt::from_fn(|formatter| {
+            write!(formatter, "cabinet.{scope}.{path}")?;
+            identity.map_or(Ok(()), |identity| {
+                formatter.write_char('/')?;
+                witness::write_identity(formatter, identity)
+            })
+        }),
+        response,
+    );
 }
 
 #[cfg(test)]
@@ -1252,7 +1267,7 @@ mod tests {
     struct Name(String);
 
     impl Display for Name {
-        fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
             formatter.write_str(&self.0)
         }
     }

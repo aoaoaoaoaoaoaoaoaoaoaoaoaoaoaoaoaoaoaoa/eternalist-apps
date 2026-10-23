@@ -96,7 +96,8 @@ impl<'a> Drawer<'a> {
             .resizable(false)
             .exact_size(LOWERED_HEIGHT)
             .show_separator_line(true);
-        let raised = egui::Panel::bottom(self.id.with("raised"))
+        let raised_id = self.id.with("raised");
+        let raised = egui::Panel::bottom(raised_id)
             .resizable(false)
             .exact_size(raised_height)
             .show_separator_line(true);
@@ -151,6 +152,10 @@ impl<'a> Drawer<'a> {
         if state.raised != showing_raised {
             ctx.request_repaint();
         }
+        // `show_switched` keys its slide by the raised Panel's id; rereading
+        // the animation within the same pass advances nothing.
+        let slide = ctx.animate_bool_responsive(raised_id.with("animation"), showing_raised);
+        let settled = state.raised == showing_raised && !(0.0 < slide && slide < 1.0);
         ctx.data_mut(|data| {
             let _prior = data.insert_temp(state_id, state);
         });
@@ -159,6 +164,7 @@ impl<'a> Drawer<'a> {
             domain: panel.response.rect,
             panel: state.first,
             raised: state.raised,
+            settled,
         }
     }
 }
@@ -374,6 +380,7 @@ fn step(state: &mut State, last_start: usize, displacement: isize) -> bool {
 }
 
 /// Geometry, mechanisms, and paging from one [`Drawer`] frame.
+#[non_exhaustive]
 pub struct DrawerResponse {
     /// The navigation mechanisms shown this frame, for water coupling.
     pub controls: Vec<MonoglyphResponse>,
@@ -383,4 +390,6 @@ pub struct DrawerResponse {
     pub panel: usize,
     /// Whether the Drawer is raised rather than lowered to its title bar.
     pub raised: bool,
+    /// Whether the Drawer rests at its height, neither sliding nor about to.
+    pub settled: bool,
 }

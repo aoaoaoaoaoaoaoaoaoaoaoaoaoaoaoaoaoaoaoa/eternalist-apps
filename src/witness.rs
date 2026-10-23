@@ -68,7 +68,8 @@ impl Display for ApplicationTarget<'_> {
     }
 }
 
-fn write_identity(formatter: &mut Formatter<'_>, identity: &str) -> fmt::Result {
+/// Percent-encode one runtime identity under the witness wire grammar.
+pub(crate) fn write_identity(formatter: &mut Formatter<'_>, identity: &str) -> fmt::Result {
     const HEX: &[u8; 16] = b"0123456789ABCDEF";
     for byte in identity.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
@@ -94,6 +95,32 @@ pub fn response(ui: &egui::Ui, target: impl Display, response: &egui::Response) 
         any(target_os = "linux", target_os = "macos", target_os = "windows")
     ))]
     egui_tester_witness::egui::record_response(ui, target.to_string(), response);
+    #[cfg(not(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    )))]
+    {
+        let _ = (ui, response);
+        drop(target);
+    }
+}
+
+/// Publish only the visible part of an egui response, with its real focus.
+///
+/// Scroll areas lay out concealed children whose clipped interaction
+/// rectangles are inverted; such a response publishes nothing rather than an
+/// unreachable Target.
+#[inline]
+pub(crate) fn visible_response(ui: &egui::Ui, target: impl Display, response: &egui::Response) {
+    #[cfg(all(
+        feature = "egui-test",
+        any(target_os = "linux", target_os = "macos", target_os = "windows")
+    ))]
+    if response.interact_rect.is_positive() {
+        let mut visible = response.clone();
+        visible.rect = response.interact_rect;
+        egui_tester_witness::egui::record_response(ui, target.to_string(), &visible);
+    }
     #[cfg(not(all(
         feature = "egui-test",
         any(target_os = "linux", target_os = "macos", target_os = "windows")
