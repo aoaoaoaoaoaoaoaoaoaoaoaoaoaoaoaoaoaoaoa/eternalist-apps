@@ -8,7 +8,7 @@
 use std::{
     any::Any,
     collections::{BTreeSet, HashSet},
-    fmt::{self, Debug, Display, Write as _},
+    fmt::{self, Debug, Display},
     hash::Hash,
     sync::Arc,
 };
@@ -1250,8 +1250,7 @@ fn publish(ui: &egui::Ui, scope: &str, target: Target<'_>, response: &egui::Resp
         fmt::from_fn(|formatter| {
             write!(formatter, "cabinet.{scope}.{path}")?;
             identity.map_or(Ok(()), |identity| {
-                formatter.write_char('/')?;
-                witness::write_identity(formatter, identity)
+                write!(formatter, "/{}", witness::Identity(identity))
             })
         }),
         response,

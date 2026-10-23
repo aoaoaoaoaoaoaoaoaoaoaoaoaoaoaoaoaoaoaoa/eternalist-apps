@@ -1641,8 +1641,14 @@ fn stage_witness<T: Serialize>(
     let poolrooms = brass_poolrooms::instrumentation::take(ctx)
         .into_iter()
         .map(|anchor| {
+            let name = match anchor.identity {
+                Some(identity) => {
+                    format!("{}/{}", anchor.path, crate::witness::Identity(&identity))
+                }
+                None => anchor.path,
+            };
             Anchor::logical(
-                anchor.name,
+                name,
                 [
                     anchor.rect.min.x,
                     anchor.rect.min.y,

@@ -55,10 +55,7 @@ impl Display for ApplicationTarget<'_> {
             Self::SettingsPath => formatter.write_str("eternalist.settings.path"),
             Self::SettingsFault => formatter.write_str("eternalist.settings.fault"),
             Self::SettingsReload => formatter.write_str("eternalist.settings.reload"),
-            Self::Setting(id) => {
-                formatter.write_str("eternalist.settings.entry/")?;
-                write_identity(formatter, id)
-            }
+            Self::Setting(id) => write!(formatter, "eternalist.settings.entry/{}", Identity(id)),
             Self::CommandGuideBody => formatter.write_str("eternalist.command-guide.body"),
             Self::DrawerPrevious => formatter.write_str("eternalist.drawer.previous"),
             Self::DrawerNext => formatter.write_str("eternalist.drawer.next"),
@@ -68,19 +65,23 @@ impl Display for ApplicationTarget<'_> {
     }
 }
 
-/// Percent-encode one runtime identity under the witness wire grammar.
-pub(crate) fn write_identity(formatter: &mut Formatter<'_>, identity: &str) -> fmt::Result {
-    const HEX: &[u8; 16] = b"0123456789ABCDEF";
-    for byte in identity.bytes() {
-        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
-            formatter.write_char(char::from(byte))?;
-        } else {
-            formatter.write_char('%')?;
-            formatter.write_char(char::from(HEX[usize::from(byte >> 4)]))?;
-            formatter.write_char(char::from(HEX[usize::from(byte & 0x0f)]))?;
+/// One runtime identity, percent-encoded under the witness wire grammar.
+pub(crate) struct Identity<'a>(pub(crate) &'a str);
+
+impl Display for Identity<'_> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        const HEX: &[u8; 16] = b"0123456789ABCDEF";
+        for byte in self.0.bytes() {
+            if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+                formatter.write_char(char::from(byte))?;
+            } else {
+                formatter.write_char('%')?;
+                formatter.write_char(char::from(HEX[usize::from(byte >> 4)]))?;
+                formatter.write_char(char::from(HEX[usize::from(byte & 0x0f)]))?;
+            }
         }
+        Ok(())
     }
-    Ok(())
 }
 
 /// Publish an egui response as one semantic Target in observational builds.
