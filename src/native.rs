@@ -1640,18 +1640,17 @@ fn stage_witness<T: Serialize>(
     let anchors = egui_tester_witness::egui::take(ctx, pixels_per_point)?;
     let poolrooms = brass_poolrooms::instrumentation::take(ctx)
         .into_iter()
-        .map(|anchor| {
+        .filter_map(|anchor| {
             let name = match anchor.identity {
-                Some(identity) => {
-                    format!(
-                        "{}/{}",
-                        anchor.path,
-                        egui_tester_witness::encode_identity(&identity)
-                    )
-                }
+                // An empty identity has no spelling and so names no Target.
+                Some(identity) => format!(
+                    "{}/{}",
+                    anchor.path,
+                    egui_tester_witness::encode_identity(&identity)?
+                ),
                 None => anchor.path,
             };
-            Anchor::logical(
+            Some(Anchor::logical(
                 name,
                 [
                     anchor.rect.min.x,
@@ -1660,7 +1659,7 @@ fn stage_witness<T: Serialize>(
                     anchor.rect.max.y,
                 ],
                 pixels_per_point,
-            )
+            ))
         })
         .collect::<egui_tester_witness::Result<Vec<_>>>()?;
     let observed = pulse.observe();

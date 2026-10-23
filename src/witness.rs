@@ -6,13 +6,15 @@ use std::fmt::{self, Display, Formatter};
 
 use egui_tester_witness::encode_identity;
 
+use crate::settings::SettingSpec;
+
 /// Shared semantic Targets owned by Eternalist application composition.
 ///
 /// Products own their domain Targets. These variants are reserved for the
 /// application header, Command Guide, and Settings Sheet rendered by this
 /// crate.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ApplicationTarget<'a> {
+pub enum ApplicationTarget {
     /// Complete Application Header geometry.
     Header,
     /// Application name in the header.
@@ -32,7 +34,7 @@ pub enum ApplicationTarget<'a> {
     /// Configuration reload actuator.
     SettingsReload,
     /// One application-defined setting row.
-    Setting(&'a str),
+    Setting(SettingSpec),
     /// Complete Command Guide body.
     CommandGuideBody,
     /// The Drawer's previous-Panel arrow.
@@ -45,7 +47,7 @@ pub enum ApplicationTarget<'a> {
     DrawerRaise,
 }
 
-impl Display for ApplicationTarget<'_> {
+impl Display for ApplicationTarget {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Header => formatter.write_str("eternalist.application.header"),
@@ -57,11 +59,11 @@ impl Display for ApplicationTarget<'_> {
             Self::SettingsPath => formatter.write_str("eternalist.settings.path"),
             Self::SettingsFault => formatter.write_str("eternalist.settings.fault"),
             Self::SettingsReload => formatter.write_str("eternalist.settings.reload"),
-            Self::Setting(id) => write!(
-                formatter,
-                "eternalist.settings.entry/{}",
-                encode_identity(id)
-            ),
+            Self::Setting(spec) => {
+                formatter.write_str("eternalist.settings.entry")?;
+                // SettingSpec::new refuses an empty id, so this always spells one.
+                encode_identity(spec.id()).map_or(Ok(()), |id| write!(formatter, "/{id}"))
+            }
             Self::CommandGuideBody => formatter.write_str("eternalist.command-guide.body"),
             Self::DrawerPrevious => formatter.write_str("eternalist.drawer.previous"),
             Self::DrawerNext => formatter.write_str("eternalist.drawer.next"),
@@ -170,7 +172,8 @@ mod tests {
             "eternalist.command-guide.body"
         );
         assert_eq!(
-            ApplicationTarget::Setting("remote/source 1").to_string(),
+            ApplicationTarget::Setting(SettingSpec::new("remote/source 1", "Source", ""))
+                .to_string(),
             "eternalist.settings.entry/remote%2Fsource%201"
         );
     }

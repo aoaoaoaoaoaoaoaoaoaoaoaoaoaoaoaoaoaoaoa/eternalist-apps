@@ -31,7 +31,7 @@ pub const FONT_SIZE: SettingSpec = SettingSpec::new(
 );
 
 /// Stable application-owned metadata for one configurable setting.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SettingSpec {
     id: &'static str,
     name: &'static str,
@@ -40,8 +40,15 @@ pub struct SettingSpec {
 
 impl SettingSpec {
     /// Declare one setting independently of its current value or storage.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `id` is empty: an empty identity names no setting and has
+    /// no witness spelling.
     #[must_use]
+    #[track_caller]
     pub const fn new(id: &'static str, name: &'static str, detail: &'static str) -> Self {
+        assert!(!id.is_empty(), "a setting requires a non-empty id");
         Self { id, name, detail }
     }
 
@@ -461,7 +468,7 @@ fn setting_row(
             |ui| {
                 ui.set_min_height(58.0);
                 let (rect, control_changed) = control(ui, water);
-                witness::rect(ui.ctx(), ApplicationTarget::Setting(spec.id()), rect);
+                witness::rect(ui.ctx(), ApplicationTarget::Setting(spec), rect);
                 changed = control_changed;
                 ui.add_space(12.0);
                 let _copy =

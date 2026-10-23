@@ -1245,17 +1245,19 @@ impl<'a> Target<'a> {
 
 fn publish(ui: &egui::Ui, scope: &str, target: Target<'_>, response: &egui::Response) {
     let (path, identity) = target.spell();
+    // Keys and shelf names are non-empty by every Cabinet path, but products
+    // own both; an empty identity has no spelling and so names no Target.
+    let identity = match identity.map(egui_tester_witness::encode_identity) {
+        Some(None) => return,
+        encoded => encoded.flatten(),
+    };
     witness::visible_response(
         ui,
         fmt::from_fn(|formatter| {
             write!(formatter, "cabinet.{scope}.{path}")?;
-            identity.map_or(Ok(()), |identity| {
-                write!(
-                    formatter,
-                    "/{}",
-                    egui_tester_witness::encode_identity(identity)
-                )
-            })
+            identity
+                .as_ref()
+                .map_or(Ok(()), |identity| write!(formatter, "/{identity}"))
         }),
         response,
     );
