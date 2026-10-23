@@ -779,7 +779,8 @@ impl<A: NativeApp> Shell<A> {
             self.app
                 .water(&self.ctx, output.pixels_per_point, &tooltip_rects)
         );
-        if gpu.water.is_some() && water.wants_repaint() {
+        let water_astir = gpu.water.is_some() && water.wants_repaint();
+        if water_astir {
             schedule_repaint(
                 &self.governor,
                 &self.alarm,
@@ -800,7 +801,8 @@ impl<A: NativeApp> Shell<A> {
                 )
             })
             .transpose()
-            .context("stage egui-tester witness")?;
+            .context("stage egui-tester witness")?
+            .map(|pending| pending.astir(water_astir));
         let rendered = main_phase!(
             "frame.render",
             rig.render(

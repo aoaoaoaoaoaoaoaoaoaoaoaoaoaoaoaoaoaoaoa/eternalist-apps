@@ -94,7 +94,10 @@ action transcript, last-good capture, and bounded failure artifacts. Fixture
 seeding occurs outside the product or through public product behavior.
 
 Poolrooms water and lawful animation remain enabled. Never wait for pixel
-quiescence or require exact whole-frame equality. Synchronize on a presented
+quiescence or require exact whole-frame equality. The host declares each
+presented pass astir while Poolrooms water has asked for another pass, so a
+still rests only after the water settles; ambient animation the host does not
+drive stays undeclared. Synchronize on a presented
 semantic predicate, then use tolerant bounded-region image evidence or a
 durable external oracle. Performance runs use representative host graphics;
 software graphics proves deterministic behavior only.
