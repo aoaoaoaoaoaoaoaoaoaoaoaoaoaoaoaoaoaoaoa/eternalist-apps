@@ -10,6 +10,32 @@ pub(crate) struct ScrollExtent {
     pub(crate) height: f32,
 }
 
+/// Scrap the pass in which egui sizes a newly shown area.
+///
+/// egui lays a new area out once invisibly and without interaction, and the
+/// next pass hit-tests input against that layout: a click on the area's
+/// published geometry would reach the widget beneath it. Discarding the
+/// sizing pass reruns layout within the same frame, so the presented and
+/// witnessed pass is the interactable one. Call it first inside the area.
+pub(crate) fn scrap_sizing_pass(ui: &egui::Ui) {
+    if ui.is_sizing_pass() {
+        ui.ctx()
+            .request_discard("an area's sizing pass is invisible and inert");
+    }
+}
+
+/// Show `modal` without ever presenting its sizing pass.
+pub(crate) fn show_modal<R>(
+    modal: egui::Modal,
+    ctx: &Context,
+    add: impl FnOnce(&mut egui::Ui) -> R,
+) -> egui::ModalResponse<R> {
+    modal.show(ctx, |ui| {
+        scrap_sizing_pass(ui);
+        add(ui)
+    })
+}
+
 pub(crate) fn card_frame() -> egui::Frame {
     egui::Frame::new()
         .fill(chrome::SURFACE)
@@ -225,4 +251,47 @@ fn focus_return_interdicted(input: &egui::InputState) -> bool {
                     | Event::AccessKitActionRequest(_)
             )
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // egui hit-tests each pass's input against the previous pass. Unless a
+    // fresh modal's invisible, inert sizing pass is discarded, a click landing
+    // right after the modal first appears reaches the widget beneath it.
+    #[test]
+    fn opening_frame_click_reaches_the_modal() {
+        let ctx = Context::default();
+        let screen = Rect::from_min_size(egui::Pos2::ZERO, Vec2::new(800.0, 600.0));
+        // One frame: (beneath clicked, modal clicked, modal button center).
+        let frame = |events: Vec<Event>| {
+            let input = egui::RawInput {
+                screen_rect: Some(screen),
+                events,
+                ..egui::RawInput::default()
+            };
+            let mut witnessed = (false, false, egui::Pos2::ZERO);
+            ctx.run_ui(input, |ui| {
+                let beneath = ui.add_sized(ui.available_size(), egui::Button::new("beneath"));
+                let modal = show_modal(egui::Modal::new(Id::new("probe")), ui.ctx(), |ui| {
+                    ui.button("modal")
+                })
+                .inner;
+                witnessed = (beneath.clicked(), modal.clicked(), modal.rect.center());
+            })
+            .drop_without_applying_deltas();
+            witnessed
+        };
+        let (_, _, at) = frame(Vec::new());
+        let press = |pressed| Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        };
+        let _pressed = frame(vec![Event::PointerMoved(at), press(true)]);
+        let (beneath, modal, _) = frame(vec![press(false)]);
+        assert!(modal && !beneath, "beneath: {beneath}, modal: {modal}");
+    }
 }

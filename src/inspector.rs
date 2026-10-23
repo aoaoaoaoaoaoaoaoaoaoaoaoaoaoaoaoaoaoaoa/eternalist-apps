@@ -11,7 +11,10 @@ use brass_poolrooms::{
 };
 use egui::{Id, InnerResponse, Rect, Response, ScrollArea, Ui};
 
-use crate::commands::{Stroke, TOGGLE_INSPECTOR, take};
+use crate::{
+    commands::{Stroke, TOGGLE_INSPECTOR, take},
+    modal::scrap_sizing_pass,
+};
 
 mod drawer;
 
@@ -188,6 +191,7 @@ fn visibility_actuator(
         .order(egui::Order::Foreground)
         .fixed_pos(boundary_rect.min)
         .show(ctx, |ui| {
+            scrap_sizing_pass(ui);
             ui.allocate_exact_size(boundary_rect.size(), egui::Sense::CLICK)
                 .1
         })
@@ -230,6 +234,7 @@ fn visibility_actuator(
             .order(egui::Order::Foreground)
             .fixed_pos(actuator_rect.min)
             .show(ctx, |ui| {
+                scrap_sizing_pass(ui);
                 Monoglyph::new(if expanded { '◀' } else { '▶' })
                     .size(MechanismSize::Small)
                     .focusable(false)

@@ -15,7 +15,11 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest as _, Sha256};
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 
-use crate::{ApplicationPaths, Ingress, NativeWake, ProductIdentity, witness};
+use crate::{
+    ApplicationPaths, Ingress, NativeWake, ProductIdentity,
+    modal::{card_frame, show_modal},
+    witness,
+};
 
 const SCHEMA: u8 = 2;
 const CAPSULE_NAME: &str = "crash-report-v2.json";
@@ -286,16 +290,12 @@ impl CrashReports {
             .recorder
             .as_ref()
             .is_some_and(|recorder| recorder.spec.endpoint.is_some());
-        let modal = egui::Modal::new(egui::Id::new("eternalist-crash-report-consent"))
-            .frame(
-                egui::Frame::new()
-                    .fill(chrome::SURFACE)
-                    .stroke(egui::Stroke::new(1.5, chrome::EDGE_STRONG))
-                    .corner_radius(2)
-                    .inner_margin(egui::Margin::same(16)),
-            )
-            .backdrop_color(egui::Color32::from_black_alpha(176))
-            .show(ctx, |ui| {
+        let modal = show_modal(
+            egui::Modal::new(egui::Id::new("eternalist-crash-report-consent"))
+                .frame(card_frame().inner_margin(egui::Margin::same(16)))
+                .backdrop_color(egui::Color32::from_black_alpha(176)),
+            ctx,
+            |ui| {
                 ui.set_width((ctx.content_rect().width() - 48.0).clamp(360.0, 600.0));
                 ui.label(chrome::title("SEND A CRASH REPORT?"));
                 ui.add_space(7.0);
@@ -324,12 +324,18 @@ impl CrashReports {
                         .id_salt("eternalist-crash-report-exact")
                         .max_height(220.0)
                         .show(ui, |ui| {
-                            ui.add(egui::Label::new(egui::RichText::new(exact).monospace()).selectable(true));
+                            ui.add(
+                                egui::Label::new(egui::RichText::new(exact).monospace())
+                                    .selectable(true),
+                            );
                         });
                 }
                 if failed {
                     ui.add_space(8.0);
-                    ui.colored_label(chrome::HOT, "The report was not accepted. It remains only on this computer.");
+                    ui.colored_label(
+                        chrome::HOT,
+                        "The report was not accepted. It remains only on this computer.",
+                    );
                 }
                 if !delivery_armed {
                     ui.add_space(8.0);
@@ -340,21 +346,30 @@ impl CrashReports {
                     let discard_response =
                         ui.add_enabled(!sending, egui::Button::new("DON'T SEND"));
                     witness::response(ui, "eternalist.crash-report.discard", &discard_response);
-                    if discard_response.clicked() {
-                        discard = true;
-                    }
-                    let label = if sending { "SENDING…" } else if failed { "RETRY" } else { "SEND REPORT" };
+                    discard = discard_response.clicked();
+                    let label = if sending {
+                        "SENDING…"
+                    } else if failed {
+                        "RETRY"
+                    } else {
+                        "SEND REPORT"
+                    };
                     let send_response =
                         ui.add_enabled(!sending && delivery_armed, egui::Button::new(label));
                     if send_response.enabled() {
                         witness::response(ui, "eternalist.crash-report.send", &send_response);
                     }
                     if send_response.clicked() {
-                        witness::response(ui, "eternalist.crash-report.send-clicked", &send_response);
+                        witness::response(
+                            ui,
+                            "eternalist.crash-report.send-clicked",
+                            &send_response,
+                        );
                         send = true;
                     }
                 });
-            });
+            },
+        );
         self.exact_open = exact_open;
         if discard || modal.should_close() && !sending {
             self.discard();

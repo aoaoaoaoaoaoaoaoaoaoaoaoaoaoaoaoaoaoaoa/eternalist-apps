@@ -15,7 +15,7 @@ use brass_poolrooms::{
 
 use crate::{
     commands::{SETTINGS_SHORTCUTS, Stroke, take},
-    modal::{ModalShell, card_frame, scroll_extent},
+    modal::{ModalShell, card_frame, scroll_extent, show_modal},
     witness::{self, ApplicationTarget},
 };
 
@@ -241,10 +241,12 @@ impl SettingsSheet {
         let width = (ctx.content_rect().width() - 48.0).clamp(380.0, 680.0);
         let mut close = false;
         let mut reload_requested = false;
-        let modal = egui::Modal::new(egui::Id::new("eternalist-settings"))
-            .frame(card_frame())
-            .backdrop_color(egui::Color32::from_black_alpha(176))
-            .show(ctx, |ui| {
+        let modal = show_modal(
+            egui::Modal::new(egui::Id::new("eternalist-settings"))
+                .frame(card_frame())
+                .backdrop_color(egui::Color32::from_black_alpha(176)),
+            ctx,
+            |ui| {
                 ui.set_width(width);
                 let chrome_top = ui.cursor().top();
                 let _header = ui.horizontal(|ui| {
@@ -274,7 +276,8 @@ impl SettingsSheet {
                 ui.add_space(10.0);
                 let extent = scroll_extent(ctx, ui.cursor().top() - chrome_top, 520.0);
                 reload_requested |= settings_body(ui, water, file, extent, add_settings);
-            });
+            },
+        );
         self.shell
             .finish_present(ctx, modal.response.rect, close || modal.should_close());
         SettingsResponse { reload_requested }

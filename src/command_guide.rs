@@ -13,7 +13,7 @@ use crate::commands::{
     ACTIVATE, CommandCanon, CommandScope, CommandSpec, CommandStatus, HELP_SHORTCUTS, NEXT_CONTROL,
     PREVIOUS_CONTROL, SETTINGS_SHORTCUTS, Shortcut, Stroke, UNWIND, take,
 };
-use crate::modal::{ModalShell, card_frame, scroll_extent};
+use crate::modal::{ModalShell, card_frame, scroll_extent, show_modal};
 use crate::witness::{self, ApplicationTarget};
 
 const GUIDE_COLUMN_SPACING: f32 = 10.0;
@@ -288,10 +288,12 @@ impl CommandGuide {
         let keyboard = Capabilities::of(ctx).keyboard;
         let mut close = false;
         let page = &mut self.page;
-        let modal = egui::Modal::new(egui::Id::new("eternalist-command-guide"))
-            .frame(card_frame())
-            .backdrop_color(egui::Color32::from_black_alpha(176))
-            .show(ctx, |ui| {
+        let modal = show_modal(
+            egui::Modal::new(egui::Id::new("eternalist-command-guide"))
+                .frame(card_frame())
+                .backdrop_color(egui::Color32::from_black_alpha(176)),
+            ctx,
+            |ui| {
                 ui.set_width(width);
                 let chrome_top = ui.cursor().top();
                 let _header = ui.horizontal(|ui| {
@@ -358,7 +360,8 @@ impl CommandGuide {
                     ApplicationTarget::CommandGuideBody,
                     body.inner_rect,
                 );
-            });
+            },
+        );
         // Modal retirement follows the presented surface by one pass, so the
         // public state and witness geometry cannot diverge.
         self.shell
