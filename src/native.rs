@@ -790,19 +790,24 @@ impl<A: NativeApp> Shell<A> {
             );
         }
         #[cfg(feature = "egui-test")]
-        let pending = pulse
-            .map(|pulse| {
-                stage_witness(
-                    &self.ctx,
-                    pulse,
-                    self.ctx.cumulative_frame_nr(),
-                    output.pixels_per_point,
-                    self.app.observe(self.ctx.text_edit_focused()),
-                )
-            })
-            .transpose()
-            .context("stage egui-tester witness")?
-            .map(|pending| pending.astir(water_astir));
+        let pending =
+            pulse
+                .map(|pulse| {
+                    stage_witness(
+                        &self.ctx,
+                        pulse,
+                        self.ctx.cumulative_frame_nr(),
+                        output.pixels_per_point,
+                        self.app.observe(self.ctx.text_edit_focused()),
+                    )
+                })
+                .transpose()
+                .context("stage egui-tester witness")?
+                .map(|pending| {
+                    pending.astir(water_astir).surface_size(
+                        egui_tester_witness::egui::surface_size(&self.ctx, output.pixels_per_point),
+                    )
+                });
         let rendered = main_phase!(
             "frame.render",
             rig.render(
