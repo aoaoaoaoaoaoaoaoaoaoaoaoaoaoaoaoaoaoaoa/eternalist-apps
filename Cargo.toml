@@ -22,13 +22,13 @@ egui-test = [
 serde = ["dep:serde", "brass_poolrooms/serde"]
 
 [dependencies]
-brass_poolrooms = { version = "0.15.3", features = ["serde"] }
+brass_poolrooms = { version = "0.16.0", features = ["serde"] }
 egui = { version = "=0.36.1", default-features = false }
-egui-tester-witness = { version = "0.9.14", default-features = false }
+egui-tester-witness = { version = "0.10.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"], optional = true }
 
 [dev-dependencies]
-brass_poolrooms = { version = "0.15.3", features = ["glyph-audit"] }
+brass_poolrooms = { version = "0.16.0", features = ["glyph-audit"] }
 
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
@@ -73,7 +73,7 @@ x11rb = { version = "0.14.0", default-features = false, features = ["render"] }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 arboard = { version = "3.6.1", default-features = false }
-egui-tester = "0.9.11"
+egui-tester = "0.10.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 egui-wgpu = { version = "=0.36.1", default-features = false, features = ["macos-window-resize-jitter-fix"] }

@@ -207,15 +207,15 @@ dependencies = [
 
 [[package]]
 name = "brass_foundry"
-version = "0.15.3"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3be978aa990e317d084c0bac9d8e5a15fa49e5e9c607d9d34055cda4db168e06"
+checksum = "80b5c28b5d3d56dccd0475c83fa72f7c00ad9e43268889ee11b338d6f450f823"
 
 [[package]]
 name = "brass_poolrooms"
-version = "0.15.3"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e90e29a8819b64378ef4d4e4ff7cca9229eb44acea6167fc916011a27855e12e"
+checksum = "c0c9fdcb7405459fe9eafe244e8a3265e73529a8dbec3641392a8caf5092a032"
 dependencies = [
  "anyhow",
  "brass_foundry",
@@ -355,9 +355,9 @@ dependencies = [
 
 [[package]]
 name = "clipboard-win"
-version = "5.4.1"
+version = "5.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4"
+checksum = "052af7878466feccda12ba7a6a67d019d712f296809559b47c12c8cc196d3a9a"
 dependencies = [
  "error-code",
 ]
@@ -645,9 +645,9 @@ dependencies = [
 
 [[package]]
 name = "egui-tester"
-version = "0.9.13"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "555f7e7d0e1010a0b7f36d4e87e65bc887d90f46a567e44124d9a915798074eb"
+checksum = "2100d17dc3021280bd7ba86975cee913e633694ac2f723093fb5283ee0ed8699"
 dependencies = [
  "bitflags 2.13.1",
  "egui-tester-witness",
@@ -665,9 +665,9 @@ dependencies = [
 
 [[package]]
 name = "egui-tester-witness"
-version = "0.9.13"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84f04deb42f1941dcbd0e47138318a4fa7937176b696169159fda61765159f2"
+checksum = "dbb0b84639b93cf2bcedb24f2101a5ce26280d7064caf8f6357342298b3abffc"
 dependencies = [
  "egui",
  "rustix 1.1.4",
@@ -2863,7 +2863,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix 1.1.4",
  "windows-sys 0.61.2",
